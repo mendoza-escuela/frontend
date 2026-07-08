@@ -24,3 +24,139 @@ textarea,
 select {
   font: inherit;
 }
+
+@keyframes dashboard-card {
+  0%,
+  100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-8px);
+  }
+}
+
+@keyframes panel-reveal {
+  0% {
+    opacity: 0;
+    transform: translateY(14px);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+@keyframes dashboard-progress {
+  0% {
+    width: 18%;
+  }
+  100% {
+    width: 68%;
+  }
+}
+
+@keyframes progress-shine {
+  0% {
+    transform: translateX(-120%);
+  }
+  100% {
+    transform: translateX(520%);
+  }
+}
+
+@keyframes status-pulse {
+  0%,
+  100% {
+    opacity: 1;
+    transform: scale(1);
+  }
+  50% {
+    opacity: 0.45;
+    transform: scale(1.45);
+  }
+}
+
+@keyframes status-ring {
+  0% {
+    opacity: 0.7;
+    transform: scale(1);
+  }
+  100% {
+    opacity: 0;
+    transform: scale(1.35);
+  }
+}
+
+@keyframes icon-float {
+  0%,
+  100% {
+    transform: rotate(0deg) translateY(0);
+  }
+  50% {
+    transform: rotate(2deg) translateY(-4px);
+  }
+}
+
+@keyframes metric-card {
+  0% {
+    opacity: 0;
+    transform: translateY(12px) scale(0.98);
+  }
+  100% {
+    opacity: 1;
+    transform: translateY(0) scale(1);
+  }
+}
+
+.animate-dashboard-card {
+  animation: panel-reveal 700ms ease-out both;
+}
+
+.animate-panel-reveal {
+  animation: panel-reveal 700ms ease-out both;
+}
+
+.animate-dashboard-progress {
+  animation: dashboard-progress 900ms ease-out both;
+}
+
+.animate-progress-shine {
+  animation: progress-shine 900ms ease-out 1;
+}
+
+.animate-status-pulse {
+  animation: status-pulse 1.8s ease-in-out infinite;
+}
+
+.animate-status-ring {
+  animation: status-ring 1.9s ease-out infinite;
+}
+
+.animate-icon-float {
+  animation: icon-float 4.5s ease-in-out infinite;
+}
+
+.animate-metric-card {
+  animation: metric-card 650ms ease-out both;
+}
+
+.animation-delay-150 {
+  animation-delay: 150ms;
+}
+
+.animation-delay-300 {
+  animation-delay: 300ms;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .animate-dashboard-card,
+  .animate-panel-reveal,
+  .animate-dashboard-progress,
+  .animate-progress-shine,
+  .animate-status-pulse,
+  .animate-status-ring,
+  .animate-icon-float,
+  .animate-metric-card {
+    animation: none;
+  }
+}

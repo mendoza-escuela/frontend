@@ -8,11 +8,13 @@ import {
 } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import epsIcon from '../assets/eps-icon.svg';
+import { AnimatedNumber } from '../components/home/AnimatedNumber';
 import { CertificationScale } from '../components/home/CertificationScale';
 import { FeatureCard } from '../components/home/FeatureCard';
 import { ProcessStep } from '../components/home/ProcessStep';
 import { PublicFooter } from '../components/layout/PublicFooter';
 import { PublicHeader } from '../components/layout/PublicHeader';
+import { Reveal } from '../components/ui/Reveal';
 
 const featureCards = [
   {
@@ -25,7 +27,7 @@ const featureCards = [
     icon: ClipboardList,
     title: 'Carga de cuestionario',
     description:
-      'Formulario guiado para completar la informacion requerida por el programa de manera clara.',
+      'Formulario guiado para completar la información requerida por el programa de manera clara.',
   },
   {
     icon: FileCheck2,
@@ -37,7 +39,7 @@ const featureCards = [
     icon: BarChart3,
     title: 'Dashboard de resultados',
     description:
-      'Visualizacion centralizada para consultar avances, estados y resultados por establecimiento.',
+      'Visualización centralizada para consultar avances, estados y resultados por establecimiento.',
   },
 ];
 
@@ -93,8 +95,11 @@ export function HomePage() {
             </div>
           </div>
 
-          <aside className="rounded-3xl border border-[#E5E7EB] bg-[#F5F7FA] p-5 shadow-xl shadow-[#003A70]/10 lg:p-7">
-            <div className="rounded-2xl bg-white p-6 shadow-sm">
+          <aside className="relative overflow-hidden rounded-3xl border border-[#E5E7EB] bg-[#F5F7FA] p-5 shadow-xl shadow-[#003A70]/10 lg:p-7">
+            <div className="pointer-events-none absolute inset-x-8 top-8 h-24 rounded-full bg-[#D8F1F7]/70 blur-3xl" />
+            <div className="pointer-events-none absolute bottom-8 right-8 h-28 w-28 rounded-full bg-[#6DBE45]/15 blur-2xl" />
+
+            <div className="animate-dashboard-card relative rounded-2xl bg-white p-6 shadow-sm">
               <div className="flex items-center justify-between gap-4 border-b border-[#E5E7EB] pb-5">
                 <div>
                   <p className="text-sm font-semibold text-[#6B7280]">
@@ -104,37 +109,45 @@ export function HomePage() {
                     Monitoreo institucional
                   </h2>
                 </div>
-                <span className="flex h-12 w-12 items-center justify-center rounded-xl bg-[#D8F1F7] text-[#007C89]">
+                <span className="animate-icon-float relative flex h-12 w-12 items-center justify-center rounded-xl bg-[#D8F1F7] text-[#007C89]">
+                  <span className="animate-status-ring absolute inset-0 rounded-xl border border-[#007C89]/25" />
                   <img alt="" aria-hidden="true" className="h-8 w-8" src={epsIcon} />
                 </span>
               </div>
 
               <div className="mt-6 grid gap-4">
-                <div className="rounded-2xl border border-[#E5E7EB] p-4">
+                <div className="animate-panel-reveal rounded-2xl border border-[#E5E7EB] p-4">
                   <div className="flex items-center justify-between">
                     <span className="text-sm font-semibold text-[#6B7280]">
                       Diagnóstico
                     </span>
-                    <span className="rounded-full bg-[#6DBE45]/15 px-3 py-1 text-xs font-bold text-[#2E7D32]">
+                    <span className="inline-flex items-center gap-2 rounded-full bg-[#6DBE45]/15 px-3 py-1 text-xs font-bold text-[#2E7D32]">
+                      <span className="animate-status-pulse h-2 w-2 rounded-full bg-[#6DBE45]" />
                       Activo
                     </span>
                   </div>
-                  <div className="mt-4 h-3 rounded-full bg-[#E5E7EB]">
-                    <div className="h-3 w-3/4 rounded-full bg-[#007C89]" />
+                  <div className="mt-4 h-3 overflow-hidden rounded-full bg-[#E5E7EB]">
+                    <div className="animate-dashboard-progress relative h-3 rounded-full bg-[#007C89]">
+                      <span className="animate-progress-shine absolute inset-y-0 left-0 w-24 bg-white/30" />
+                    </div>
                   </div>
                 </div>
 
                 <div className="grid grid-cols-2 gap-4">
-                  <div className="rounded-2xl bg-[#003A70] p-4 text-white">
+                  <div className="animate-metric-card rounded-2xl bg-[#003A70] p-4 text-white">
                     <MonitorCheck aria-hidden="true" size={22} />
-                    <p className="mt-4 text-2xl font-bold">5</p>
+                    <p className="mt-4 text-2xl font-bold">
+                      <AnimatedNumber value={5} />
+                    </p>
                     <p className="mt-1 text-sm text-white/75">
                       niveles de certificación
                     </p>
                   </div>
-                  <div className="rounded-2xl bg-[#D8F1F7] p-4 text-[#003A70]">
+                  <div className="animate-metric-card animation-delay-150 rounded-2xl bg-[#D8F1F7] p-4 text-[#003A70]">
                     <Sparkles aria-hidden="true" size={22} />
-                    <p className="mt-4 text-2xl font-bold">100</p>
+                    <p className="mt-4 text-2xl font-bold">
+                      <AnimatedNumber value={100} />
+                    </p>
                     <p className="mt-1 text-sm text-[#003A70]/75">
                       puntos de referencia
                     </p>
@@ -147,7 +160,7 @@ export function HomePage() {
       </section>
 
       <section className="mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-8" id="programa">
-        <div className="max-w-2xl">
+        <Reveal className="max-w-2xl">
           <p className="text-sm font-bold uppercase tracking-wide text-[#007C89]">
             Programa
           </p>
@@ -155,19 +168,23 @@ export function HomePage() {
             Herramientas para acompañar la gestión institucional
           </h2>
           <p className="mt-4 text-base leading-7 text-[#6B7280]">
-            Una entrada clara para que las escuelas carguen informacion y los
+            Una entrada clara para que las escuelas carguen información y los
             equipos responsables puedan seguir el avance del programa.
           </p>
-        </div>
+        </Reveal>
 
         <div className="mt-10 grid gap-5 sm:grid-cols-2 lg:grid-cols-4" id="beneficios">
-          {featureCards.map((featureCard) => (
-            <FeatureCard
-              description={featureCard.description}
-              icon={featureCard.icon}
+          {featureCards.map((featureCard, index) => (
+            <Reveal
+              delay={index === 0 ? 'none' : index === 1 ? 'short' : index === 2 ? 'medium' : 'long'}
               key={featureCard.title}
-              title={featureCard.title}
-            />
+            >
+              <FeatureCard
+                description={featureCard.description}
+                icon={featureCard.icon}
+                title={featureCard.title}
+              />
+            </Reveal>
           ))}
         </div>
       </section>
@@ -175,7 +192,7 @@ export function HomePage() {
       <section className="bg-white py-16">
         <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
           <div className="grid gap-10 lg:grid-cols-[0.8fr_1.2fr] lg:items-start">
-            <div>
+            <Reveal>
               <p className="text-sm font-bold uppercase tracking-wide text-[#007C89]">
                 Proceso
               </p>
@@ -187,15 +204,16 @@ export function HomePage() {
                 escuela hasta el monitoreo de resultados por parte de los
                 administradores.
               </p>
-            </div>
+            </Reveal>
 
             <ol className="grid gap-4 sm:grid-cols-2">
               {processSteps.map((processStep, index) => (
-                <ProcessStep
-                  description={processStep}
+                <Reveal
+                  delay={index === 0 ? 'none' : index === 1 ? 'short' : index === 2 ? 'medium' : 'long'}
                   key={processStep}
-                  step={index + 1}
-                />
+                >
+                  <ProcessStep description={processStep} step={index + 1} />
+                </Reveal>
               ))}
             </ol>
           </div>
@@ -203,8 +221,9 @@ export function HomePage() {
       </section>
 
       <section className="mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-8">
-        <div className="rounded-3xl border border-[#E5E7EB] bg-white p-6 shadow-sm sm:p-8 lg:p-10">
-          <div className="max-w-3xl">
+        <Reveal>
+          <div className="rounded-3xl border border-[#E5E7EB] bg-white p-6 shadow-sm sm:p-8 lg:p-10">
+            <div className="max-w-3xl">
             <p className="text-sm font-bold uppercase tracking-wide text-[#007C89]">
               Certificación
             </p>
@@ -216,12 +235,13 @@ export function HomePage() {
               real de evaluación, puntajes e indicadores se implementará en el
               backend.
             </p>
-          </div>
+            </div>
 
-          <div className="mt-8">
-            <CertificationScale />
+            <div className="mt-8">
+              <CertificationScale />
+            </div>
           </div>
-        </div>
+        </Reveal>
       </section>
 
       <PublicFooter />
