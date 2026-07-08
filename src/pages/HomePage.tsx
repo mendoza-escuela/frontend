@@ -1,152 +1,230 @@
-import { zodResolver } from '@hookform/resolvers/zod';
-import { CheckCircle2, Loader2 } from 'lucide-react';
-import { useState } from 'react';
-import { useForm } from 'react-hook-form';
-import { z } from 'zod';
-import { Button } from '../components/ui/Button';
-import { showError, showSuccess } from '../lib/toast';
 import {
-  getDatabaseHealthStatus,
-  getHealthStatus,
-} from '../services/health.service';
-import type { DatabaseHealthStatus, HealthStatus } from '../types/health';
+  BarChart3,
+  ClipboardList,
+  FileCheck2,
+  MonitorCheck,
+  School,
+  Sparkles,
+} from 'lucide-react';
+import { Link } from 'react-router-dom';
+import epsIcon from '../assets/eps-icon.svg';
+import { CertificationScale } from '../components/home/CertificationScale';
+import { FeatureCard } from '../components/home/FeatureCard';
+import { ProcessStep } from '../components/home/ProcessStep';
+import { PublicFooter } from '../components/layout/PublicFooter';
+import { PublicHeader } from '../components/layout/PublicHeader';
 
-const accessFormSchema = z.object({
-  email: z.string().email('Ingresa un email valido.'),
-});
+const featureCards = [
+  {
+    icon: School,
+    title: 'Relevamiento institucional',
+    description:
+      'Registro ordenado de datos clave del establecimiento para iniciar el diagnóstico institucional.',
+  },
+  {
+    icon: ClipboardList,
+    title: 'Carga de cuestionario',
+    description:
+      'Formulario guiado para completar la informacion requerida por el programa de manera clara.',
+  },
+  {
+    icon: FileCheck2,
+    title: 'Evaluación automática',
+    description:
+      'Base preparada para calcular indicadores, puntajes y niveles de certificación desde backend.',
+  },
+  {
+    icon: BarChart3,
+    title: 'Dashboard de resultados',
+    description:
+      'Visualizacion centralizada para consultar avances, estados y resultados por establecimiento.',
+  },
+];
 
-type AccessFormValues = z.infer<typeof accessFormSchema>;
+const processSteps = [
+  'La escuela accede al sistema.',
+  'Completa el cuestionario institucional.',
+  'El sistema calcula indicadores y estrellas.',
+  'Los administradores monitorean resultados.',
+];
 
 export function HomePage() {
-  const [healthStatus, setHealthStatus] = useState<HealthStatus | null>(null);
-  const [databaseStatus, setDatabaseStatus] =
-    useState<DatabaseHealthStatus | null>(null);
-  const [isCheckingHealth, setIsCheckingHealth] = useState(false);
-  const [isCheckingDatabase, setIsCheckingDatabase] = useState(false);
-  const {
-    formState: { errors, isSubmitting },
-    handleSubmit,
-    register,
-  } = useForm<AccessFormValues>({
-    resolver: zodResolver(accessFormSchema),
-    defaultValues: {
-      email: '',
-    },
-  });
-
-  const checkHealth = async () => {
-    try {
-      setIsCheckingHealth(true);
-      const status = await getHealthStatus();
-      setHealthStatus(status);
-      showSuccess('Backend disponible.');
-    } catch {
-      setHealthStatus(null);
-      showError('No se pudo consultar el estado del backend.');
-    } finally {
-      setIsCheckingHealth(false);
-    }
-  };
-
-  const checkDatabase = async () => {
-    try {
-      setIsCheckingDatabase(true);
-      const status = await getDatabaseHealthStatus();
-      setDatabaseStatus(status);
-      showSuccess('Conexion con PostgreSQL disponible.');
-    } catch {
-      setDatabaseStatus(null);
-      showError('No se pudo validar la conexion con PostgreSQL.');
-    } finally {
-      setIsCheckingDatabase(false);
-    }
-  };
-
-  const submitAccessForm = async ({ email }: AccessFormValues) => {
-    showSuccess(`Formulario validado para ${email}.`);
-  };
-
   return (
-    <div className="grid gap-6 lg:grid-cols-[1.2fr_0.8fr]">
-      <section className="rounded border border-slate-200 bg-white p-6">
-        <p className="text-sm font-semibold uppercase tracking-wide text-emerald-700">
-          Arquitectura inicial
-        </p>
-        <h2 className="mt-2 text-3xl font-semibold text-slate-950">
-          React, NestJS, TypeORM y PostgreSQL listos para desarrollar
-        </h2>
-        <p className="mt-4 max-w-2xl text-slate-600">
-          La base incluye rutas, servicios HTTP centralizados, validacion de
-          formularios, notificaciones, seguridad backend y migraciones.
-        </p>
+    <div className="min-h-screen bg-[#F5F7FA]">
+      <PublicHeader />
 
-        <div className="mt-6 flex flex-wrap items-center gap-3">
-          <Button
-            disabled={isCheckingHealth}
-            icon={
-              isCheckingHealth ? (
-                <Loader2 aria-hidden="true" className="animate-spin" size={18} />
-              ) : (
-                <CheckCircle2 aria-hidden="true" size={18} />
-              )
-            }
-            onClick={checkHealth}
-          >
-            Consultar backend
-          </Button>
-          {healthStatus ? (
-            <span className="text-sm text-slate-600">
-              Estado: {healthStatus.status} - {healthStatus.timestamp}
-            </span>
-          ) : null}
-        </div>
+      <section
+        className="relative overflow-hidden border-b border-[#E5E7EB] bg-white"
+        id="inicio"
+      >
+        <div className="absolute right-0 top-0 h-72 w-72 rounded-full bg-[#D8F1F7] opacity-70 blur-3xl" />
+        <div className="absolute bottom-0 left-0 h-64 w-64 rounded-full bg-[#6DBE45]/15 blur-3xl" />
 
-        <div className="mt-4 flex flex-wrap items-center gap-3">
-          <Button
-            disabled={isCheckingDatabase}
-            icon={
-              isCheckingDatabase ? (
-                <Loader2 aria-hidden="true" className="animate-spin" size={18} />
-              ) : (
-                <CheckCircle2 aria-hidden="true" size={18} />
-              )
-            }
-            onClick={checkDatabase}
-          >
-            Probar PostgreSQL
-          </Button>
-          {databaseStatus ? (
-            <span className="text-sm text-slate-600">
-              DB: {databaseStatus.status} - {databaseStatus.latencyMs} ms
-            </span>
-          ) : null}
-        </div>
-      </section>
+        <div className="relative mx-auto grid max-w-7xl gap-10 px-4 py-16 sm:px-6 sm:py-20 lg:grid-cols-[1.1fr_0.9fr] lg:px-8 lg:py-24">
+          <div className="max-w-3xl">
+            <div className="inline-flex items-center gap-2 rounded-full border border-[#D8F1F7] bg-[#D8F1F7]/70 px-4 py-2 text-sm font-semibold text-[#003A70]">
+              <img alt="" aria-hidden="true" className="h-5 w-5" src={epsIcon} />
+              Gobierno de Mendoza
+            </div>
 
-      <section className="rounded border border-slate-200 bg-white p-6">
-        <h2 className="text-xl font-semibold text-slate-950">Formulario base</h2>
-        <form className="mt-5 space-y-4" onSubmit={handleSubmit(submitAccessForm)}>
-          <div>
-            <label className="text-sm font-medium text-slate-700" htmlFor="email">
-              Email
-            </label>
-            <input
-              className="mt-2 w-full rounded border border-slate-300 px-3 py-2 text-sm outline-none transition focus:border-emerald-600 focus:ring-2 focus:ring-emerald-100"
-              id="email"
-              placeholder="persona@ejemplo.com"
-              type="email"
-              {...register('email')}
-            />
-            {errors.email ? (
-              <p className="mt-2 text-sm text-red-600">{errors.email.message}</p>
-            ) : null}
+            <h1 className="mt-7 text-3xl font-bold leading-tight text-[#003A70] min-[380px]:text-4xl sm:text-5xl lg:text-6xl">
+              Relevamiento, Evaluación y Monitoreo de Escuelas Promotoras de
+              Salud
+            </h1>
+            <p className="mt-6 max-w-2xl text-lg leading-8 text-[#6B7280]">
+              Plataforma digital para que los establecimientos educativos de
+              Mendoza completen su diagnóstico institucional, consulten
+              resultados y acompañen el proceso de certificación.
+            </p>
+
+            <div className="mt-9 flex flex-col gap-3 sm:flex-row" id="acceso">
+              <Link
+                className="inline-flex min-h-12 items-center justify-center rounded-lg bg-[#007C89] px-6 py-3 text-sm font-bold text-white shadow-sm shadow-[#007C89]/25 transition hover:bg-[#006874] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#007C89]"
+                to="/login"
+              >
+                Iniciar sesión
+              </Link>
+              <a
+                className="inline-flex min-h-12 items-center justify-center rounded-lg border border-[#007C89] bg-white px-6 py-3 text-sm font-bold text-[#007C89] transition hover:bg-[#D8F1F7] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#007C89]"
+                href="#programa"
+              >
+                Conocer el programa
+              </a>
+            </div>
           </div>
 
-          <Button disabled={isSubmitting} type="submit">
-            Validar
-          </Button>
-        </form>
+          <aside className="rounded-3xl border border-[#E5E7EB] bg-[#F5F7FA] p-5 shadow-xl shadow-[#003A70]/10 lg:p-7">
+            <div className="rounded-2xl bg-white p-6 shadow-sm">
+              <div className="flex items-center justify-between gap-4 border-b border-[#E5E7EB] pb-5">
+                <div>
+                  <p className="text-sm font-semibold text-[#6B7280]">
+                    Estado del programa
+                  </p>
+                  <h2 className="mt-1 text-2xl font-bold text-[#1F2937]">
+                    Monitoreo institucional
+                  </h2>
+                </div>
+                <span className="flex h-12 w-12 items-center justify-center rounded-xl bg-[#D8F1F7] text-[#007C89]">
+                  <img alt="" aria-hidden="true" className="h-8 w-8" src={epsIcon} />
+                </span>
+              </div>
+
+              <div className="mt-6 grid gap-4">
+                <div className="rounded-2xl border border-[#E5E7EB] p-4">
+                  <div className="flex items-center justify-between">
+                    <span className="text-sm font-semibold text-[#6B7280]">
+                      Diagnóstico
+                    </span>
+                    <span className="rounded-full bg-[#6DBE45]/15 px-3 py-1 text-xs font-bold text-[#2E7D32]">
+                      Activo
+                    </span>
+                  </div>
+                  <div className="mt-4 h-3 rounded-full bg-[#E5E7EB]">
+                    <div className="h-3 w-3/4 rounded-full bg-[#007C89]" />
+                  </div>
+                </div>
+
+                <div className="grid grid-cols-2 gap-4">
+                  <div className="rounded-2xl bg-[#003A70] p-4 text-white">
+                    <MonitorCheck aria-hidden="true" size={22} />
+                    <p className="mt-4 text-2xl font-bold">5</p>
+                    <p className="mt-1 text-sm text-white/75">
+                      niveles de certificación
+                    </p>
+                  </div>
+                  <div className="rounded-2xl bg-[#D8F1F7] p-4 text-[#003A70]">
+                    <Sparkles aria-hidden="true" size={22} />
+                    <p className="mt-4 text-2xl font-bold">100</p>
+                    <p className="mt-1 text-sm text-[#003A70]/75">
+                      puntos de referencia
+                    </p>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </aside>
+        </div>
       </section>
+
+      <section className="mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-8" id="programa">
+        <div className="max-w-2xl">
+          <p className="text-sm font-bold uppercase tracking-wide text-[#007C89]">
+            Programa
+          </p>
+          <h2 className="mt-3 text-3xl font-bold text-[#1F2937]">
+            Herramientas para acompañar la gestión institucional
+          </h2>
+          <p className="mt-4 text-base leading-7 text-[#6B7280]">
+            Una entrada clara para que las escuelas carguen informacion y los
+            equipos responsables puedan seguir el avance del programa.
+          </p>
+        </div>
+
+        <div className="mt-10 grid gap-5 sm:grid-cols-2 lg:grid-cols-4" id="beneficios">
+          {featureCards.map((featureCard) => (
+            <FeatureCard
+              description={featureCard.description}
+              icon={featureCard.icon}
+              key={featureCard.title}
+              title={featureCard.title}
+            />
+          ))}
+        </div>
+      </section>
+
+      <section className="bg-white py-16">
+        <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
+          <div className="grid gap-10 lg:grid-cols-[0.8fr_1.2fr] lg:items-start">
+            <div>
+              <p className="text-sm font-bold uppercase tracking-wide text-[#007C89]">
+                Proceso
+              </p>
+              <h2 className="mt-3 text-3xl font-bold text-[#1F2937]">
+                Un flujo simple para ordenar el relevamiento
+              </h2>
+              <p className="mt-4 text-base leading-7 text-[#6B7280]">
+                La plataforma organiza el recorrido desde el acceso de la
+                escuela hasta el monitoreo de resultados por parte de los
+                administradores.
+              </p>
+            </div>
+
+            <ol className="grid gap-4 sm:grid-cols-2">
+              {processSteps.map((processStep, index) => (
+                <ProcessStep
+                  description={processStep}
+                  key={processStep}
+                  step={index + 1}
+                />
+              ))}
+            </ol>
+          </div>
+        </div>
+      </section>
+
+      <section className="mx-auto max-w-7xl px-4 py-16 sm:px-6 lg:px-8">
+        <div className="rounded-3xl border border-[#E5E7EB] bg-white p-6 shadow-sm sm:p-8 lg:p-10">
+          <div className="max-w-3xl">
+            <p className="text-sm font-bold uppercase tracking-wide text-[#007C89]">
+              Certificación
+            </p>
+            <h2 className="mt-3 text-3xl font-bold text-[#1F2937]">
+              Escala visual de 1 a 5 estrellas
+            </h2>
+            <p className="mt-4 text-base leading-7 text-[#6B7280]">
+              Esta representación anticipa la escala de certificación. La lógica
+              real de evaluación, puntajes e indicadores se implementará en el
+              backend.
+            </p>
+          </div>
+
+          <div className="mt-8">
+            <CertificationScale />
+          </div>
+        </div>
+      </section>
+
+      <PublicFooter />
     </div>
   );
 }

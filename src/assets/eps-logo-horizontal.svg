@@ -1,0 +1,25 @@
+<svg width="980" height="260" viewBox="0 0 980 260" fill="none" xmlns="http://www.w3.org/2000/svg" role="img" aria-labelledby="title desc">
+  <title id="title">Logo Escuelas Promotoras de Salud Mendoza</title>
+  <desc id="desc">Logo horizontal de la plataforma Escuelas Promotoras de Salud Mendoza.</desc>
+  <rect width="980" height="260" rx="44" fill="#FFFFFF"/>
+  <rect x="10" y="10" width="960" height="240" rx="38" stroke="#D8F1F7" stroke-width="4"/>
+  <g transform="translate(54 38) scale(0.36)">
+    <rect x="32" y="32" width="448" height="448" rx="112" fill="#F5F7FA"/>
+    <rect x="32" y="32" width="448" height="448" rx="112" stroke="#D8F1F7" stroke-width="20"/>
+    <path d="M96 246L256 124L416 246" stroke="#003A70" stroke-width="26" stroke-linecap="round" stroke-linejoin="round"/>
+    <path d="M136 232V394H376V232" fill="#FFFFFF" stroke="#003A70" stroke-width="22" stroke-linejoin="round"/>
+    <path d="M207 394V302C207 275 229 253 256 253C283 253 305 275 305 302V394" fill="#D8F1F7" stroke="#007C89" stroke-width="20" stroke-linejoin="round"/>
+    <circle cx="197" cy="265" r="18" fill="#007C89"/>
+    <circle cx="315" cy="265" r="18" fill="#007C89"/>
+    <path d="M256 220C238 198 201 199 201 232C201 262 233 281 256 303C279 281 311 262 311 232C311 199 274 198 256 220Z" fill="#D7265E"/>
+    <path d="M127 343C94 331 81 303 84 276C113 278 140 293 151 322C158 340 145 351 127 343Z" fill="#6DBE45"/>
+    <path d="M385 343C418 331 431 303 428 276C399 278 372 293 361 322C354 340 367 351 385 343Z" fill="#6DBE45"/>
+    <path d="M256 83L267 107L293 110L274 128L279 154L256 141L233 154L238 128L219 110L245 107L256 83Z" fill="#F5B51B"/>
+  </g>
+  <text x="270" y="102" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="40" font-weight="800" fill="#003A70">Escuelas Promotoras</text>
+  <text x="270" y="151" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="40" font-weight="800" fill="#007C89">de Salud</text>
+  <rect x="270" y="174" width="94" height="8" rx="4" fill="#6DBE45"/>
+  <rect x="374" y="174" width="54" height="8" rx="4" fill="#F5B51B"/>
+  <rect x="438" y="174" width="54" height="8" rx="4" fill="#D7265E"/>
+  <text x="270" y="213" font-family="Inter, Segoe UI, Arial, sans-serif" font-size="24" font-weight="600" fill="#6B7280">Plataforma de relevamiento, evaluación y monitoreo · Mendoza</text>
+</svg>
