@@ -26,10 +26,10 @@ export function PublicHeader() {
             src={epsIcon}
           />
           <span className="min-w-0 md:hidden">
-            <span className="block truncate text-sm font-bold leading-tight text-[#003A70]">
+            <span className="block truncate text-sm font-bold leading-tight text-[#000F9F]">
               Escuelas Promotoras
             </span>
-            <span className="block truncate text-sm font-bold leading-tight text-[#007C89]">
+            <span className="block truncate text-sm font-bold leading-tight text-[#3CB4E5]">
               de Salud
             </span>
           </span>
@@ -38,7 +38,7 @@ export function PublicHeader() {
         <nav className="hidden items-center gap-7 lg:flex" aria-label="Principal">
           {navigationItems.map((navigationItem) => (
             <a
-              className="text-sm font-semibold text-[#1F2937] transition hover:text-[#007C89]"
+              className="text-sm font-semibold text-[#1F2937] transition hover:text-[#000F9F]"
               href={navigationItem.href}
               key={navigationItem.label}
             >
@@ -48,7 +48,7 @@ export function PublicHeader() {
         </nav>
 
         <Link
-          className="inline-flex min-h-10 shrink-0 items-center justify-center rounded-lg bg-[#007C89] px-3 py-2 text-sm font-semibold text-white shadow-sm shadow-[#007C89]/20 transition hover:bg-[#006874] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#007C89] sm:min-h-11 sm:px-5 sm:py-2.5"
+          className="inline-flex min-h-10 shrink-0 items-center justify-center rounded-lg bg-[#000F9F] px-3 py-2 text-sm font-semibold text-white shadow-sm shadow-[#000F9F]/20 transition hover:bg-[#000C80] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#000F9F] sm:min-h-11 sm:px-5 sm:py-2.5"
           to="/login"
         >
           <span className="sm:hidden">Ingresar</span>

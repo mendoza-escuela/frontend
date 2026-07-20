@@ -7,11 +7,11 @@ type ButtonProps = ButtonHTMLAttributes<HTMLButtonElement> & {
 
 const variantClasses = {
   primary:
-    'bg-[#007C89] text-white shadow-sm shadow-[#007C89]/20 hover:bg-[#006874] focus-visible:outline-[#007C89]',
+    'bg-[#000F9F] text-white shadow-sm shadow-[#000F9F]/20 hover:bg-[#000C80] focus-visible:outline-[#000F9F]',
   secondary:
-    'bg-[#003A70] text-white shadow-sm shadow-[#003A70]/20 hover:bg-[#002f5c] focus-visible:outline-[#003A70]',
+    'bg-[#3CB4E5] text-[#1F2937] shadow-sm hover:bg-[#2da4d5] focus-visible:outline-[#000F9F]',
   outline:
-    'border border-[#007C89] bg-white text-[#007C89] hover:bg-[#D8F1F7] focus-visible:outline-[#007C89]',
+    'border border-[#000F9F] bg-white text-[#000F9F] hover:bg-[#EEF0FF] focus-visible:outline-[#000F9F]',
 };
 
 export function Button({
