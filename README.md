@@ -5,7 +5,7 @@ Aplicación web React, TypeScript, Vite y Tailwind CSS.
 ## Desarrollo
 
 1. Copiar `.env.example` a `.env`.
-2. Configurar `VITE_API_URL` con la URL del backend.
+2. Configurar `VITE_API_URL` con la URL base de la API, incluido el prefijo `/api` (por ejemplo, `http://localhost:4000/api`).
 3. Ejecutar `npm install` y `npm run dev`.
 
 La autenticación usa cookies `HttpOnly`; por eso las solicitudes Axios se realizan con credenciales y el token no se guarda en `localStorage`.

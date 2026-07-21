@@ -8,8 +8,13 @@ if (!apiUrl) {
   throw new Error('Missing VITE_API_URL environment variable.');
 }
 
+const normalizedApiUrl = apiUrl.replace(/\/+$/, '');
+const apiBaseUrl = /\/api$/i.test(normalizedApiUrl)
+  ? normalizedApiUrl
+  : `${normalizedApiUrl}/api`;
+
 export const api = axios.create({
-  baseURL: apiUrl,
+  baseURL: apiBaseUrl,
   withCredentials: true,
   headers: {
     'Content-Type': 'application/json',
