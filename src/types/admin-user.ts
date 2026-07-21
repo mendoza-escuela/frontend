@@ -1,6 +1,6 @@
 import type { UserRole } from './auth';
 
-export type SchoolOption = { id: string; code: string; name: string };
+export type SchoolOption = { id: string; cue: string; code?: string; name: string; isActive?: boolean };
 
 export type ManagedUser = {
   id: string;
