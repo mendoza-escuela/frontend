@@ -1,0 +1,398 @@
+import {
+  KeyRound,
+  Pencil,
+  Plus,
+  Search,
+  ShieldBan,
+  ShieldCheck,
+  Upload,
+} from "lucide-react";
+import { useEffect, useState } from "react";
+import { Link } from "react-router-dom";
+import { Button } from "../../components/ui/Button";
+import { getHttpErrorMessage } from "../../lib/http-error";
+import { showError, showSuccess } from "../../lib/toast";
+import { strongPasswordSchema } from "../../lib/validation";
+import {
+  adminUsersService,
+  type UserFilters,
+} from "../../services/admin-users.service";
+import type {
+  ManagedUser,
+  SchoolOption,
+  UserListResponse,
+} from "../../types/admin-user";
+
+const emptyList: UserListResponse = {
+  items: [],
+  pagination: { page: 1, limit: 20, total: 0, totalPages: 1 },
+};
+
+export function UsersAdminPage() {
+  const [filters, setFilters] = useState<UserFilters>({
+    page: 1,
+    limit: 20,
+    role: "",
+    isActive: "",
+    schoolId: "",
+  });
+  const [search, setSearch] = useState("");
+  const [users, setUsers] = useState(emptyList);
+  const [schools, setSchools] = useState<SchoolOption[]>([]);
+  const [loading, setLoading] = useState(true);
+  const [resetUser, setResetUser] = useState<ManagedUser | null>(null);
+  const [temporaryPassword, setTemporaryPassword] = useState("");
+
+  const loadUsers = async (nextFilters = filters) => {
+    setLoading(true);
+    try {
+      setUsers(await adminUsersService.list(nextFilters));
+    } catch (error) {
+      showError(getHttpErrorMessage(error));
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  useEffect(() => {
+    void adminUsersService
+      .schools()
+      .then(setSchools)
+      .catch((error) => showError(getHttpErrorMessage(error)));
+    void loadUsers();
+  }, []);
+
+  const applyFilters = (event: React.FormEvent) => {
+    event.preventDefault();
+    const next = { ...filters, search: search.trim(), page: 1 };
+    setFilters(next);
+    void loadUsers(next);
+  };
+
+  const changePage = (page: number) => {
+    const next = { ...filters, page };
+    setFilters(next);
+    void loadUsers(next);
+  };
+
+  const toggleStatus = async (user: ManagedUser) => {
+    try {
+      await adminUsersService.setStatus(user.id, !user.isActive);
+      showSuccess(
+        user.isActive
+          ? "Usuario bloqueado y sesiones cerradas."
+          : "Usuario desbloqueado.",
+      );
+      await loadUsers();
+    } catch (error) {
+      showError(getHttpErrorMessage(error));
+    }
+  };
+
+  const resetPassword = async () => {
+    if (!resetUser) return;
+    const validation = strongPasswordSchema.safeParse(temporaryPassword);
+    if (!validation.success)
+      return showError(
+        validation.error.issues[0]?.message ?? "Contraseña inválida.",
+      );
+    try {
+      await adminUsersService.resetPassword(resetUser.id, temporaryPassword);
+      showSuccess(
+        "Contraseña restablecida. Se cerraron las sesiones del usuario.",
+      );
+      setResetUser(null);
+      setTemporaryPassword("");
+      await loadUsers();
+    } catch (error) {
+      showError(getHttpErrorMessage(error));
+    }
+  };
+
+  return (
+    <main className="p-4 sm:p-8">
+      <div className="mx-auto max-w-7xl">
+        <div className="flex flex-wrap items-end justify-between gap-4">
+          <div>
+            <p className="text-sm font-bold uppercase tracking-wide text-[#000F9F]">
+              Administración
+            </p>
+            <h1 className="mt-1 text-3xl font-bold text-[#1F2937]">Usuarios</h1>
+            <p className="mt-2 text-[#6B7280]">
+              {users.pagination.total} cuentas registradas
+            </p>
+          </div>
+          <div className="flex flex-wrap gap-2">
+            <Link
+              className="inline-flex min-h-11 items-center gap-2 rounded-lg border border-[#000F9F] bg-white px-4 text-sm font-semibold text-[#000F9F]"
+              to="/admin/usuarios/importar"
+            >
+              <Upload size={17} />
+              Importar
+            </Link>
+            <Link
+              className="inline-flex min-h-11 items-center gap-2 rounded-lg bg-[#000F9F] px-4 text-sm font-semibold text-white"
+              to="/admin/usuarios/nuevo"
+            >
+              <Plus size={17} />
+              Nuevo usuario
+            </Link>
+          </div>
+        </div>
+        <form
+          className="mt-6 grid gap-3 rounded-2xl border border-[#E5E7EB] bg-white p-4 shadow-sm md:grid-cols-5"
+          onSubmit={applyFilters}
+        >
+          <label className="text-sm font-semibold md:col-span-2">
+            Buscar
+            <input
+              className="mt-1 w-full rounded-lg border border-[#E5E7EB] px-3 py-2.5"
+              onChange={(e) => setSearch(e.target.value)}
+              placeholder="Nombre, apellido o correo"
+              value={search}
+            />
+          </label>
+          <label className="text-sm font-semibold">
+            Rol
+            <select
+              className="mt-1 w-full rounded-lg border border-[#E5E7EB] px-3 py-2.5"
+              onChange={(e) =>
+                setFilters({
+                  ...filters,
+                  role: e.target.value as UserFilters["role"],
+                })
+              }
+              value={filters.role}
+            >
+              <option value="">Todos</option>
+              <option value="admin">Administrador</option>
+              <option value="school">Colegio</option>
+            </select>
+          </label>
+          <label className="text-sm font-semibold">
+            Estado
+            <select
+              className="mt-1 w-full rounded-lg border border-[#E5E7EB] px-3 py-2.5"
+              onChange={(e) =>
+                setFilters({
+                  ...filters,
+                  isActive:
+                    e.target.value === "" ? "" : e.target.value === "true",
+                })
+              }
+              value={String(filters.isActive)}
+            >
+              <option value="">Todos</option>
+              <option value="true">Activo</option>
+              <option value="false">Bloqueado</option>
+            </select>
+          </label>
+          <label className="text-sm font-semibold">
+            Colegio
+            <select
+              className="mt-1 w-full rounded-lg border border-[#E5E7EB] px-3 py-2.5"
+              onChange={(e) =>
+                setFilters({ ...filters, schoolId: e.target.value })
+              }
+              value={filters.schoolId}
+            >
+              <option value="">Todos</option>
+              {schools.map((school) => (
+                <option key={school.id} value={school.id}>
+                  {school.cue} - {school.name}
+                </option>
+              ))}
+            </select>
+          </label>
+          <Button
+            className="md:col-start-5"
+            icon={<Search size={17} />}
+            type="submit"
+          >
+            Aplicar filtros
+          </Button>
+        </form>
+        <div className="mt-5 overflow-x-auto rounded-2xl border border-[#E5E7EB] bg-white shadow-sm">
+          <table className="min-w-full text-left text-sm">
+            <thead className="bg-[#000F9F] text-white">
+              <tr>
+                {[
+                  "Usuario",
+                  "Rol",
+                  "Colegio",
+                  "Estado",
+                  "Último acceso",
+                  "Acciones",
+                ].map((header) => (
+                  <th className="px-4 py-3 font-semibold" key={header}>
+                    {header}
+                  </th>
+                ))}
+              </tr>
+            </thead>
+            <tbody className="divide-y divide-[#E5E7EB]">
+              {loading ? (
+                <tr>
+                  <td
+                    className="px-4 py-8 text-center text-[#6B7280]"
+                    colSpan={6}
+                  >
+                    Cargando usuarios…
+                  </td>
+                </tr>
+              ) : users.items.length === 0 ? (
+                <tr>
+                  <td
+                    className="px-4 py-8 text-center text-[#6B7280]"
+                    colSpan={6}
+                  >
+                    No hay usuarios para los filtros seleccionados.
+                  </td>
+                </tr>
+              ) : (
+                users.items.map((user) => (
+                  <tr key={user.id}>
+                    <td className="px-4 py-3">
+                      <p className="font-semibold text-[#1F2937]">
+                        {user.lastName}, {user.firstName}
+                      </p>
+                      <p className="text-[#6B7280]">{user.email}</p>
+                      {user.mustChangePassword && (
+                        <span className="mt-1 inline-block text-xs font-semibold text-[#C8A977]">
+                          Cambio de clave pendiente
+                        </span>
+                      )}
+                    </td>
+                    <td className="px-4 py-3">
+                      {user.role === "admin" ? "Administrador" : "Colegio"}
+                    </td>
+                    <td className="px-4 py-3">
+                      {user.school
+                        ? `${user.school.cue} - ${user.school.name}`
+                        : "—"}
+                    </td>
+                    <td className="px-4 py-3">
+                      <span
+                        className={`rounded-full px-2.5 py-1 text-xs font-bold ${user.isActive ? "bg-green-100 text-green-800" : "bg-red-100 text-red-800"}`}
+                      >
+                        {user.isActive ? "Activo" : "Bloqueado"}
+                      </span>
+                    </td>
+                    <td className="px-4 py-3 text-[#6B7280]">
+                      {user.lastLoginAt
+                        ? new Intl.DateTimeFormat("es-AR", {
+                            dateStyle: "short",
+                            timeStyle: "short",
+                          }).format(new Date(user.lastLoginAt))
+                        : "Sin accesos"}
+                    </td>
+                    <td className="px-4 py-3">
+                      <div className="flex gap-1">
+                        <Link
+                          aria-label={`Editar ${user.email}`}
+                          className="rounded-lg p-2 text-[#000F9F] hover:bg-[#EEF0FF]"
+                          to={`/admin/usuarios/${user.id}/editar`}
+                        >
+                          <Pencil size={17} />
+                        </Link>
+                        <button
+                          aria-label={`Restablecer contraseña de ${user.email}`}
+                          className="rounded-lg p-2 text-[#000F9F] hover:bg-[#EEF0FF]"
+                          onClick={() => setResetUser(user)}
+                          type="button"
+                        >
+                          <KeyRound size={17} />
+                        </button>
+                        <button
+                          aria-label={
+                            user.isActive
+                              ? `Bloquear ${user.email}`
+                              : `Desbloquear ${user.email}`
+                          }
+                          className={`rounded-lg p-2 ${user.isActive ? "text-[#DC2626] hover:bg-red-50" : "text-green-700 hover:bg-green-50"}`}
+                          onClick={() => void toggleStatus(user)}
+                          type="button"
+                        >
+                          {user.isActive ? (
+                            <ShieldBan size={17} />
+                          ) : (
+                            <ShieldCheck size={17} />
+                          )}
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                ))
+              )}
+            </tbody>
+          </table>
+        </div>
+        <div className="mt-4 flex items-center justify-between gap-3">
+          <p className="text-sm text-[#6B7280]">
+            Página {users.pagination.page} de {users.pagination.totalPages}
+          </p>
+          <div className="flex gap-2">
+            <Button
+              disabled={users.pagination.page <= 1 || loading}
+              onClick={() => changePage(users.pagination.page - 1)}
+              variant="outline"
+            >
+              Anterior
+            </Button>
+            <Button
+              disabled={
+                users.pagination.page >= users.pagination.totalPages || loading
+              }
+              onClick={() => changePage(users.pagination.page + 1)}
+              variant="outline"
+            >
+              Siguiente
+            </Button>
+          </div>
+        </div>
+      </div>
+      {resetUser && (
+        <div
+          aria-modal="true"
+          className="fixed inset-0 z-40 grid place-items-center bg-black/45 p-4"
+          role="dialog"
+        >
+          <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-xl">
+            <h2 className="text-xl font-bold text-[#000F9F]">
+              Restablecer contraseña
+            </h2>
+            <p className="mt-2 text-sm text-[#6B7280]">
+              Se cerrarán todas las sesiones de {resetUser.email} y se exigirá
+              cambiar la clave al ingresar.
+            </p>
+            <label className="mt-5 block text-sm font-semibold">
+              Contraseña temporal
+              <input
+                autoComplete="new-password"
+                className="mt-2 w-full rounded-lg border border-[#E5E7EB] px-3 py-2.5"
+                onChange={(e) => setTemporaryPassword(e.target.value)}
+                type="password"
+                value={temporaryPassword}
+              />
+            </label>
+            <p className="mt-2 text-xs text-[#6B7280]">
+              Mínimo 12 caracteres con mayúscula, minúscula, número y símbolo.
+            </p>
+            <div className="mt-6 flex justify-end gap-2">
+              <Button
+                onClick={() => {
+                  setResetUser(null);
+                  setTemporaryPassword("");
+                }}
+                variant="outline"
+              >
+                Cancelar
+              </Button>
+              <Button onClick={() => void resetPassword()}>Restablecer</Button>
+            </div>
+          </div>
+        </div>
+      )}
+    </main>
+  );
+}
