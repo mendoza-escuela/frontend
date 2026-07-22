@@ -7,11 +7,11 @@ type ButtonProps = ButtonHTMLAttributes<HTMLButtonElement> & {
 
 const variantClasses = {
   primary:
-    'bg-[#000F9F] text-white shadow-sm shadow-[#000F9F]/20 hover:bg-[#000C80] focus-visible:outline-[#000F9F]',
+    'bg-mendoza-blue text-white shadow-sm shadow-mendoza-blue/20 hover:bg-mendoza-blue-dark focus-visible:outline-mendoza-blue',
   secondary:
-    'bg-[#3CB4E5] text-[#1F2937] shadow-sm hover:bg-[#2da4d5] focus-visible:outline-[#000F9F]',
+    'bg-mendoza-sky text-mendoza-text shadow-sm hover:bg-mendoza-sky-dark focus-visible:outline-mendoza-blue',
   outline:
-    'border border-[#000F9F] bg-white text-[#000F9F] hover:bg-[#EEF0FF] focus-visible:outline-[#000F9F]',
+    'border border-mendoza-blue bg-white text-mendoza-blue hover:bg-mendoza-blue-soft focus-visible:outline-mendoza-blue',
 };
 
 export function Button({

@@ -114,24 +114,24 @@ export function UsersAdminPage() {
       <div className="mx-auto max-w-7xl">
         <div className="flex flex-wrap items-end justify-between gap-4">
           <div>
-            <p className="text-sm font-bold uppercase tracking-wide text-[#000F9F]">
+            <p className="text-sm font-bold uppercase tracking-wide text-mendoza-blue">
               Administración
             </p>
-            <h1 className="mt-1 text-3xl font-bold text-[#1F2937]">Usuarios</h1>
-            <p className="mt-2 text-[#6B7280]">
+            <h1 className="mt-1 text-3xl font-bold text-mendoza-text">Usuarios</h1>
+            <p className="mt-2 text-mendoza-muted">
               {users.pagination.total} cuentas registradas
             </p>
           </div>
           <div className="flex flex-wrap gap-2">
             <Link
-              className="inline-flex min-h-11 items-center gap-2 rounded-lg border border-[#000F9F] bg-white px-4 text-sm font-semibold text-[#000F9F]"
+              className="inline-flex min-h-11 items-center gap-2 rounded-lg border border-mendoza-blue bg-white px-4 text-sm font-semibold text-mendoza-blue"
               to="/admin/usuarios/importar"
             >
               <Upload size={17} />
               Importar
             </Link>
             <Link
-              className="inline-flex min-h-11 items-center gap-2 rounded-lg bg-[#000F9F] px-4 text-sm font-semibold text-white"
+              className="inline-flex min-h-11 items-center gap-2 rounded-lg bg-mendoza-blue px-4 text-sm font-semibold text-white"
               to="/admin/usuarios/nuevo"
             >
               <Plus size={17} />
@@ -140,13 +140,13 @@ export function UsersAdminPage() {
           </div>
         </div>
         <form
-          className="mt-6 grid gap-3 rounded-2xl border border-[#E5E7EB] bg-white p-4 shadow-sm md:grid-cols-5"
+          className="mt-6 grid gap-3 rounded-2xl border border-mendoza-border bg-white p-4 shadow-sm md:grid-cols-5"
           onSubmit={applyFilters}
         >
           <label className="text-sm font-semibold md:col-span-2">
             Buscar
             <input
-              className="mt-1 w-full rounded-lg border border-[#E5E7EB] px-3 py-2.5"
+              className="mt-1 w-full rounded-lg border border-mendoza-border px-3 py-2.5"
               onChange={(e) => setSearch(e.target.value)}
               placeholder="Nombre, apellido o correo"
               value={search}
@@ -155,7 +155,7 @@ export function UsersAdminPage() {
           <label className="text-sm font-semibold">
             Rol
             <select
-              className="mt-1 w-full rounded-lg border border-[#E5E7EB] px-3 py-2.5"
+              className="mt-1 w-full rounded-lg border border-mendoza-border px-3 py-2.5"
               onChange={(e) =>
                 setFilters({
                   ...filters,
@@ -172,7 +172,7 @@ export function UsersAdminPage() {
           <label className="text-sm font-semibold">
             Estado
             <select
-              className="mt-1 w-full rounded-lg border border-[#E5E7EB] px-3 py-2.5"
+              className="mt-1 w-full rounded-lg border border-mendoza-border px-3 py-2.5"
               onChange={(e) =>
                 setFilters({
                   ...filters,
@@ -190,7 +190,7 @@ export function UsersAdminPage() {
           <label className="text-sm font-semibold">
             Colegio
             <select
-              className="mt-1 w-full rounded-lg border border-[#E5E7EB] px-3 py-2.5"
+              className="mt-1 w-full rounded-lg border border-mendoza-border px-3 py-2.5"
               onChange={(e) =>
                 setFilters({ ...filters, schoolId: e.target.value })
               }
@@ -212,9 +212,9 @@ export function UsersAdminPage() {
             Aplicar filtros
           </Button>
         </form>
-        <div className="mt-5 overflow-x-auto rounded-2xl border border-[#E5E7EB] bg-white shadow-sm">
+        <div className="mt-5 overflow-x-auto rounded-2xl border border-mendoza-border bg-white shadow-sm">
           <table className="min-w-full text-left text-sm">
-            <thead className="bg-[#000F9F] text-white">
+            <thead className="bg-mendoza-blue text-white">
               <tr>
                 {[
                   "Usuario",
@@ -230,11 +230,11 @@ export function UsersAdminPage() {
                 ))}
               </tr>
             </thead>
-            <tbody className="divide-y divide-[#E5E7EB]">
+            <tbody className="divide-y divide-mendoza-border">
               {loading ? (
                 <tr>
                   <td
-                    className="px-4 py-8 text-center text-[#6B7280]"
+                    className="px-4 py-8 text-center text-mendoza-muted"
                     colSpan={6}
                   >
                     Cargando usuarios…
@@ -243,7 +243,7 @@ export function UsersAdminPage() {
               ) : users.items.length === 0 ? (
                 <tr>
                   <td
-                    className="px-4 py-8 text-center text-[#6B7280]"
+                    className="px-4 py-8 text-center text-mendoza-muted"
                     colSpan={6}
                   >
                     No hay usuarios para los filtros seleccionados.
@@ -253,12 +253,12 @@ export function UsersAdminPage() {
                 users.items.map((user) => (
                   <tr key={user.id}>
                     <td className="px-4 py-3">
-                      <p className="font-semibold text-[#1F2937]">
+                      <p className="font-semibold text-mendoza-text">
                         {user.lastName}, {user.firstName}
                       </p>
-                      <p className="text-[#6B7280]">{user.email}</p>
+                      <p className="text-mendoza-muted">{user.email}</p>
                       {user.mustChangePassword && (
-                        <span className="mt-1 inline-block text-xs font-semibold text-[#C8A977]">
+                        <span className="mt-1 inline-block text-xs font-semibold text-mendoza-gold">
                           Cambio de clave pendiente
                         </span>
                       )}
@@ -278,7 +278,7 @@ export function UsersAdminPage() {
                         {user.isActive ? "Activo" : "Bloqueado"}
                       </span>
                     </td>
-                    <td className="px-4 py-3 text-[#6B7280]">
+                    <td className="px-4 py-3 text-mendoza-muted">
                       {user.lastLoginAt
                         ? new Intl.DateTimeFormat("es-AR", {
                             dateStyle: "short",
@@ -290,14 +290,14 @@ export function UsersAdminPage() {
                       <div className="flex gap-1">
                         <Link
                           aria-label={`Editar ${user.email}`}
-                          className="rounded-lg p-2 text-[#000F9F] hover:bg-[#EEF0FF]"
+                          className="rounded-lg p-2 text-mendoza-blue hover:bg-mendoza-blue-soft"
                           to={`/admin/usuarios/${user.id}/editar`}
                         >
                           <Pencil size={17} />
                         </Link>
                         <button
                           aria-label={`Restablecer contraseña de ${user.email}`}
-                          className="rounded-lg p-2 text-[#000F9F] hover:bg-[#EEF0FF]"
+                          className="rounded-lg p-2 text-mendoza-blue hover:bg-mendoza-blue-soft"
                           onClick={() => setResetUser(user)}
                           type="button"
                         >
@@ -309,7 +309,7 @@ export function UsersAdminPage() {
                               ? `Bloquear ${user.email}`
                               : `Desbloquear ${user.email}`
                           }
-                          className={`rounded-lg p-2 ${user.isActive ? "text-[#DC2626] hover:bg-red-50" : "text-green-700 hover:bg-green-50"}`}
+                          className={`rounded-lg p-2 ${user.isActive ? "text-mendoza-error hover:bg-red-50" : "text-green-700 hover:bg-green-50"}`}
                           onClick={() => void toggleStatus(user)}
                           type="button"
                         >
@@ -328,7 +328,7 @@ export function UsersAdminPage() {
           </table>
         </div>
         <div className="mt-4 flex items-center justify-between gap-3">
-          <p className="text-sm text-[#6B7280]">
+          <p className="text-sm text-mendoza-muted">
             Página {users.pagination.page} de {users.pagination.totalPages}
           </p>
           <div className="flex gap-2">
@@ -358,10 +358,10 @@ export function UsersAdminPage() {
           role="dialog"
         >
           <div className="w-full max-w-md rounded-2xl bg-white p-6 shadow-xl">
-            <h2 className="text-xl font-bold text-[#000F9F]">
+            <h2 className="text-xl font-bold text-mendoza-blue">
               Restablecer contraseña
             </h2>
-            <p className="mt-2 text-sm text-[#6B7280]">
+            <p className="mt-2 text-sm text-mendoza-muted">
               Se cerrarán todas las sesiones de {resetUser.email} y se exigirá
               cambiar la clave al ingresar.
             </p>
@@ -369,13 +369,13 @@ export function UsersAdminPage() {
               Contraseña temporal
               <input
                 autoComplete="new-password"
-                className="mt-2 w-full rounded-lg border border-[#E5E7EB] px-3 py-2.5"
+                className="mt-2 w-full rounded-lg border border-mendoza-border px-3 py-2.5"
                 onChange={(e) => setTemporaryPassword(e.target.value)}
                 type="password"
                 value={temporaryPassword}
               />
             </label>
-            <p className="mt-2 text-xs text-[#6B7280]">
+            <p className="mt-2 text-xs text-mendoza-muted">
               Mínimo 12 caracteres con mayúscula, minúscula, número y símbolo.
             </p>
             <div className="mt-6 flex justify-end gap-2">

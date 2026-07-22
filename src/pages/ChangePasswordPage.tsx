@@ -21,7 +21,7 @@ export function ChangePasswordPage() {
     catch (error) { showError(getHttpErrorMessage(error)); }
   });
   return <AuthCard title={user?.mustChangePassword ? 'Cambio de contraseña obligatorio' : 'Cambiar contraseña'} description="Por seguridad, la nueva clave debe cumplir la política indicada y ser distinta de la actual."><form className="mt-7 space-y-5" onSubmit={submit} noValidate>
-    {(['currentPassword', 'newPassword', 'confirmation'] as const).map((name, index) => <label className="block text-sm font-semibold" key={name}>{['Contraseña actual', 'Nueva contraseña', 'Repetir contraseña'][index]}<input {...register(name)} autoComplete={index === 0 ? 'current-password' : 'new-password'} className="mt-2 w-full rounded-lg border border-[#E5E7EB] px-3 py-2.5 outline-none focus:border-[#3CB4E5] focus:ring-2 focus:ring-[#3CB4E5]/25" type="password" />{errors[name] && <span className="mt-1 block text-sm text-[#DC2626]">{errors[name]?.message}</span>}</label>)}
+    {(['currentPassword', 'newPassword', 'confirmation'] as const).map((name, index) => <label className="block text-sm font-semibold" key={name}>{['Contraseña actual', 'Nueva contraseña', 'Repetir contraseña'][index]}<input {...register(name)} autoComplete={index === 0 ? 'current-password' : 'new-password'} className="mt-2 w-full rounded-lg border border-mendoza-border px-3 py-2.5 outline-none focus:border-mendoza-sky focus:ring-2 focus:ring-mendoza-sky/25" type="password" />{errors[name] && <span className="mt-1 block text-sm text-mendoza-error">{errors[name]?.message}</span>}</label>)}
     <Button className="w-full" disabled={isSubmitting} icon={<KeyRound size={18} />} type="submit">Actualizar contraseña</Button>
   </form></AuthCard>;
 }

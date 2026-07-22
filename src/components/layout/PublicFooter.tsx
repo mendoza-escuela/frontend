@@ -8,9 +8,9 @@ const footerLinks = [
 
 export function PublicFooter() {
   return (
-    <footer className="border-t border-[#E5E7EB] bg-white">
+    <footer className="border-t border-mendoza-border bg-white">
       <div className="mx-auto flex max-w-7xl flex-col gap-4 px-4 py-8 sm:px-6 md:flex-row md:items-center md:justify-between lg:px-8">
-        <p className="text-sm font-medium text-[#1F2937]">
+        <p className="text-sm font-medium text-mendoza-text">
           Programa Escuelas Promotoras de Salud - Mendoza
         </p>
 
@@ -18,7 +18,7 @@ export function PublicFooter() {
           {footerLinks.map((footerLink) =>
             footerLink.href.startsWith('/') ? (
               <Link
-                className="text-sm font-medium text-[#6B7280] transition hover:text-[#007C89]"
+                className="text-sm font-medium text-mendoza-muted transition hover:text-mendoza-blue"
                 key={footerLink.label}
                 to={footerLink.href}
               >
@@ -26,7 +26,7 @@ export function PublicFooter() {
               </Link>
             ) : (
               <a
-                className="text-sm font-medium text-[#6B7280] transition hover:text-[#007C89]"
+                className="text-sm font-medium text-mendoza-muted transition hover:text-mendoza-blue"
                 href={footerLink.href}
                 key={footerLink.label}
               >

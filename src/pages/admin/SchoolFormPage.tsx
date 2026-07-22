@@ -110,23 +110,23 @@ export function SchoolFormPage() {
     }
   });
   if (loading)
-    return <main className="p-8 text-[#000F9F]">Cargando colegio…</main>;
+    return <main className="p-8 text-mendoza-blue">Cargando colegio…</main>;
   return (
     <main className="p-4 sm:p-8">
       <div className="mx-auto max-w-5xl">
         <Link
-          className="inline-flex items-center gap-2 text-sm font-semibold text-[#000F9F]"
+          className="inline-flex items-center gap-2 text-sm font-semibold text-mendoza-blue"
           to={id ? `/admin/colegios/${id}` : "/admin/colegios"}
         >
           <ArrowLeft size={17} />
           Volver
         </Link>
-        <section className="mt-5 rounded-2xl border border-[#E5E7EB] bg-white p-5 shadow-sm sm:p-8">
-          <div className="h-1 w-14 rounded-full bg-[#C8A977]" />
-          <h1 className="mt-4 text-2xl font-bold text-[#000F9F]">
+        <section className="mt-5 rounded-2xl border border-mendoza-border bg-white p-5 shadow-sm sm:p-8">
+          <div className="h-1 w-14 rounded-full bg-mendoza-gold" />
+          <h1 className="mt-4 text-2xl font-bold text-mendoza-blue">
             {editing ? "Editar colegio" : "Crear colegio"}
           </h1>
-          <p className="mt-2 text-sm text-[#6B7280]">
+          <p className="mt-2 text-sm text-mendoza-muted">
             Los campos marcados con * son obligatorios. Cada modificación queda
             registrada.
           </p>
@@ -191,7 +191,7 @@ export function SchoolFormPage() {
                 className="field min-h-28 font-mono text-sm"
                 {...register("characteristicsText")}
               />
-              <span className="mt-1 block text-xs font-normal text-[#6B7280]">
+              <span className="mt-1 block text-xs font-normal text-mendoza-muted">
                 Ejemplo: {`{"comedor": true, "turnos": 2}`}
               </span>
             </Field>
@@ -229,7 +229,7 @@ export function SchoolFormPage() {
             </Field>
             <label className="flex items-center gap-3 text-sm font-semibold md:col-span-2">
               <input
-                className="h-5 w-5 accent-[#000F9F]"
+                className="h-5 w-5 accent-mendoza-blue"
                 type="checkbox"
                 {...register("isActive")}
               />
@@ -237,7 +237,7 @@ export function SchoolFormPage() {
             </label>
             <div className="flex flex-wrap justify-end gap-2 md:col-span-2">
               <Link
-                className="inline-flex min-h-11 items-center rounded-lg border border-[#000F9F] px-5 text-sm font-semibold text-[#000F9F]"
+                className="inline-flex min-h-11 items-center rounded-lg border border-mendoza-blue px-5 text-sm font-semibold text-mendoza-blue"
                 to={id ? `/admin/colegios/${id}` : "/admin/colegios"}
               >
                 Cancelar
@@ -258,7 +258,7 @@ export function SchoolFormPage() {
 }
 function Section({ title }: { title: string }) {
   return (
-    <h2 className="border-b border-[#E5E7EB] pb-2 text-lg font-bold text-[#000F9F] md:col-span-2">
+    <h2 className="border-b border-mendoza-border pb-2 text-lg font-bold text-mendoza-blue md:col-span-2">
       {title}
     </h2>
   );
@@ -276,14 +276,14 @@ function Field({
 }) {
   return (
     <label
-      className={`text-sm font-semibold text-[#1F2937] ${wide ? "md:col-span-2" : ""}`}
+      className={`text-sm font-semibold text-mendoza-text ${wide ? "md:col-span-2" : ""}`}
     >
       {label}
-      <span className="mt-2 block [&_.field]:w-full [&_.field]:rounded-lg [&_.field]:border [&_.field]:border-[#E5E7EB] [&_.field]:px-3 [&_.field]:py-2.5 [&_.field]:outline-none focus-within:[&_.field]:border-[#3CB4E5]">
+      <span className="mt-2 block [&_.field]:w-full [&_.field]:rounded-lg [&_.field]:border [&_.field]:border-mendoza-border [&_.field]:px-3 [&_.field]:py-2.5 [&_.field]:outline-none focus-within:[&_.field]:border-mendoza-sky">
         {children}
       </span>
       {error && (
-        <span className="mt-1 block text-sm font-normal text-[#DC2626]">
+        <span className="mt-1 block text-sm font-normal text-mendoza-error">
           {error}
         </span>
       )}

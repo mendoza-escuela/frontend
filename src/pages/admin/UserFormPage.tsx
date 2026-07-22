@@ -95,23 +95,23 @@ export function UserFormPage() {
   });
 
   if (loading)
-    return <main className="p-8 text-[#000F9F]">Cargando usuario…</main>;
+    return <main className="p-8 text-mendoza-blue">Cargando usuario…</main>;
   return (
     <main className="p-4 sm:p-8">
       <div className="mx-auto max-w-3xl">
         <Link
-          className="inline-flex items-center gap-2 text-sm font-semibold text-[#000F9F]"
+          className="inline-flex items-center gap-2 text-sm font-semibold text-mendoza-blue"
           to="/admin/usuarios"
         >
           <ArrowLeft size={17} />
           Volver al listado
         </Link>
-        <section className="mt-5 rounded-2xl border border-[#E5E7EB] bg-white p-6 shadow-sm sm:p-8">
-          <div className="h-1 w-14 rounded-full bg-[#C8A977]" />
-          <h1 className="mt-4 text-2xl font-bold text-[#000F9F]">
+        <section className="mt-5 rounded-2xl border border-mendoza-border bg-white p-6 shadow-sm sm:p-8">
+          <div className="h-1 w-14 rounded-full bg-mendoza-gold" />
+          <h1 className="mt-4 text-2xl font-bold text-mendoza-blue">
             {editing ? "Editar usuario" : "Crear usuario"}
           </h1>
-          <p className="mt-2 text-sm text-[#6B7280]">
+          <p className="mt-2 text-sm text-mendoza-muted">
             {editing
               ? "Los cambios de datos, rol, estado y asociación quedarán auditados."
               : "La cuenta deberá cambiar la contraseña temporal durante su primer acceso."}
@@ -183,7 +183,7 @@ export function UserFormPage() {
                   autoComplete="new-password"
                   type="password"
                 />
-                <span className="mt-1 block text-xs font-normal text-[#6B7280]">
+                <span className="mt-1 block text-xs font-normal text-mendoza-muted">
                   12 caracteres, mayúscula, minúscula, número y símbolo.
                 </span>
               </Field>
@@ -191,14 +191,14 @@ export function UserFormPage() {
             <label className="flex items-center gap-3 text-sm font-semibold sm:col-span-2">
               <input
                 {...register("isActive")}
-                className="h-5 w-5 accent-[#000F9F]"
+                className="h-5 w-5 accent-mendoza-blue"
                 type="checkbox"
               />
               Usuario activo
             </label>
             <div className="flex justify-end gap-2 sm:col-span-2">
               <Link
-                className="inline-flex min-h-11 items-center rounded-lg border border-[#000F9F] px-5 text-sm font-semibold text-[#000F9F]"
+                className="inline-flex min-h-11 items-center rounded-lg border border-mendoza-blue px-5 text-sm font-semibold text-mendoza-blue"
                 to="/admin/usuarios"
               >
                 Cancelar
@@ -231,14 +231,14 @@ function Field({
 }) {
   return (
     <label
-      className={`text-sm font-semibold text-[#1F2937] ${wide ? "sm:col-span-2" : ""}`}
+      className={`text-sm font-semibold text-mendoza-text ${wide ? "sm:col-span-2" : ""}`}
     >
       {label}
-      <span className="mt-2 block [&_.field]:w-full [&_.field]:rounded-lg [&_.field]:border [&_.field]:border-[#E5E7EB] [&_.field]:px-3 [&_.field]:py-2.5 [&_.field]:outline-none focus-within:[&_.field]:border-[#3CB4E5]">
+      <span className="mt-2 block [&_.field]:w-full [&_.field]:rounded-lg [&_.field]:border [&_.field]:border-mendoza-border [&_.field]:px-3 [&_.field]:py-2.5 [&_.field]:outline-none focus-within:[&_.field]:border-mendoza-sky">
         {children}
       </span>
       {error && (
-        <span className="mt-1 block text-sm font-normal text-[#DC2626]">
+        <span className="mt-1 block text-sm font-normal text-mendoza-error">
           {error}
         </span>
       )}

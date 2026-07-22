@@ -103,11 +103,11 @@ export function SchoolsAdminPage() {
       <div className="mx-auto max-w-7xl">
         <div className="flex flex-wrap items-end justify-between gap-4">
           <div>
-            <p className="text-sm font-bold uppercase tracking-wide text-[#000F9F]">
+            <p className="text-sm font-bold uppercase tracking-wide text-mendoza-blue">
               Padrón institucional
             </p>
-            <h1 className="mt-1 text-3xl font-bold text-[#1F2937]">Colegios</h1>
-            <p className="mt-2 text-[#6B7280]">
+            <h1 className="mt-1 text-3xl font-bold text-mendoza-text">Colegios</h1>
+            <p className="mt-2 text-mendoza-muted">
               {schools.pagination.total} establecimientos encontrados
             </p>
           </div>
@@ -127,14 +127,14 @@ export function SchoolsAdminPage() {
               Excel
             </Button>
             <Link
-              className="inline-flex min-h-11 items-center gap-2 rounded-lg border border-[#000F9F] bg-white px-4 text-sm font-semibold text-[#000F9F]"
+              className="inline-flex min-h-11 items-center gap-2 rounded-lg border border-mendoza-blue bg-white px-4 text-sm font-semibold text-mendoza-blue"
               to="/admin/colegios/importar"
             >
               <Upload size={17} />
               Importar
             </Link>
             <Link
-              className="inline-flex min-h-11 items-center gap-2 rounded-lg bg-[#000F9F] px-4 text-sm font-semibold text-white"
+              className="inline-flex min-h-11 items-center gap-2 rounded-lg bg-mendoza-blue px-4 text-sm font-semibold text-white"
               to="/admin/colegios/nuevo"
             >
               <Plus size={17} />
@@ -143,7 +143,7 @@ export function SchoolsAdminPage() {
           </div>
         </div>
         <form
-          className="mt-6 grid gap-3 rounded-2xl border border-[#E5E7EB] bg-white p-4 shadow-sm sm:grid-cols-2 xl:grid-cols-4"
+          className="mt-6 grid gap-3 rounded-2xl border border-mendoza-border bg-white p-4 shadow-sm sm:grid-cols-2 xl:grid-cols-4"
           onSubmit={apply}
         >
           <Filter label="Buscar">
@@ -220,11 +220,11 @@ export function SchoolsAdminPage() {
           </Button>
         </form>
         {loading ? (
-          <div className="mt-6 rounded-2xl bg-white p-8 text-center text-[#6B7280]">
+          <div className="mt-6 rounded-2xl bg-white p-8 text-center text-mendoza-muted">
             Cargando padrón…
           </div>
         ) : schools.items.length === 0 ? (
-          <div className="mt-6 rounded-2xl border border-[#E5E7EB] bg-white p-8 text-center text-[#6B7280]">
+          <div className="mt-6 rounded-2xl border border-mendoza-border bg-white p-8 text-center text-mendoza-muted">
             No hay colegios para los filtros seleccionados.
           </div>
         ) : (
@@ -234,9 +234,9 @@ export function SchoolsAdminPage() {
                 <SchoolCard key={school.id} school={school} status={status} />
               ))}
             </div>
-            <div className="mt-5 hidden overflow-x-auto rounded-2xl border border-[#E5E7EB] bg-white shadow-sm md:block">
+            <div className="mt-5 hidden overflow-x-auto rounded-2xl border border-mendoza-border bg-white shadow-sm md:block">
               <table className="min-w-full text-left text-sm">
-                <thead className="bg-[#000F9F] text-white">
+                <thead className="bg-mendoza-blue text-white">
                   <tr>
                     {[
                       "CUE / Colegio",
@@ -252,12 +252,12 @@ export function SchoolsAdminPage() {
                     ))}
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-[#E5E7EB]">
+                <tbody className="divide-y divide-mendoza-border">
                   {schools.items.map((school) => (
                     <tr key={school.id}>
                       <td className="px-4 py-3">
                         <p className="font-semibold">{school.name}</p>
-                        <p className="text-[#6B7280]">
+                        <p className="text-mendoza-muted">
                           CUE {school.cue}
                           {school.schoolNumber
                             ? ` · N.º ${school.schoolNumber}`
@@ -270,7 +270,7 @@ export function SchoolsAdminPage() {
                       <td className="px-4 py-3">
                         {school.educationLevel}
                         <br />
-                        <span className="text-[#6B7280]">
+                        <span className="text-mendoza-muted">
                           {school.managementType}
                         </span>
                       </td>
@@ -291,7 +291,7 @@ export function SchoolsAdminPage() {
           </>
         )}
         <div className="mt-4 flex items-center justify-between gap-3">
-          <p className="text-sm text-[#6B7280]">
+          <p className="text-sm text-mendoza-muted">
             Página {schools.pagination.page} de {schools.pagination.totalPages}
           </p>
           <div className="flex gap-2">
@@ -327,9 +327,9 @@ function Filter({
   children: React.ReactNode;
 }) {
   return (
-    <label className="text-sm font-semibold text-[#1F2937]">
+    <label className="text-sm font-semibold text-mendoza-text">
       {label}
-      <span className="mt-1 block [&_.field]:w-full [&_.field]:rounded-lg [&_.field]:border [&_.field]:border-[#E5E7EB] [&_.field]:px-3 [&_.field]:py-2.5">
+      <span className="mt-1 block [&_.field]:w-full [&_.field]:rounded-lg [&_.field]:border [&_.field]:border-mendoza-border [&_.field]:px-3 [&_.field]:py-2.5">
         {children}
       </span>
     </label>
@@ -385,14 +385,14 @@ function Actions({
     <div className="flex gap-1">
       <Link
         aria-label={`Ver ${school.name}`}
-        className="rounded-lg p-2 text-[#000F9F] hover:bg-[#EEF0FF]"
+        className="rounded-lg p-2 text-mendoza-blue hover:bg-mendoza-blue-soft"
         to={`/admin/colegios/${school.id}`}
       >
         <Eye size={17} />
       </Link>
       <Link
         aria-label={`Editar ${school.name}`}
-        className="rounded-lg p-2 text-[#000F9F] hover:bg-[#EEF0FF]"
+        className="rounded-lg p-2 text-mendoza-blue hover:bg-mendoza-blue-soft"
         to={`/admin/colegios/${school.id}/editar`}
       >
         <Pencil size={17} />
@@ -403,7 +403,7 @@ function Actions({
             ? `Desactivar ${school.name}`
             : `Activar ${school.name}`
         }
-        className={`rounded-lg p-2 ${school.isActive ? "text-[#DC2626]" : "text-green-700"}`}
+        className={`rounded-lg p-2 ${school.isActive ? "text-mendoza-error" : "text-green-700"}`}
         onClick={() => void status(school)}
         type="button"
       >
@@ -420,27 +420,27 @@ function SchoolCard({
   status: (school: School) => Promise<void>;
 }) {
   return (
-    <article className="rounded-2xl border border-[#E5E7EB] bg-white p-4 shadow-sm">
+    <article className="rounded-2xl border border-mendoza-border bg-white p-4 shadow-sm">
       <div className="flex items-start justify-between gap-3">
         <div>
-          <h2 className="font-bold text-[#1F2937]">{school.name}</h2>
-          <p className="text-sm text-[#6B7280]">CUE {school.cue}</p>
+          <h2 className="font-bold text-mendoza-text">{school.name}</h2>
+          <p className="text-sm text-mendoza-muted">CUE {school.cue}</p>
         </div>
         <Status active={school.isActive} />
       </div>
       <dl className="mt-4 grid grid-cols-2 gap-3 text-sm">
         <div>
-          <dt className="text-[#6B7280]">Ubicación</dt>
+          <dt className="text-mendoza-muted">Ubicación</dt>
           <dd>
             {school.locality}, {school.department}
           </dd>
         </div>
         <div>
-          <dt className="text-[#6B7280]">Nivel</dt>
+          <dt className="text-mendoza-muted">Nivel</dt>
           <dd>{school.educationLevel}</dd>
         </div>
       </dl>
-      <div className="mt-4 border-t border-[#E5E7EB] pt-2">
+      <div className="mt-4 border-t border-mendoza-border pt-2">
         <Actions school={school} status={status} />
       </div>
     </article>
