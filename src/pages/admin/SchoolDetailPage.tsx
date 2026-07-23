@@ -88,12 +88,12 @@ export function SchoolDetailPage() {
     }
   };
   if (!school)
-    return <main className="p-8 text-[#000F9F]">Cargando detalle…</main>;
+    return <main className="p-8 text-mendoza-blue">Cargando detalle…</main>;
   return (
     <main className="p-4 sm:p-8">
       <div className="mx-auto max-w-7xl">
         <Link
-          className="inline-flex items-center gap-2 text-sm font-semibold text-[#000F9F]"
+          className="inline-flex items-center gap-2 text-sm font-semibold text-mendoza-blue"
           to="/admin/colegios"
         >
           <ArrowLeft size={17} />
@@ -102,7 +102,7 @@ export function SchoolDetailPage() {
         <div className="mt-5 flex flex-wrap items-start justify-between gap-4">
           <div>
             <div className="flex flex-wrap items-center gap-3">
-              <h1 className="text-3xl font-bold text-[#1F2937]">
+              <h1 className="text-3xl font-bold text-mendoza-text">
                 {school.name}
               </h1>
               <span
@@ -111,14 +111,14 @@ export function SchoolDetailPage() {
                 {school.isActive ? "Activo" : "Inactivo"}
               </span>
             </div>
-            <p className="mt-2 text-[#6B7280]">
+            <p className="mt-2 text-mendoza-muted">
               CUE {school.cue}
               {school.schoolNumber ? ` · N.º ${school.schoolNumber}` : ""}
             </p>
           </div>
           <div className="flex flex-wrap gap-2">
             <Link
-              className="inline-flex min-h-11 items-center gap-2 rounded-lg border border-[#000F9F] px-4 text-sm font-semibold text-[#000F9F]"
+              className="inline-flex min-h-11 items-center gap-2 rounded-lg border border-mendoza-blue px-4 text-sm font-semibold text-mendoza-blue"
               to={`/admin/colegios/${school.id}/editar`}
             >
               <Pencil size={17} />
@@ -146,8 +146,8 @@ export function SchoolDetailPage() {
           </div>
         )}
         <div className="mt-6 grid gap-5 xl:grid-cols-3">
-          <section className="rounded-2xl border border-[#E5E7EB] bg-white p-5 shadow-sm xl:col-span-2">
-            <h2 className="text-xl font-bold text-[#000F9F]">
+          <section className="rounded-2xl border border-mendoza-border bg-white p-5 shadow-sm xl:col-span-2">
+            <h2 className="text-xl font-bold text-mendoza-blue">
               Datos institucionales
             </h2>
             <dl className="mt-5 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
@@ -193,7 +193,7 @@ export function SchoolDetailPage() {
               />
             </dl>
             {Object.keys(school.characteristics).length > 0 && (
-              <div className="mt-5 border-t border-[#E5E7EB] pt-4">
+              <div className="mt-5 border-t border-mendoza-border pt-4">
                 <h3 className="font-semibold">Características</h3>
                 <dl className="mt-3 grid gap-2 sm:grid-cols-2">
                   {Object.entries(school.characteristics).map(
@@ -205,20 +205,20 @@ export function SchoolDetailPage() {
               </div>
             )}
           </section>
-          <section className="rounded-2xl border border-[#E5E7EB] bg-white p-5 shadow-sm">
+          <section className="rounded-2xl border border-mendoza-border bg-white p-5 shadow-sm">
             <div className="flex items-center gap-2">
-              <UserRound className="text-[#000F9F]" />
-              <h2 className="text-xl font-bold text-[#000F9F]">
+              <UserRound className="text-mendoza-blue" />
+              <h2 className="text-xl font-bold text-mendoza-blue">
                 Usuario Colegio
               </h2>
             </div>
             {school.users.length ? (
               school.users.map((user) => (
-                <div className="mt-4 rounded-xl bg-[#F7F4EF] p-4" key={user.id}>
+                <div className="mt-4 rounded-xl bg-mendoza-background p-4" key={user.id}>
                   <p className="font-semibold">
                     {user.firstName} {user.lastName}
                   </p>
-                  <p className="break-all text-sm text-[#6B7280]">
+                  <p className="break-all text-sm text-mendoza-muted">
                     {user.email}
                   </p>
                   <p className="mt-2 text-xs">
@@ -230,21 +230,21 @@ export function SchoolDetailPage() {
                 </div>
               ))
             ) : (
-              <p className="mt-4 text-sm text-[#6B7280]">
+              <p className="mt-4 text-sm text-mendoza-muted">
                 No hay un usuario asociado.
               </p>
             )}
             <label className="mt-5 block text-sm font-semibold">
               Buscar usuario disponible
               <span className="mt-2 flex gap-2">
-                <input className="min-w-0 flex-1 rounded-lg border border-[#E5E7EB] px-3 py-2.5 font-normal" onChange={(event) => setUserSearch(event.target.value)} placeholder="Nombre o correo" value={userSearch} />
+                <input className="min-w-0 flex-1 rounded-lg border border-mendoza-border px-3 py-2.5 font-normal" onChange={(event) => setUserSearch(event.target.value)} placeholder="Nombre o correo" value={userSearch} />
                 <Button onClick={() => setAppliedUserSearch(userSearch.trim())} variant="outline">Buscar</Button>
               </span>
             </label>
             <label className="mt-4 block text-sm font-semibold">
               Asociar o reemplazar
               <select
-                className="mt-2 w-full rounded-lg border border-[#E5E7EB] px-3 py-2.5"
+                className="mt-2 w-full rounded-lg border border-mendoza-border px-3 py-2.5"
                 onChange={(event) => setSelectedUserId(event.target.value)}
                 value={selectedUserId}
               >
@@ -264,7 +264,7 @@ export function SchoolDetailPage() {
             >
               {saving ? "Guardando…" : "Guardar asociación"}
             </Button>
-            <p className="mt-2 text-xs text-[#6B7280]">
+            <p className="mt-2 text-xs text-mendoza-muted">
               Sólo se muestran usuarios activos con rol Colegio que no
               pertenecen a otro establecimiento.
             </p>
@@ -334,10 +334,10 @@ export function SchoolDetailPage() {
 function Datum({ label, value }: { label: string; value: string }) {
   return (
     <div>
-      <dt className="text-xs font-semibold uppercase tracking-wide text-[#6B7280]">
+      <dt className="text-xs font-semibold uppercase tracking-wide text-mendoza-muted">
         {label}
       </dt>
-      <dd className="mt-1 break-words text-sm text-[#1F2937]">{value}</dd>
+      <dd className="mt-1 break-words text-sm text-mendoza-text">{value}</dd>
     </div>
   );
 }
@@ -351,12 +351,12 @@ function Unavailable({
   message: string;
 }) {
   return (
-    <section className="rounded-2xl border border-dashed border-[#C8A977] bg-white p-5">
-      <div className="flex items-center gap-2 text-[#000F9F]">
+    <section className="rounded-2xl border border-dashed border-mendoza-gold bg-white p-5">
+      <div className="flex items-center gap-2 text-mendoza-blue">
         {icon}
         <h2 className="text-xl font-bold">{title}</h2>
       </div>
-      <p className="mt-3 text-sm text-[#6B7280]">{message}</p>
+      <p className="mt-3 text-sm text-mendoza-muted">{message}</p>
     </section>
   );
 }
@@ -375,24 +375,24 @@ function Timeline({
 }) {
   return (
     <section
-      className={`${className} rounded-2xl border border-[#E5E7EB] bg-white p-5 shadow-sm`}
+      className={`${className} rounded-2xl border border-mendoza-border bg-white p-5 shadow-sm`}
     >
-      <div className="flex items-center gap-2 text-[#000F9F]">
+      <div className="flex items-center gap-2 text-mendoza-blue">
         {icon}
         <h2 className="text-xl font-bold">{title}</h2>
       </div>
       {entries.length ? (
         <ul className="mt-4 max-h-80 space-y-3 overflow-auto">
           {entries.map((entry) => (
-            <li className="border-l-2 border-[#3CB4E5] pl-3" key={entry.id}>
-              <p className="font-semibold text-[#1F2937]">{entry.title}</p>
-              <p className="break-all text-sm text-[#6B7280]">{entry.detail}</p>
-              <time className="text-xs text-[#6B7280]">{date(entry.date)}</time>
+            <li className="border-l-2 border-mendoza-sky pl-3" key={entry.id}>
+              <p className="font-semibold text-mendoza-text">{entry.title}</p>
+              <p className="break-all text-sm text-mendoza-muted">{entry.detail}</p>
+              <time className="text-xs text-mendoza-muted">{date(entry.date)}</time>
             </li>
           ))}
         </ul>
       ) : (
-        <p className="mt-4 text-sm text-[#6B7280]">{empty}</p>
+        <p className="mt-4 text-sm text-mendoza-muted">{empty}</p>
       )}
     </section>
   );

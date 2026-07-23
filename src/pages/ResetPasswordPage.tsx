@@ -28,5 +28,5 @@ export function ResetPasswordPage() {
 }
 
 function PasswordField({ label, error, registration }: { label: string; error?: string; registration: ReturnType<ReturnType<typeof useForm<z.infer<typeof schema>>>['register']> }) {
-  return <label className="block text-sm font-semibold">{label}<input {...registration} autoComplete="new-password" className="mt-2 w-full rounded-lg border border-[#E5E7EB] px-3 py-2.5 outline-none focus:border-[#3CB4E5] focus:ring-2 focus:ring-[#3CB4E5]/25" type="password" />{error && <span className="mt-1 block text-sm text-[#DC2626]">{error}</span>}</label>;
+  return <label className="block text-sm font-semibold">{label}<input {...registration} autoComplete="new-password" className="mt-2 w-full rounded-lg border border-mendoza-border px-3 py-2.5 outline-none focus:border-mendoza-sky focus:ring-2 focus:ring-mendoza-sky/25" type="password" />{error && <span className="mt-1 block text-sm text-mendoza-error">{error}</span>}</label>;
 }

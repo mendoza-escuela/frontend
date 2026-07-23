@@ -18,7 +18,7 @@ export function ForgotPasswordPage() {
   });
   return <AuthCard title="Recuperar contraseña" description="Si el correo está registrado, enviaremos un enlace temporal de un solo uso.">
     <form className="mt-7 space-y-5" onSubmit={submit} noValidate>
-      <label className="block text-sm font-semibold">Correo institucional<input {...register('email')} autoComplete="email" className="mt-2 w-full rounded-lg border border-[#E5E7EB] px-3 py-2.5 outline-none focus:border-[#3CB4E5] focus:ring-2 focus:ring-[#3CB4E5]/25" type="email" />{errors.email && <span className="mt-1 block text-sm text-[#DC2626]">{errors.email.message}</span>}</label>
+      <label className="block text-sm font-semibold">Correo institucional<input {...register('email')} autoComplete="email" className="mt-2 w-full rounded-lg border border-mendoza-border px-3 py-2.5 outline-none focus:border-mendoza-sky focus:ring-2 focus:ring-mendoza-sky/25" type="email" />{errors.email && <span className="mt-1 block text-sm text-mendoza-error">{errors.email.message}</span>}</label>
       <Button className="w-full" disabled={isSubmitting} icon={<Mail size={18} />} type="submit">Enviar enlace</Button>
     </form>
   </AuthCard>;

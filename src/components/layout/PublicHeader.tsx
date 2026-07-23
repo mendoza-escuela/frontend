@@ -11,7 +11,7 @@ const navigationItems = [
 
 export function PublicHeader() {
   return (
-    <header className="sticky top-0 z-20 border-b border-[#E5E7EB] bg-white/95 backdrop-blur">
+    <header className="sticky top-0 z-20 border-b border-mendoza-border bg-white/95 backdrop-blur">
       <div className="mx-auto flex max-w-7xl items-center justify-between gap-3 px-4 py-3 sm:px-6 sm:py-4 lg:px-8">
         <a className="flex min-w-0 items-center gap-3" href="#inicio">
           <img
@@ -26,10 +26,10 @@ export function PublicHeader() {
             src={epsIcon}
           />
           <span className="min-w-0 md:hidden">
-            <span className="block truncate text-sm font-bold leading-tight text-[#000F9F]">
+            <span className="block truncate text-sm font-bold leading-tight text-mendoza-blue">
               Escuelas Promotoras
             </span>
-            <span className="block truncate text-sm font-bold leading-tight text-[#3CB4E5]">
+            <span className="block truncate text-sm font-bold leading-tight text-mendoza-sky">
               de Salud
             </span>
           </span>
@@ -38,7 +38,7 @@ export function PublicHeader() {
         <nav className="hidden items-center gap-7 lg:flex" aria-label="Principal">
           {navigationItems.map((navigationItem) => (
             <a
-              className="text-sm font-semibold text-[#1F2937] transition hover:text-[#000F9F]"
+              className="text-sm font-semibold text-mendoza-text transition hover:text-mendoza-blue"
               href={navigationItem.href}
               key={navigationItem.label}
             >
@@ -48,7 +48,7 @@ export function PublicHeader() {
         </nav>
 
         <Link
-          className="inline-flex min-h-10 shrink-0 items-center justify-center rounded-lg bg-[#000F9F] px-3 py-2 text-sm font-semibold text-white shadow-sm shadow-[#000F9F]/20 transition hover:bg-[#000C80] focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-[#000F9F] sm:min-h-11 sm:px-5 sm:py-2.5"
+          className="inline-flex min-h-10 shrink-0 items-center justify-center rounded-lg bg-mendoza-blue px-3 py-2 text-sm font-semibold text-white shadow-sm shadow-mendoza-blue/20 transition hover:bg-mendoza-blue-dark focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-mendoza-blue sm:min-h-11 sm:px-5 sm:py-2.5"
           to="/login"
         >
           <span className="sm:hidden">Ingresar</span>

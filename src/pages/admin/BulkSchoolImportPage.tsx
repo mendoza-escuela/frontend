@@ -54,7 +54,7 @@ export function BulkSchoolImportPage() {
     <main className="p-4 sm:p-8">
       <div className="mx-auto max-w-6xl">
         <Link
-          className="inline-flex items-center gap-2 text-sm font-semibold text-[#000F9F]"
+          className="inline-flex items-center gap-2 text-sm font-semibold text-mendoza-blue"
           to="/admin/colegios"
         >
           <ArrowLeft size={17} />
@@ -62,13 +62,13 @@ export function BulkSchoolImportPage() {
         </Link>
         <div className="mt-5 flex flex-wrap items-end justify-between gap-4">
           <div>
-            <p className="text-sm font-bold uppercase tracking-wide text-[#000F9F]">
+            <p className="text-sm font-bold uppercase tracking-wide text-mendoza-blue">
               Carga masiva
             </p>
-            <h1 className="mt-1 text-3xl font-bold text-[#1F2937]">
+            <h1 className="mt-1 text-3xl font-bold text-mendoza-text">
               Importar colegios
             </h1>
-            <p className="mt-2 text-[#6B7280]">
+            <p className="mt-2 text-mendoza-muted">
               CSV o XLSX, hasta 500 filas y 2 MB. La vista previa no guarda
               datos.
             </p>
@@ -81,13 +81,13 @@ export function BulkSchoolImportPage() {
             Descargar plantilla
           </Button>
         </div>
-        <section className="mt-6 rounded-2xl border border-[#E5E7EB] bg-white p-5 shadow-sm sm:p-6">
-          <label className="flex cursor-pointer flex-col items-center rounded-xl border-2 border-dashed border-[#3CB4E5] bg-[#3CB4E5]/5 p-8 text-center">
-            <FileSpreadsheet className="text-[#000F9F]" size={38} />
+        <section className="mt-6 rounded-2xl border border-mendoza-border bg-white p-5 shadow-sm sm:p-6">
+          <label className="flex cursor-pointer flex-col items-center rounded-xl border-2 border-dashed border-mendoza-sky bg-mendoza-sky/5 p-8 text-center">
+            <FileSpreadsheet className="text-mendoza-blue" size={38} />
             <span className="mt-3 break-all font-semibold">
               {file?.name ?? "Seleccionar archivo"}
             </span>
-            <span className="mt-1 text-sm text-[#6B7280]">
+            <span className="mt-1 text-sm text-mendoza-muted">
               CSV o Excel XLSX
             </span>
             <input
@@ -135,9 +135,9 @@ export function BulkSchoolImportPage() {
                 </p>
               </div>
             )}
-            <div className="mt-4 overflow-x-auto rounded-xl border border-[#E5E7EB] bg-white">
+            <div className="mt-4 overflow-x-auto rounded-xl border border-mendoza-border bg-white">
               <table className="min-w-full text-left text-sm">
-                <thead className="bg-[#000F9F] text-white">
+                <thead className="bg-mendoza-blue text-white">
                   <tr>
                     {["Fila", "CUE", "Colegio", "Ubicación", "Validación"].map(
                       (header) => (
@@ -148,7 +148,7 @@ export function BulkSchoolImportPage() {
                     )}
                   </tr>
                 </thead>
-                <tbody className="divide-y divide-[#E5E7EB]">
+                <tbody className="divide-y divide-mendoza-border">
                   {preview.rows.map((row) => (
                     <tr
                       className={row.errors.length ? "bg-red-50" : ""}
@@ -163,7 +163,7 @@ export function BulkSchoolImportPage() {
                       <td
                         className={
                           row.errors.length
-                            ? "px-3 py-3 text-[#DC2626]"
+                            ? "px-3 py-3 text-mendoza-error"
                             : "px-3 py-3 font-semibold text-green-700"
                         }
                       >
@@ -187,14 +187,14 @@ export function BulkSchoolImportPage() {
           </section>
         )}
         {result && (
-          <section className="mt-6 rounded-2xl border border-[#E5E7EB] bg-white p-6">
-            <h2 className="text-xl font-bold text-[#000F9F]">Resultado</h2>
+          <section className="mt-6 rounded-2xl border border-mendoza-border bg-white p-6">
+            <h2 className="text-xl font-bold text-mendoza-blue">Resultado</h2>
             <p className="mt-2">
               Se importaron {result.importedCount} de {result.totalRows} filas.{" "}
               {result.errorCount} no fueron importadas.
             </p>
             {result.errors.length > 0 && (
-              <ul className="mt-4 space-y-2 text-sm text-[#DC2626]">
+              <ul className="mt-4 space-y-2 text-sm text-mendoza-error">
                 {result.errors.map((error) => (
                   <li key={`${error.line}-${error.cue}`}>
                     Fila {error.line} ({error.cue || "sin CUE"}):{" "}
@@ -212,15 +212,15 @@ export function BulkSchoolImportPage() {
 function Metric({
   label,
   value,
-  className = "text-[#000F9F]",
+  className = "text-mendoza-blue",
 }: {
   label: string;
   value: number;
   className?: string;
 }) {
   return (
-    <div className="rounded-xl border border-[#E5E7EB] bg-white p-4">
-      <p className="text-sm text-[#6B7280]">{label}</p>
+    <div className="rounded-xl border border-mendoza-border bg-white p-4">
+      <p className="text-sm text-mendoza-muted">{label}</p>
       <p className={`mt-1 text-2xl font-bold ${className}`}>{value}</p>
     </div>
   );
