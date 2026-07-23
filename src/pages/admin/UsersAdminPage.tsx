@@ -7,9 +7,11 @@ import {
   ShieldCheck,
   Upload,
 } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { Button } from "../../components/ui/Button";
+import { PaginationControls } from "../../components/ui/PaginationControls";
+import { SchoolCombobox } from "../../components/users/SchoolCombobox";
 import { getHttpErrorMessage } from "../../lib/http-error";
 import { showError, showSuccess } from "../../lib/toast";
 import { strongPasswordSchema } from "../../lib/validation";
@@ -38,28 +40,31 @@ export function UsersAdminPage() {
   });
   const [search, setSearch] = useState("");
   const [users, setUsers] = useState(emptyList);
-  const [schools, setSchools] = useState<SchoolOption[]>([]);
+  const [selectedSchool, setSelectedSchool] = useState<SchoolOption | null>(
+    null,
+  );
   const [loading, setLoading] = useState(true);
+  const listRequest = useRef<AbortController | null>(null);
   const [resetUser, setResetUser] = useState<ManagedUser | null>(null);
   const [temporaryPassword, setTemporaryPassword] = useState("");
 
   const loadUsers = async (nextFilters = filters) => {
+    listRequest.current?.abort();
+    const controller = new AbortController();
+    listRequest.current = controller;
     setLoading(true);
     try {
-      setUsers(await adminUsersService.list(nextFilters));
+      setUsers(await adminUsersService.list(nextFilters, controller.signal));
     } catch (error) {
-      showError(getHttpErrorMessage(error));
+      if (!controller.signal.aborted) showError(getHttpErrorMessage(error));
     } finally {
-      setLoading(false);
+      if (listRequest.current === controller) setLoading(false);
     }
   };
 
   useEffect(() => {
-    void adminUsersService
-      .schools()
-      .then(setSchools)
-      .catch((error) => showError(getHttpErrorMessage(error)));
     void loadUsers();
+    return () => listRequest.current?.abort();
   }, []);
 
   const applyFilters = (event: React.FormEvent) => {
@@ -187,23 +192,17 @@ export function UsersAdminPage() {
               <option value="false">Bloqueado</option>
             </select>
           </label>
-          <label className="text-sm font-semibold">
-            Colegio
-            <select
-              className="mt-1 w-full rounded-lg border border-mendoza-border px-3 py-2.5"
-              onChange={(e) =>
-                setFilters({ ...filters, schoolId: e.target.value })
-              }
-              value={filters.schoolId}
-            >
-              <option value="">Todos</option>
-              {schools.map((school) => (
-                <option key={school.id} value={school.id}>
-                  {school.cue} - {school.name}
-                </option>
-              ))}
-            </select>
-          </label>
+          <SchoolCombobox
+            allowClear
+            disableInactive={false}
+            label="Colegio"
+            onChange={(school) => {
+              setSelectedSchool(school);
+              setFilters({ ...filters, schoolId: school?.id ?? "" });
+            }}
+            placeholder="Todos"
+            selectedSchool={selectedSchool}
+          />
           <Button
             className="md:col-start-5"
             icon={<Search size={17} />}
@@ -327,29 +326,11 @@ export function UsersAdminPage() {
             </tbody>
           </table>
         </div>
-        <div className="mt-4 flex items-center justify-between gap-3">
-          <p className="text-sm text-mendoza-muted">
-            Página {users.pagination.page} de {users.pagination.totalPages}
-          </p>
-          <div className="flex gap-2">
-            <Button
-              disabled={users.pagination.page <= 1 || loading}
-              onClick={() => changePage(users.pagination.page - 1)}
-              variant="outline"
-            >
-              Anterior
-            </Button>
-            <Button
-              disabled={
-                users.pagination.page >= users.pagination.totalPages || loading
-              }
-              onClick={() => changePage(users.pagination.page + 1)}
-              variant="outline"
-            >
-              Siguiente
-            </Button>
-          </div>
-        </div>
+        <PaginationControls
+          loading={loading}
+          onPageChange={changePage}
+          pagination={users.pagination}
+        />
       </div>
       {resetUser && (
         <div

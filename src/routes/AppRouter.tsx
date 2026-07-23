@@ -4,12 +4,36 @@ import { ProtectedRoute } from "../components/auth/ProtectedRoute";
 import { AdminLayout } from "../components/layout/AdminLayout";
 import { AppLayout } from "../components/layout/AppLayout";
 import { SchoolLayout } from "../components/layout/SchoolLayout";
-import { AccessDeniedPage } from "../pages/AccessDeniedPage";
-import { ChangePasswordPage } from "../pages/ChangePasswordPage";
-import { ForgotPasswordPage } from "../pages/ForgotPasswordPage";
-import { HomePage } from "../pages/HomePage";
-import { LoginPage } from "../pages/LoginPage";
-import { ResetPasswordPage } from "../pages/ResetPasswordPage";
+const AccessDeniedPage = lazy(() =>
+  import("../pages/AccessDeniedPage").then((module) => ({
+    default: module.AccessDeniedPage,
+  })),
+);
+const ChangePasswordPage = lazy(() =>
+  import("../pages/ChangePasswordPage").then((module) => ({
+    default: module.ChangePasswordPage,
+  })),
+);
+const ForgotPasswordPage = lazy(() =>
+  import("../pages/ForgotPasswordPage").then((module) => ({
+    default: module.ForgotPasswordPage,
+  })),
+);
+const HomePage = lazy(() =>
+  import("../pages/HomePage").then((module) => ({
+    default: module.HomePage,
+  })),
+);
+const LoginPage = lazy(() =>
+  import("../pages/LoginPage").then((module) => ({
+    default: module.LoginPage,
+  })),
+);
+const ResetPasswordPage = lazy(() =>
+  import("../pages/ResetPasswordPage").then((module) => ({
+    default: module.ResetPasswordPage,
+  })),
+);
 const AdminHomePage = lazy(() =>
   import("../pages/admin/AdminHomePage").then((module) => ({
     default: module.AdminHomePage,
@@ -115,17 +139,20 @@ const router = createBrowserRouter([
   {
     element: <AppLayout />,
     children: [
-      { index: true, element: <HomePage /> },
-      { path: "login", element: <LoginPage /> },
-      { path: "recuperar-clave", element: <ForgotPasswordPage /> },
-      { path: "restablecer-clave", element: <ResetPasswordPage /> },
+      { index: true, element: lazyPage(<HomePage />) },
+      { path: "login", element: lazyPage(<LoginPage />) },
+      { path: "recuperar-clave", element: lazyPage(<ForgotPasswordPage />) },
+      {
+        path: "restablecer-clave",
+        element: lazyPage(<ResetPasswordPage />),
+      },
     ],
   },
   {
     element: <ProtectedRoute allowPasswordChange />,
     children: [
-      { path: "cambiar-clave", element: <ChangePasswordPage /> },
-      { path: "acceso-denegado", element: <AccessDeniedPage /> },
+      { path: "cambiar-clave", element: lazyPage(<ChangePasswordPage />) },
+      { path: "acceso-denegado", element: lazyPage(<AccessDeniedPage />) },
     ],
   },
   {

@@ -31,7 +31,6 @@ const defaults: SchoolFormValues = {
   referentEmail: "",
   referentPhone: "",
   enrollment: 0,
-  characteristicsText: "{}",
   isActive: true,
 };
 
@@ -73,14 +72,13 @@ export function SchoolFormPage() {
           referentEmail: school.referentEmail ?? "",
           referentPhone: school.referentPhone ?? "",
           enrollment: school.enrollment,
-          characteristicsText: JSON.stringify(school.characteristics, null, 2),
           isActive: school.isActive,
         }),
       )
       .catch((error) => showError(getHttpErrorMessage(error)))
       .finally(() => setLoading(false));
   }, [id, reset]);
-  const submit = handleSubmit(async ({ characteristicsText, ...values }) => {
+  const submit = handleSubmit(async (values) => {
     const input = {
       ...values,
       schoolNumber: values.schoolNumber || null,
@@ -91,10 +89,6 @@ export function SchoolFormPage() {
       email: values.email || null,
       referentEmail: values.referentEmail || null,
       referentPhone: values.referentPhone || null,
-      characteristics: JSON.parse(characteristicsText || "{}") as Record<
-        string,
-        string | number | boolean | null
-      >,
     };
     try {
       if (id) await adminSchoolsService.update(id, input);
@@ -181,19 +175,6 @@ export function SchoolFormPage() {
                 type="number"
                 {...register("enrollment", { valueAsNumber: true })}
               />
-            </Field>
-            <Field
-              wide
-              label="Características (JSON)"
-              error={errors.characteristicsText?.message}
-            >
-              <textarea
-                className="field min-h-28 font-mono text-sm"
-                {...register("characteristicsText")}
-              />
-              <span className="mt-1 block text-xs font-normal text-mendoza-muted">
-                Ejemplo: {`{"comedor": true, "turnos": 2}`}
-              </span>
             </Field>
             <Section title="Contacto y referente" />
             <Field label="Correo institucional" error={errors.email?.message}>

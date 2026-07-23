@@ -50,29 +50,6 @@ export const schoolFormSchema = z.object({
     .int("Debe ser un número entero.")
     .min(0)
     .max(1_000_000),
-  characteristicsText: z
-    .string()
-    .trim()
-    .refine((value) => {
-      try {
-        const parsed = JSON.parse(value || "{}");
-        return (
-          parsed &&
-          !Array.isArray(parsed) &&
-          typeof parsed === "object" &&
-          Object.keys(parsed).length <= 30 &&
-          Object.entries(parsed).every(
-            ([key, item]) =>
-              key.length <= 80 &&
-              !["__proto__", "prototype", "constructor"].includes(key) &&
-              (item === null ||
-                ["string", "number", "boolean"].includes(typeof item)),
-          )
-        );
-      } catch {
-        return false;
-      }
-    }, "Usá un objeto JSON de hasta 30 valores simples."),
   isActive: z.boolean(),
 });
 export type SchoolFormValues = z.infer<typeof schoolFormSchema>;

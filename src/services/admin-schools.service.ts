@@ -5,6 +5,7 @@ import type {
   SchoolImportPreview,
   SchoolImportResult,
   SchoolListResponse,
+  SchoolUserListResponse,
   SchoolWriteInput,
 } from "../types/admin-school";
 
@@ -36,10 +37,11 @@ const download = (blob: Blob, filename: string) => {
 };
 
 export const adminSchoolsService = {
-  async list(filters: SchoolFilters) {
+  async list(filters: SchoolFilters, signal?: AbortSignal) {
     return (
       await api.get<SchoolListResponse>("/admin/schools", {
         params: cleanParams(filters),
+        signal,
       })
     ).data;
   },
@@ -63,6 +65,18 @@ export const adminSchoolsService = {
   async assignUser(id: string, userId: string | null) {
     return (
       await api.patch<SchoolDetail>(`/admin/schools/${id}/user`, { userId })
+    ).data;
+  },
+  async assignableUsers(
+    id: string,
+    filters: { search?: string; page?: number; limit?: number },
+    signal?: AbortSignal,
+  ) {
+    return (
+      await api.get<SchoolUserListResponse>(
+        `/admin/schools/${id}/assignable-users`,
+        { params: cleanParams(filters), signal },
+      )
     ).data;
   },
   async export(filters: SchoolFilters, format: "csv" | "xlsx") {

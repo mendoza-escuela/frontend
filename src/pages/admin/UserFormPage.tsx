@@ -1,9 +1,10 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import { ArrowLeft, Save } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
-import { useForm } from "react-hook-form";
+import { Controller, useForm } from "react-hook-form";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { Button } from "../../components/ui/Button";
+import { SchoolCombobox } from "../../components/users/SchoolCombobox";
 import { getHttpErrorMessage } from "../../lib/http-error";
 import { showError, showSuccess } from "../../lib/toast";
 import {
@@ -17,7 +18,9 @@ export function UserFormPage() {
   const { id } = useParams();
   const editing = Boolean(id);
   const navigate = useNavigate();
-  const [schools, setSchools] = useState<SchoolOption[]>([]);
+  const [selectedSchool, setSelectedSchool] = useState<SchoolOption | null>(
+    null,
+  );
   const [loading, setLoading] = useState(editing);
   const schema = useMemo(() => createUserFormSchema(editing), [editing]);
   const {
@@ -25,6 +28,7 @@ export function UserFormPage() {
     handleSubmit,
     reset,
     watch,
+    control,
     formState: { errors, isSubmitting },
   } = useForm<UserFormValues>({
     resolver: zodResolver(schema),
@@ -39,15 +43,13 @@ export function UserFormPage() {
     },
   });
   const role = watch("role");
-  const selectedSchoolId = watch("schoolId");
 
   useEffect(() => {
     const load = async () => {
       try {
-        const schoolOptions = await adminUsersService.schools();
-        setSchools(schoolOptions);
         if (id) {
           const user = await adminUsersService.findOne(id);
+          setSelectedSchool(user.school);
           reset({
             firstName: user.firstName,
             lastName: user.lastName,
@@ -149,28 +151,22 @@ export function UserFormPage() {
                 <option value="admin">Administrador</option>
               </select>
             </Field>
-            <Field label="Colegio asociado" error={errors.schoolId?.message}>
-              <select
-                {...register("schoolId")}
-                className="field"
-                disabled={role !== "school"}
-              >
-                <option value="">Seleccionar…</option>
-                {schools.map((school) => (
-                  <option
-                    disabled={
-                      school.isActive === false &&
-                      school.id !== selectedSchoolId
-                    }
-                    key={school.id}
-                    value={school.id}
-                  >
-                    {school.cue} - {school.name}
-                    {school.isActive === false ? " (inactivo)" : ""}
-                  </option>
-                ))}
-              </select>
-            </Field>
+            <Controller
+              control={control}
+              name="schoolId"
+              render={({ field }) => (
+                <SchoolCombobox
+                  disabled={role !== "school"}
+                  error={errors.schoolId?.message}
+                  onChange={(school) => {
+                    if (!school) return;
+                    setSelectedSchool(school);
+                    field.onChange(school.id);
+                  }}
+                  selectedSchool={selectedSchool}
+                />
+              )}
+            />
             {!editing && (
               <Field
                 label="Contraseña temporal"

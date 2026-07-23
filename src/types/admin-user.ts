@@ -2,6 +2,11 @@ import type { UserRole } from './auth';
 
 export type SchoolOption = { id: string; cue: string; code?: string; name: string; isActive?: boolean };
 
+export type SchoolOptionListResponse = {
+  items: SchoolOption[];
+  pagination: { page: number; limit: number; total: number; totalPages: number };
+};
+
 export type ManagedUser = {
   id: string;
   firstName: string;

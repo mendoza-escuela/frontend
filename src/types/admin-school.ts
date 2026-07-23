@@ -24,9 +24,27 @@ export type School = {
   updatedAt: string;
 };
 
-export type SchoolWriteInput = Omit<School, "id" | "createdAt" | "updatedAt">;
+export type SchoolWriteInput = Omit<
+  School,
+  "id" | "createdAt" | "updatedAt" | "characteristics"
+> & {
+  characteristics?: School["characteristics"];
+};
+export type SchoolListItem = Pick<
+  School,
+  | "id"
+  | "cue"
+  | "name"
+  | "schoolNumber"
+  | "department"
+  | "locality"
+  | "educationLevel"
+  | "managementType"
+  | "enrollment"
+  | "isActive"
+>;
 export type SchoolListResponse = {
-  items: School[];
+  items: SchoolListItem[];
   pagination: {
     page: number;
     limit: number;
@@ -50,6 +68,15 @@ export type SchoolUserSummary = {
   role?: string;
   isActive?: boolean;
   lastLoginAt?: string | null;
+};
+export type SchoolUserListResponse = {
+  items: SchoolUserSummary[];
+  pagination: {
+    page: number;
+    limit: number;
+    total: number;
+    totalPages: number;
+  };
 };
 export type SchoolDetail = School & {
   users: SchoolUserSummary[];

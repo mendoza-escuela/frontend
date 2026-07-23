@@ -33,6 +33,16 @@ export type AdminSurveyListItem = {
   versions: SurveyVersionSummary[];
 };
 
+export type AdminSurveyListResponse = {
+  items: AdminSurveyListItem[];
+  pagination: {
+    page: number;
+    limit: number;
+    total: number;
+    totalPages: number;
+  };
+};
+
 export type AdminSurveyDetail = AdminSurveyListItem & {
   audits: Array<{
     id: string;

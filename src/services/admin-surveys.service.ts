@@ -1,7 +1,7 @@
 import { api } from "../lib/api";
 import type {
   AdminSurveyDetail,
-  AdminSurveyListItem,
+  AdminSurveyListResponse,
   AdminSurveyVersion,
   SurveyVersionComparison,
   SurveyStructureValidation,
@@ -10,8 +10,16 @@ import type {
 } from "../types/admin-survey";
 
 export const adminSurveysService = {
-  async list() {
-    return (await api.get<AdminSurveyListItem[]>("/admin/surveys")).data;
+  async list(
+    filters: { search?: string; page?: number; limit?: number },
+    signal?: AbortSignal,
+  ) {
+    return (
+      await api.get<AdminSurveyListResponse>("/admin/surveys", {
+        params: filters,
+        signal,
+      })
+    ).data;
   },
 
   async findOne(surveyId: string) {

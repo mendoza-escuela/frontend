@@ -3,7 +3,7 @@ import type {
   ImportPreview,
   ImportResult,
   ManagedUser,
-  SchoolOption,
+  SchoolOptionListResponse,
   UserListResponse,
   UserWriteInput,
 } from '../types/admin-user';
@@ -19,17 +19,25 @@ export type UserFilters = {
 };
 
 export const adminUsersService = {
-  async list(filters: UserFilters) {
+  async list(filters: UserFilters, signal?: AbortSignal) {
     const params = Object.fromEntries(
       Object.entries(filters).filter(([, value]) => value !== '' && value !== undefined),
     );
-    return (await api.get<UserListResponse>('/admin/users', { params })).data;
+    return (await api.get<UserListResponse>('/admin/users', { params, signal })).data;
   },
   async findOne(id: string) {
     return (await api.get<ManagedUser>(`/admin/users/${id}`)).data;
   },
-  async schools() {
-    return (await api.get<SchoolOption[]>('/admin/users/schools')).data;
+  async schools(
+    filters: { search?: string; page?: number; limit?: number } = {},
+    signal?: AbortSignal,
+  ) {
+    return (
+      await api.get<SchoolOptionListResponse>('/admin/users/schools', {
+        params: filters,
+        signal,
+      })
+    ).data;
   },
   async create(input: UserWriteInput & { temporaryPassword: string }) {
     return (await api.post<ManagedUser>('/admin/users', input)).data;
