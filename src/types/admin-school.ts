@@ -2,6 +2,7 @@ export type School = {
   id: string;
   cue: string;
   name: string;
+  directorName: string;
   schoolNumber: string | null;
   department: string;
   locality: string;
@@ -9,8 +10,8 @@ export type School = {
   postalCode: string | null;
   educationLevel: string;
   managementType: string;
-  scope: string | null;
-  shift: string | null;
+  scope: string;
+  shift: string;
   phone: string | null;
   email: string | null;
   referentFirstName: string;
@@ -22,6 +23,29 @@ export type School = {
   isActive: boolean;
   createdAt: string;
   updatedAt: string;
+};
+
+export type SchoolRectificationInput = Pick<
+  School,
+  | "name"
+  | "cue"
+  | "directorName"
+  | "address"
+  | "locality"
+  | "scope"
+  | "educationLevel"
+  | "shift"
+>;
+
+export type SchoolRectificationStatus = {
+  periodYear: number;
+  isRectified: boolean;
+  rectifiedAt: string | null;
+  rectifiedBy: SchoolUserSummary | null;
+};
+
+export type SchoolProfile = School & {
+  rectification: SchoolRectificationStatus;
 };
 
 export type SchoolWriteInput = Omit<
@@ -79,6 +103,14 @@ export type SchoolUserListResponse = {
   };
 };
 export type SchoolDetail = School & {
+  rectification: SchoolRectificationStatus;
+  rectifications: Array<{
+    id: string;
+    periodYear: number;
+    rectifiedAt: string;
+    actorUser: SchoolUserSummary | null;
+    snapshot: SchoolRectificationInput;
+  }>;
   users: SchoolUserSummary[];
   accesses: Array<{
     id: string;

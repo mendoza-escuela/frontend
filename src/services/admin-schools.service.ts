@@ -8,6 +8,7 @@ import type {
   SchoolListResponse,
   SchoolUserListResponse,
   SchoolWriteInput,
+  SchoolRectificationInput,
 } from "../types/admin-school";
 
 export type SchoolFilters = {
@@ -48,6 +49,11 @@ export const adminSchoolsService = {
   },
   async update(id: string, input: Partial<SchoolWriteInput>) {
     return (await api.patch<SchoolDetail>(`/admin/schools/${id}`, input)).data;
+  },
+  async rectify(id: string, input: SchoolRectificationInput) {
+    return (
+      await api.put<SchoolDetail>(`/admin/schools/${id}/rectification`, input)
+    ).data;
   },
   async setStatus(id: string, isActive: boolean) {
     return (

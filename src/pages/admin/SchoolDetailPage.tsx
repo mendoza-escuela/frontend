@@ -156,6 +156,11 @@ export function SchoolDetailPage() {
               CUE {school.cue}
               {school.schoolNumber ? ` · N.º ${school.schoolNumber}` : ""}
             </p>
+            <p className="mt-2 text-sm font-semibold text-mendoza-blue">
+              {school.rectification.isRectified
+                ? `Ficha ${school.rectification.periodYear} rectificada el ${date(school.rectification.rectifiedAt!)}`
+                : `Ficha ${school.rectification.periodYear} pendiente de rectificación`}
+            </p>
           </div>
           <div className="flex flex-wrap gap-2">
             <Link
@@ -197,6 +202,7 @@ export function SchoolDetailPage() {
                 value={`${school.address}, ${school.locality}, ${school.department}`}
               />
               <Datum label="Nivel" value={school.educationLevel} />
+              <Datum label="Director/a" value={school.directorName} />
               <Datum label="Gestión" value={school.managementType} />
               <Datum
                 label="Ámbito / Jornada"
@@ -379,6 +385,20 @@ export function SchoolDetailPage() {
         </div>
         <Timeline
           className="mt-5"
+          title="Rectificaciones anuales"
+          icon={<CalendarDays />}
+          empty="Todavía no hay rectificaciones registradas."
+          entries={school.rectifications.map((entry) => ({
+            id: entry.id,
+            date: entry.rectifiedAt,
+            title: `Período ${entry.periodYear}`,
+            detail: entry.actorUser
+              ? `${entry.actorUser.firstName} ${entry.actorUser.lastName}`
+              : "Usuario eliminado",
+          }))}
+        />
+        <Timeline
+          className="mt-5"
           title="Auditoría del colegio"
           icon={<ClipboardCheck />}
           empty="No hay acciones auditadas."
@@ -473,4 +493,5 @@ const auditLabel = (action: string) =>
     SCHOOL_USER_ASSIGNED: "Usuario asociado",
     SCHOOL_USER_REPLACED: "Usuario reemplazado",
     SCHOOL_USER_UNASSIGNED: "Usuario desvinculado",
+    SCHOOL_RECTIFIED: "Ficha anual rectificada",
   })[action] ?? action;

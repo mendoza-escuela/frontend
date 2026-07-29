@@ -1,8 +1,15 @@
 import { api } from "../lib/api";
-import type { School } from "../types/admin-school";
+import type {
+  SchoolProfile,
+  SchoolRectificationInput,
+} from "../types/admin-school";
 
 export const schoolPortalService = {
   async ownSchool() {
-    return (await api.get<School>("/schools/me")).data;
+    return (await api.get<SchoolProfile>("/schools/me")).data;
+  },
+  async rectify(input: SchoolRectificationInput) {
+    return (await api.put<SchoolProfile>("/schools/me/rectification", input))
+      .data;
   },
 };

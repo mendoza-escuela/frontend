@@ -15,6 +15,7 @@ import { adminSchoolsService } from "../../services/admin-schools.service";
 const defaults: SchoolFormValues = {
   cue: "",
   name: "",
+  directorName: "",
   schoolNumber: "",
   department: "",
   locality: "",
@@ -56,6 +57,7 @@ export function SchoolFormPage() {
         reset({
           cue: school.cue,
           name: school.name,
+          directorName: school.directorName,
           schoolNumber: school.schoolNumber ?? "",
           department: school.department,
           locality: school.locality,
@@ -83,15 +85,27 @@ export function SchoolFormPage() {
       ...values,
       schoolNumber: values.schoolNumber || null,
       postalCode: values.postalCode || null,
-      scope: values.scope || null,
-      shift: values.shift || null,
+      scope: values.scope,
+      shift: values.shift,
       phone: values.phone || null,
       email: values.email || null,
       referentEmail: values.referentEmail || null,
       referentPhone: values.referentPhone || null,
     };
     try {
-      if (id) await adminSchoolsService.update(id, input);
+      if (id) {
+        await adminSchoolsService.update(id, input);
+        await adminSchoolsService.rectify(id, {
+          name: values.name,
+          cue: values.cue,
+          directorName: values.directorName,
+          address: values.address,
+          locality: values.locality,
+          scope: values.scope,
+          educationLevel: values.educationLevel,
+          shift: values.shift,
+        });
+      }
       else await adminSchoolsService.create(input);
       showSuccess(
         id
@@ -138,6 +152,13 @@ export function SchoolFormPage() {
             <Field wide label="Nombre *" error={errors.name?.message}>
               <input className="field" {...register("name")} />
             </Field>
+            <Field
+              wide
+              label="Director/a *"
+              error={errors.directorName?.message}
+            >
+              <input className="field" {...register("directorName")} />
+            </Field>
             <Section title="Ubicación" />
             <Field label="Departamento *" error={errors.department?.message}>
               <input className="field" {...register("department")} />
@@ -162,10 +183,10 @@ export function SchoolFormPage() {
             <Field label="Gestión *" error={errors.managementType?.message}>
               <input className="field" {...register("managementType")} />
             </Field>
-            <Field label="Ámbito">
+            <Field label="Ámbito *" error={errors.scope?.message}>
               <input className="field" {...register("scope")} />
             </Field>
-            <Field label="Jornada">
+            <Field label="Jornada *" error={errors.shift?.message}>
               <input className="field" {...register("shift")} />
             </Field>
             <Field label="Matrícula *" error={errors.enrollment?.message}>

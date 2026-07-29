@@ -18,6 +18,8 @@ Los listados administrativos de usuarios, colegios y cuestionarios usan paginaci
 
 El portal responsive `/colegio` ofrece Inicio, Mi establecimiento, Cuestionario y Resultados. Los datos institucionales son de consulta y provienen de `GET /schools/me`.
 
+En `/colegio/establecimiento`, el usuario revisa los ocho datos obligatorios de la ficha y confirma su rectificación para el año calendario. El portal informa si el período vigente está rectificado y envía los cambios mediante `PUT /schools/me/rectification`; el backend conserva el historial y la auditoría.
+
 El renderizador de cuestionarios consume la última versión publicada y soporta selección simple, selección múltiple, sí/no, texto corto, texto largo, número y fecha. Navega por secciones y usa React Hook Form con Zod para las validaciones configuradas. En el portal permanece en modo de sólo lectura hasta que estén implementados campañas, borradores y envíos; no simula persistencia ni resultados.
 
 El panel `/admin/cuestionarios` incorpora el ABM de cuestionarios y versiones. Permite crear versiones con las seis dimensiones oficiales, vacías o clonadas; editar la estructura y los puntajes; validar antes de publicar; consultar auditoría; comparar versiones, incluido el puntaje; y abrir una vista previa administrativa que muestra los puntos sin exponerlos en el portal escolar. Las versiones publicadas son de sólo lectura.

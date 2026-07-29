@@ -18,6 +18,11 @@ export const schoolFormSchema = z.object({
     .max(20)
     .regex(/^[A-Za-z0-9.-]+$/, "El CUE contiene caracteres inválidos."),
   name: z.string().trim().min(2, "Ingresá el nombre.").max(255),
+  directorName: z
+    .string()
+    .trim()
+    .min(2, "Ingresá el nombre del/de la director/a.")
+    .max(200),
   schoolNumber: optionalText(30),
   department: z.string().trim().min(2, "Ingresá el departamento.").max(120),
   locality: z.string().trim().min(2, "Ingresá la localidad.").max(120),
@@ -29,8 +34,8 @@ export const schoolFormSchema = z.object({
     .trim()
     .min(2, "Ingresá el tipo de gestión.")
     .max(120),
-  scope: optionalText(120),
-  shift: optionalText(120),
+  scope: z.string().trim().min(2, "Ingresá el ámbito.").max(120),
+  shift: z.string().trim().min(2, "Ingresá la jornada.").max(120),
   phone: optionalText(40),
   email: optionalEmail,
   referentFirstName: z
@@ -53,3 +58,17 @@ export const schoolFormSchema = z.object({
   isActive: z.boolean(),
 });
 export type SchoolFormValues = z.infer<typeof schoolFormSchema>;
+
+export const schoolRectificationSchema = schoolFormSchema.pick({
+  name: true,
+  cue: true,
+  directorName: true,
+  address: true,
+  locality: true,
+  scope: true,
+  educationLevel: true,
+  shift: true,
+});
+export type SchoolRectificationValues = z.infer<
+  typeof schoolRectificationSchema
+>;
