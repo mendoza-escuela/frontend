@@ -20,7 +20,9 @@ El portal responsive `/colegio` ofrece Inicio, Mi establecimiento, Cuestionario 
 
 El renderizador de cuestionarios consume la última versión publicada y soporta selección simple, selección múltiple, sí/no, texto corto, texto largo, número y fecha. Navega por secciones y usa React Hook Form con Zod para las validaciones configuradas. En el portal permanece en modo de sólo lectura hasta que estén implementados campañas, borradores y envíos; no simula persistencia ni resultados.
 
-El panel `/admin/cuestionarios` incorpora el ABM de cuestionarios y versiones. Permite crear versiones vacías o clonadas, editar la estructura anidada y su orden, guardar borradores incompletos, validar todos los errores antes de publicar, publicar con confirmación, eliminar únicamente borradores, consultar la auditoría, comparar dos versiones y abrir una vista previa con el mismo renderizador que utiliza el portal escolar. Las versiones publicadas se muestran en modo de sólo lectura.
+El panel `/admin/cuestionarios` incorpora el ABM de cuestionarios y versiones. Permite crear versiones con las seis dimensiones oficiales, vacías o clonadas; editar la estructura y los puntajes; validar antes de publicar; consultar auditoría; comparar versiones, incluido el puntaje; y abrir una vista previa administrativa que muestra los puntos sin exponerlos en el portal escolar. Las versiones publicadas son de sólo lectura.
+
+Desde el detalle de un cuestionario se accede a `/admin/cuestionarios/:surveyId/importar`. Allí se descargan plantillas CSV/Excel, se previsualizan errores por fila y se crea una versión borrador únicamente cuando la planilla completa es válida. El perfil institucional restringe el editor a selección simple y no ofrece “Otro”, “No aplica”, selección múltiple ni campos de observaciones.
 
 Las pantallas administrativas reutilizan componentes comunes para encabezados, cards, campos, estados de carga/error/vacío, badges, modales y confirmaciones. Los accesos HTTP permanecen centralizados en `src/services/admin-surveys.service.ts`.
 

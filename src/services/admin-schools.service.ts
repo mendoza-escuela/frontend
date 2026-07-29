@@ -1,4 +1,5 @@
 import { api } from "../lib/api";
+import { downloadBlob } from "../lib/download";
 import type {
   SchoolDetail,
   SchoolFilterOptions,
@@ -27,15 +28,6 @@ const cleanParams = (filters: SchoolFilters) =>
       ([, value]) => value !== "" && value !== undefined,
     ),
   );
-const download = (blob: Blob, filename: string) => {
-  const url = URL.createObjectURL(blob);
-  const link = document.createElement("a");
-  link.href = url;
-  link.download = filename;
-  link.click();
-  URL.revokeObjectURL(url);
-};
-
 export const adminSchoolsService = {
   async list(filters: SchoolFilters, signal?: AbortSignal) {
     return (
@@ -84,13 +76,13 @@ export const adminSchoolsService = {
       params: { ...cleanParams(filters), format },
       responseType: "blob",
     });
-    download(response.data, `padron-colegios.${format}`);
+    downloadBlob(response.data, `padron-colegios.${format}`);
   },
   async downloadTemplate() {
     const response = await api.get<Blob>("/admin/schools/import/template", {
       responseType: "blob",
     });
-    download(response.data, "plantilla-colegios.csv");
+    downloadBlob(response.data, "plantilla-colegios.csv");
   },
   async preview(file: File) {
     const body = new FormData();

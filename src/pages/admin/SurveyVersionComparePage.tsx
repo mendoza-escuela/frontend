@@ -27,14 +27,18 @@ const entityLabels = {
   question: "Pregunta",
   option: "Opción",
 };
+const fieldLabels: Record<string, string> = {
+  score: "puntaje",
+};
 
 export function SurveyVersionComparePage() {
   const { surveyId } = useParams();
   const [survey, setSurvey] = useState<AdminSurveyDetail | null>(null);
   const [fromVersionId, setFromVersionId] = useState("");
   const [toVersionId, setToVersionId] = useState("");
-  const [comparison, setComparison] =
-    useState<SurveyVersionComparison | null>(null);
+  const [comparison, setComparison] = useState<SurveyVersionComparison | null>(
+    null,
+  );
   const [isLoading, setIsLoading] = useState(true);
   const [isComparing, setIsComparing] = useState(false);
   const [error, setError] = useState("");
@@ -58,11 +62,7 @@ export function SurveyVersionComparePage() {
     setError("");
     try {
       setComparison(
-        await adminSurveysService.compare(
-          surveyId,
-          fromVersionId,
-          toVersionId,
-        ),
+        await adminSurveysService.compare(surveyId, fromVersionId, toVersionId),
       );
     } catch (compareError) {
       setError(getHttpErrorMessage(compareError));
@@ -140,7 +140,11 @@ export function SurveyVersionComparePage() {
           </div>
         </Card>
 
-        {error && <div className="mt-5"><ErrorState message={error} /></div>}
+        {error && (
+          <div className="mt-5">
+            <ErrorState message={error} />
+          </div>
+        )}
 
         {comparison && (
           <div className="mt-6">
@@ -148,7 +152,10 @@ export function SurveyVersionComparePage() {
               <Metric label="Agregados" value={comparison.summary.added} />
               <Metric label="Eliminados" value={comparison.summary.removed} />
               <Metric label="Modificados" value={comparison.summary.modified} />
-              <Metric label="Total de cambios" value={comparison.summary.total} />
+              <Metric
+                label="Total de cambios"
+                value={comparison.summary.total}
+              />
             </div>
             {comparison.changes.length === 0 ? (
               <div className="mt-5">
@@ -172,7 +179,9 @@ export function SurveyVersionComparePage() {
                     </thead>
                     <tbody className="divide-y divide-mendoza-border">
                       {comparison.changes.map((change) => (
-                        <tr key={`${change.type}-${change.entityType}-${change.path}`}>
+                        <tr
+                          key={`${change.type}-${change.entityType}-${change.path}`}
+                        >
                           <td className="px-4 py-3 font-semibold text-mendoza-text">
                             {changeLabels[change.type]}
                           </td>
@@ -184,7 +193,9 @@ export function SurveyVersionComparePage() {
                           </td>
                           <td className="px-4 py-3 text-mendoza-muted">
                             {change.changedFields.length
-                              ? `Campos: ${change.changedFields.join(", ")}`
+                              ? `Campos: ${change.changedFields
+                                  .map((field) => fieldLabels[field] ?? field)
+                                  .join(", ")}`
                               : change.label}
                           </td>
                         </tr>

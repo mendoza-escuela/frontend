@@ -104,6 +104,11 @@ const SurveyVersionComparePage = lazy(() =>
     default: module.SurveyVersionComparePage,
   })),
 );
+const SurveyImportPage = lazy(() =>
+  import("../pages/admin/SurveyImportPage").then((module) => ({
+    default: module.SurveyImportPage,
+  })),
+);
 const SchoolHomePage = lazy(() =>
   import("../pages/school/SchoolHomePage").then((module) => ({
     default: module.SchoolHomePage,
@@ -201,6 +206,10 @@ const router = createBrowserRouter([
           {
             path: "cuestionarios/:surveyId/comparar",
             element: lazyPage(<SurveyVersionComparePage />),
+          },
+          {
+            path: "cuestionarios/:surveyId/importar",
+            element: lazyPage(<SurveyImportPage />),
           },
           {
             path: "cuestionarios/:id",

@@ -16,9 +16,6 @@ const apiBaseUrl = /\/api$/i.test(normalizedApiUrl)
 export const api = axios.create({
   baseURL: apiBaseUrl,
   withCredentials: true,
-  headers: {
-    'Content-Type': 'application/json',
-  },
 });
 
 api.interceptors.response.use(

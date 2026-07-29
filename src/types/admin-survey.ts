@@ -5,6 +5,7 @@ import type {
 } from "./survey";
 
 export type SurveyVersionStatus = "draft" | "published" | "archived";
+export type SurveyVersionTemplate = "blank" | "official_dimensions";
 
 export type SurveyVersionSummary = {
   id: string;
@@ -70,6 +71,7 @@ export type AdminSurveyVersion = {
   publishedAt: string | null;
   createdAt: string;
   updatedAt: string;
+  profile: "institutional" | "generic";
   dimensions: SurveyDimension[];
 };
 
@@ -84,6 +86,7 @@ export type SurveyOptionWriteInput = {
   value: string;
   label: string;
   helpText?: string | null;
+  score?: number | null;
 };
 
 export type SurveyQuestionWriteInput = {
@@ -148,5 +151,31 @@ export type SurveyVersionComparison = {
     path: string;
     label: string;
     changedFields: string[];
+  }>;
+};
+
+export type SurveyImportPreview = {
+  totalRows: number;
+  validCount: number;
+  errorCount: number;
+  canImport: boolean;
+  counts: {
+    dimensions: number;
+    sections: number;
+    questions: number;
+    options: number;
+  };
+  rows: Array<{
+    line: number;
+    dimensionCode: string;
+    sectionCode: string;
+    questionCode: string;
+    question: string;
+    optionCode: string;
+    option: string;
+    score: number | null;
+    required: boolean | null;
+    order: number | null;
+    errors: string[];
   }>;
 };

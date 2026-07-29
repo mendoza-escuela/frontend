@@ -1,9 +1,12 @@
 import { api } from "../lib/api";
+import { downloadBlob } from "../lib/download";
 import type {
   AdminSurveyDetail,
   AdminSurveyListResponse,
   AdminSurveyVersion,
   SurveyVersionComparison,
+  SurveyVersionTemplate,
+  SurveyImportPreview,
   SurveyStructureValidation,
   SurveyVersionWriteInput,
   SurveyWriteInput,
@@ -23,9 +26,8 @@ export const adminSurveysService = {
   },
 
   async findOne(surveyId: string) {
-    return (
-      await api.get<AdminSurveyDetail>(`/admin/surveys/${surveyId}`)
-    ).data;
+    return (await api.get<AdminSurveyDetail>(`/admin/surveys/${surveyId}`))
+      .data;
   },
 
   async create(input: SurveyWriteInput) {
@@ -56,6 +58,7 @@ export const adminSurveysService = {
       title: string;
       instructions?: string | null;
       sourceVersionId?: string;
+      template?: SurveyVersionTemplate;
     },
   ) {
     return (
@@ -99,15 +102,47 @@ export const adminSurveysService = {
     await api.delete(`/admin/surveys/${surveyId}/versions/${versionId}`);
   },
 
-  async compare(
-    surveyId: string,
-    fromVersionId: string,
-    toVersionId: string,
-  ) {
+  async compare(surveyId: string, fromVersionId: string, toVersionId: string) {
     return (
       await api.get<SurveyVersionComparison>(
         `/admin/surveys/${surveyId}/versions/compare`,
         { params: { fromVersionId, toVersionId } },
+      )
+    ).data;
+  },
+
+  async downloadImportTemplate(format: "csv" | "xlsx") {
+    const response = await api.get<Blob>("/admin/surveys/import/template", {
+      params: { format },
+      responseType: "blob",
+    });
+    downloadBlob(response.data, `plantilla-cuestionario.${format}`);
+  },
+
+  async previewImport(surveyId: string, file: File) {
+    const body = new FormData();
+    body.append("file", file);
+    return (
+      await api.post<SurveyImportPreview>(
+        `/admin/surveys/${surveyId}/import/preview`,
+        body,
+      )
+    ).data;
+  },
+
+  async importVersion(
+    surveyId: string,
+    file: File,
+    input: { title: string; instructions?: string | null },
+  ) {
+    const body = new FormData();
+    body.append("file", file);
+    body.append("title", input.title);
+    if (input.instructions) body.append("instructions", input.instructions);
+    return (
+      await api.post<AdminSurveyVersion>(
+        `/admin/surveys/${surveyId}/import`,
+        body,
       )
     ).data;
   },

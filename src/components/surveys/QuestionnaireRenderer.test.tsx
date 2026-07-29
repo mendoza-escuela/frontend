@@ -77,8 +77,12 @@ describe("QuestionnaireRenderer", () => {
     render(<QuestionnaireRenderer survey={survey} />);
 
     fireEvent.click(screen.getByRole("button", { name: "Siguiente" }));
-    expect(await screen.findByText("Esta pregunta es obligatoria.")).toBeVisible();
-    expect(screen.getByRole("heading", { name: "Datos generales" })).toBeVisible();
+    expect(
+      await screen.findByText("Esta pregunta es obligatoria."),
+    ).toBeVisible();
+    expect(
+      screen.getByRole("heading", { name: "Datos generales" }),
+    ).toBeVisible();
 
     fireEvent.change(screen.getByLabelText(/Nombre del proyecto/), {
       target: { value: "Proyecto saludable" },
@@ -100,5 +104,56 @@ describe("QuestionnaireRenderer", () => {
       await screen.findByText("Fin de la vista del cuestionario"),
     ).toBeVisible();
     expect(screen.getByRole("radio", { name: "Sí" })).toBeDisabled();
+  });
+
+  it("muestra puntajes únicamente cuando la vista administrativa lo solicita", () => {
+    const scoredSurvey: PublishedSurvey = {
+      ...survey,
+      version: {
+        ...survey.version,
+        dimensions: [
+          {
+            ...survey.version.dimensions[0],
+            sections: [
+              {
+                ...survey.version.dimensions[0].sections[0],
+                questions: [
+                  {
+                    id: "question-score",
+                    code: "p001",
+                    type: "single_choice",
+                    prompt: "¿Cuenta con compromiso?",
+                    helpText: null,
+                    required: true,
+                    order: 0,
+                    validation: {},
+                    options: [
+                      {
+                        id: "option-score",
+                        value: "si",
+                        label: "Sí",
+                        helpText: null,
+                        score: 100,
+                        order: 0,
+                      },
+                    ],
+                  },
+                ],
+              },
+            ],
+          },
+        ],
+      },
+    };
+
+    const { rerender } = render(
+      <QuestionnaireRenderer readOnly survey={scoredSurvey} />,
+    );
+    expect(screen.queryByText("100 puntos")).not.toBeInTheDocument();
+
+    rerender(
+      <QuestionnaireRenderer readOnly showScores survey={scoredSurvey} />,
+    );
+    expect(screen.getByText("100 puntos")).toBeVisible();
   });
 });

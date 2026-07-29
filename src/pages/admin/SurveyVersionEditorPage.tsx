@@ -1,11 +1,5 @@
 import { zodResolver } from "@hookform/resolvers/zod";
-import {
-  ArrowDown,
-  ArrowUp,
-  CirclePlus,
-  Save,
-  Trash2,
-} from "lucide-react";
+import { ArrowDown, ArrowUp, CirclePlus, Save, Trash2 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
 import { useParams } from "react-router-dom";
@@ -52,6 +46,15 @@ const optionSchema = z.object({
   value: codeSchema,
   label: z.string().trim().min(1, "La etiqueta es obligatoria.").max(500),
   helpText: z.string().max(2000).optional().nullable(),
+  score: z.preprocess(
+    (value) => (value === "" || Number.isNaN(value) ? undefined : value),
+    z
+      .number()
+      .int("El puntaje debe ser entero.")
+      .min(0, "El puntaje mínimo es 0.")
+      .max(100, "El puntaje máximo es 100.")
+      .optional(),
+  ),
 });
 const questionSchema = z.object({
   code: codeSchema,
@@ -97,9 +100,11 @@ const editorSchema = z.object({
 
 type EditorForm = z.infer<typeof editorSchema>;
 
-const emptyQuestion = (): EditorForm["dimensions"][number]["sections"][number]["questions"][number] => ({
+const emptyQuestion = (
+  type: SurveyQuestionType = "boolean",
+): EditorForm["dimensions"][number]["sections"][number]["questions"][number] => ({
   code: "",
-  type: "boolean",
+  type,
   prompt: "",
   helpText: "",
   required: false,
@@ -132,6 +137,7 @@ export function SurveyVersionEditorPage() {
     defaultValues: { title: "", instructions: "", dimensions: [] },
   });
   const dimensions = watch("dimensions");
+  const isInstitutional = version?.profile === "institutional";
 
   useEffect(() => {
     if (!surveyId || !versionId) return;
@@ -266,6 +272,7 @@ export function SurveyVersionEditorPage() {
                 errors={errors}
                 key={`dimension-${dimensionIndex}`}
                 register={register}
+                isInstitutional={isInstitutional}
                 updateDimensions={updateDimensions}
               />
             ))}
@@ -286,7 +293,9 @@ export function SurveyVersionEditorPage() {
   );
 }
 
-type EditorErrors = ReturnType<typeof useForm<EditorForm>>["formState"]["errors"];
+type EditorErrors = ReturnType<
+  typeof useForm<EditorForm>
+>["formState"]["errors"];
 type EditorRegister = ReturnType<typeof useForm<EditorForm>>["register"];
 
 function DimensionEditor({
@@ -295,6 +304,7 @@ function DimensionEditor({
   dimensions,
   errors,
   register,
+  isInstitutional,
   updateDimensions,
 }: {
   dimension: EditorForm["dimensions"][number];
@@ -302,6 +312,7 @@ function DimensionEditor({
   dimensions: EditorForm["dimensions"];
   errors: EditorErrors;
   register: EditorRegister;
+  isInstitutional: boolean;
   updateDimensions: (dimensions: EditorForm["dimensions"]) => void;
 }) {
   const updateSections = (
@@ -321,10 +332,16 @@ function DimensionEditor({
         <OrderActions
           canMoveDown={dimensionIndex < dimensions.length - 1}
           canMoveUp={dimensionIndex > 0}
-          onMoveDown={() => updateDimensions(move(dimensions, dimensionIndex, 1))}
-          onMoveUp={() => updateDimensions(move(dimensions, dimensionIndex, -1))}
+          onMoveDown={() =>
+            updateDimensions(move(dimensions, dimensionIndex, 1))
+          }
+          onMoveUp={() =>
+            updateDimensions(move(dimensions, dimensionIndex, -1))
+          }
           onRemove={() =>
-            updateDimensions(dimensions.filter((_, index) => index !== dimensionIndex))
+            updateDimensions(
+              dimensions.filter((_, index) => index !== dimensionIndex),
+            )
           }
         />
       </div>
@@ -381,6 +398,7 @@ function DimensionEditor({
             errors={errors}
             key={`section-${sectionIndex}`}
             register={register}
+            isInstitutional={isInstitutional}
             section={section}
             sectionIndex={sectionIndex}
             sections={dimension.sections}
@@ -404,6 +422,7 @@ function SectionEditor({
   sections,
   errors,
   register,
+  isInstitutional,
   updateSections,
 }: {
   dimensionIndex: number;
@@ -412,7 +431,10 @@ function SectionEditor({
   sections: EditorForm["dimensions"][number]["sections"];
   errors: EditorErrors;
   register: EditorRegister;
-  updateSections: (sections: EditorForm["dimensions"][number]["sections"]) => void;
+  isInstitutional: boolean;
+  updateSections: (
+    sections: EditorForm["dimensions"][number]["sections"],
+  ) => void;
 }) {
   const updateQuestions = (
     questions: EditorForm["dimensions"][number]["sections"][number]["questions"],
@@ -425,14 +447,18 @@ function SectionEditor({
   return (
     <section className="rounded-xl border border-mendoza-border bg-mendoza-background/40 p-4">
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <h5 className="font-bold text-mendoza-blue">Sección {sectionIndex + 1}</h5>
+        <h5 className="font-bold text-mendoza-blue">
+          Sección {sectionIndex + 1}
+        </h5>
         <OrderActions
           canMoveDown={sectionIndex < sections.length - 1}
           canMoveUp={sectionIndex > 0}
           onMoveDown={() => updateSections(move(sections, sectionIndex, 1))}
           onMoveUp={() => updateSections(move(sections, sectionIndex, -1))}
           onRemove={() =>
-            updateSections(sections.filter((_, index) => index !== sectionIndex))
+            updateSections(
+              sections.filter((_, index) => index !== sectionIndex),
+            )
           }
         />
       </div>
@@ -485,7 +511,12 @@ function SectionEditor({
       <div className="mt-5 flex items-center justify-between gap-3">
         <h6 className="font-bold text-mendoza-text">Preguntas</h6>
         <Button
-          onClick={() => updateQuestions([...section.questions, emptyQuestion()])}
+          onClick={() =>
+            updateQuestions([
+              ...section.questions,
+              emptyQuestion(isInstitutional ? "single_choice" : "boolean"),
+            ])
+          }
           variant="outline"
         >
           Agregar pregunta
@@ -501,6 +532,7 @@ function SectionEditor({
             questionIndex={questionIndex}
             questions={section.questions}
             register={register}
+            isInstitutional={isInstitutional}
             sectionIndex={sectionIndex}
             updateQuestions={updateQuestions}
           />
@@ -523,6 +555,7 @@ function QuestionEditor({
   questions,
   errors,
   register,
+  isInstitutional,
   updateQuestions,
 }: {
   dimensionIndex: number;
@@ -532,11 +565,13 @@ function QuestionEditor({
   questions: EditorForm["dimensions"][number]["sections"][number]["questions"];
   errors: EditorErrors;
   register: EditorRegister;
+  isInstitutional: boolean;
   updateQuestions: (
     questions: EditorForm["dimensions"][number]["sections"][number]["questions"],
   ) => void;
 }) {
-  const base = `dimensions.${dimensionIndex}.sections.${sectionIndex}.questions.${questionIndex}` as const;
+  const base =
+    `dimensions.${dimensionIndex}.sections.${sectionIndex}.questions.${questionIndex}` as const;
   const updateOptions = (
     options: EditorForm["dimensions"][number]["sections"][number]["questions"][number]["options"],
   ) => {
@@ -547,9 +582,7 @@ function QuestionEditor({
   const isChoice = ["single_choice", "multiple_choice"].includes(question.type);
   const isText = ["short_text", "long_text"].includes(question.type);
   const hasPresentationValidation =
-    question.type === "number" ||
-    question.type === "multiple_choice" ||
-    isText;
+    question.type === "number" || question.type === "multiple_choice" || isText;
   const questionErrors =
     errors.dimensions?.[dimensionIndex]?.sections?.[sectionIndex]?.questions?.[
       questionIndex
@@ -558,14 +591,18 @@ function QuestionEditor({
   return (
     <article className="rounded-xl border border-mendoza-border bg-white p-4">
       <div className="flex flex-wrap items-center justify-between gap-3">
-        <p className="font-bold text-mendoza-text">Pregunta {questionIndex + 1}</p>
+        <p className="font-bold text-mendoza-text">
+          Pregunta {questionIndex + 1}
+        </p>
         <OrderActions
           canMoveDown={questionIndex < questions.length - 1}
           canMoveUp={questionIndex > 0}
           onMoveDown={() => updateQuestions(move(questions, questionIndex, 1))}
           onMoveUp={() => updateQuestions(move(questions, questionIndex, -1))}
           onRemove={() =>
-            updateQuestions(questions.filter((_, index) => index !== questionIndex))
+            updateQuestions(
+              questions.filter((_, index) => index !== questionIndex),
+            )
           }
         />
       </div>
@@ -617,11 +654,13 @@ function QuestionEditor({
             }}
             value={question.type}
           >
-            {questionTypes.map(([value, label]) => (
-              <option key={value} value={value}>
-                {label}
-              </option>
-            ))}
+            {(isInstitutional ? institutionalQuestionTypes : questionTypes).map(
+              ([value, label]) => (
+                <option key={value} value={value}>
+                  {label}
+                </option>
+              ),
+            )}
           </select>
         </CompactField>
         <label className="flex items-end gap-3 pb-2 text-sm font-semibold text-mendoza-text">
@@ -667,18 +706,53 @@ function QuestionEditor({
           <div className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-3">
             {question.type === "number" && (
               <>
-                <NumberField error={questionErrors?.validation?.min?.message} label="Mínimo" register={register(`${base}.validation.min`, numberRegistration)} />
-                <NumberField error={questionErrors?.validation?.max?.message} label="Máximo" register={register(`${base}.validation.max`, numberRegistration)} />
+                <NumberField
+                  error={questionErrors?.validation?.min?.message}
+                  label="Mínimo"
+                  register={register(
+                    `${base}.validation.min`,
+                    numberRegistration,
+                  )}
+                />
+                <NumberField
+                  error={questionErrors?.validation?.max?.message}
+                  label="Máximo"
+                  register={register(
+                    `${base}.validation.max`,
+                    numberRegistration,
+                  )}
+                />
               </>
             )}
             {isText && (
               <>
-                <NumberField error={questionErrors?.validation?.minLength?.message} label="Longitud mínima" register={register(`${base}.validation.minLength`, numberRegistration)} />
-                <NumberField error={questionErrors?.validation?.maxLength?.message} label="Longitud máxima" register={register(`${base}.validation.maxLength`, numberRegistration)} />
+                <NumberField
+                  error={questionErrors?.validation?.minLength?.message}
+                  label="Longitud mínima"
+                  register={register(
+                    `${base}.validation.minLength`,
+                    numberRegistration,
+                  )}
+                />
+                <NumberField
+                  error={questionErrors?.validation?.maxLength?.message}
+                  label="Longitud máxima"
+                  register={register(
+                    `${base}.validation.maxLength`,
+                    numberRegistration,
+                  )}
+                />
               </>
             )}
             {question.type === "multiple_choice" && (
-            <NumberField error={questionErrors?.validation?.maxSelections?.message} label="Máximo de selecciones" register={register(`${base}.validation.maxSelections`, numberRegistration)} />
+              <NumberField
+                error={questionErrors?.validation?.maxSelections?.message}
+                label="Máximo de selecciones"
+                register={register(
+                  `${base}.validation.maxSelections`,
+                  numberRegistration,
+                )}
+              />
             )}
             {(question.type === "number" || isText) && (
               <CompactField
@@ -703,7 +777,7 @@ function QuestionEditor({
               onClick={() =>
                 updateOptions([
                   ...question.options,
-                  { value: "", label: "", helpText: "" },
+                  { value: "", label: "", helpText: "", score: undefined },
                 ])
               }
               variant="outline"
@@ -714,7 +788,7 @@ function QuestionEditor({
           <div className="mt-3 space-y-3">
             {question.options.map((_, optionIndex) => (
               <div
-                className="grid gap-3 rounded-lg bg-mendoza-background p-3 md:grid-cols-[0.7fr_1fr_1fr_auto]"
+                className="grid gap-3 rounded-lg bg-mendoza-background p-3 md:grid-cols-[0.7fr_1fr_0.5fr_1fr_auto]"
                 key={`option-${optionIndex}`}
               >
                 <CompactField
@@ -736,7 +810,24 @@ function QuestionEditor({
                   />
                 </CompactField>
                 <CompactField
-                  error={questionErrors?.options?.[optionIndex]?.helpText?.message}
+                  error={questionErrors?.options?.[optionIndex]?.score?.message}
+                  label="Puntaje"
+                >
+                  <input
+                    {...register(
+                      `${base}.options.${optionIndex}.score`,
+                      numberRegistration,
+                    )}
+                    className={inputClassName}
+                    max={100}
+                    min={0}
+                    type="number"
+                  />
+                </CompactField>
+                <CompactField
+                  error={
+                    questionErrors?.options?.[optionIndex]?.helpText?.message
+                  }
                   label="Ayuda"
                 >
                   <input
@@ -755,7 +846,9 @@ function QuestionEditor({
                   }
                   onRemove={() =>
                     updateOptions(
-                      question.options.filter((_, index) => index !== optionIndex),
+                      question.options.filter(
+                        (_, index) => index !== optionIndex,
+                      ),
                     )
                   }
                 />
@@ -786,11 +879,15 @@ function CompactField({
   className?: string;
 }) {
   return (
-    <label className={`block text-sm font-semibold text-mendoza-text ${className}`}>
+    <label
+      className={`block text-sm font-semibold text-mendoza-text ${className}`}
+    >
       {label}
       <span className="mt-1 block font-normal">{children}</span>
       {error && (
-        <span className="mt-1 block font-normal text-mendoza-error">{error}</span>
+        <span className="mt-1 block font-normal text-mendoza-error">
+          {error}
+        </span>
       )}
     </label>
   );
@@ -870,6 +967,9 @@ const questionTypes: Array<[SurveyQuestionType, string]> = [
   ["number", "Número"],
   ["date", "Fecha"],
 ];
+const institutionalQuestionTypes: Array<[SurveyQuestionType, string]> = [
+  ["single_choice", "Selección simple"],
+];
 
 function move<T>(values: T[], index: number, offset: -1 | 1) {
   const next = [...values];
@@ -883,34 +983,35 @@ function toEditorForm(version: AdminSurveyVersion): EditorForm {
     title: version.title,
     instructions: version.instructions ?? "",
     dimensions: version.dimensions.map((dimension) => ({
-        code: dimension.code,
-        title: dimension.title,
-        description: dimension.description ?? "",
-        sections: dimension.sections.map((section) => ({
-          code: section.code,
-          title: section.title,
-          description: section.description ?? "",
-          questions: section.questions.map((question) => ({
-            code: question.code,
-            type: question.type,
-            prompt: question.prompt,
-            helpText: question.helpText ?? "",
-            required: question.required,
-            validation: {
-              min: question.validation?.min,
-              max: question.validation?.max,
-              minLength: question.validation?.minLength,
-              maxLength: question.validation?.maxLength,
-              maxSelections: question.validation?.maxSelections,
-              placeholder: question.validation?.placeholder ?? "",
-            },
-            options: question.options.map((option) => ({
-              value: option.value,
-              label: option.label,
-              helpText: option.helpText ?? "",
-            })),
+      code: dimension.code,
+      title: dimension.title,
+      description: dimension.description ?? "",
+      sections: dimension.sections.map((section) => ({
+        code: section.code,
+        title: section.title,
+        description: section.description ?? "",
+        questions: section.questions.map((question) => ({
+          code: question.code,
+          type: question.type,
+          prompt: question.prompt,
+          helpText: question.helpText ?? "",
+          required: question.required,
+          validation: {
+            min: question.validation?.min,
+            max: question.validation?.max,
+            minLength: question.validation?.minLength,
+            maxLength: question.validation?.maxLength,
+            maxSelections: question.validation?.maxSelections,
+            placeholder: question.validation?.placeholder ?? "",
+          },
+          options: question.options.map((option) => ({
+            value: option.value,
+            label: option.label,
+            helpText: option.helpText ?? "",
+            score: option.score ?? undefined,
           })),
         })),
       })),
+    })),
   };
 }

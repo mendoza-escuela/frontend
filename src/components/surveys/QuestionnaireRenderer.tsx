@@ -13,6 +13,7 @@ import { Button } from "../ui/Button";
 type QuestionnaireRendererProps = {
   survey: PublishedSurvey;
   readOnly?: boolean;
+  showScores?: boolean;
   onSubmit?: (answers: QuestionnaireFormValues) => void | Promise<void>;
 };
 
@@ -46,7 +47,8 @@ function questionSchema(question: SurveyQuestion): z.ZodType {
       );
     }
     return z.preprocess(
-      (value) => (value === "" || value === undefined ? undefined : Number(value)),
+      (value) =>
+        value === "" || value === undefined ? undefined : Number(value),
       question.required ? schema : schema.optional(),
     );
   }
@@ -71,6 +73,7 @@ function questionSchema(question: SurveyQuestion): z.ZodType {
 export function QuestionnaireRenderer({
   survey,
   readOnly = false,
+  showScores = false,
   onSubmit,
 }: QuestionnaireRendererProps) {
   const sections = useMemo(
@@ -183,6 +186,7 @@ export function QuestionnaireRenderer({
             number={questionIndex + 1}
             question={question}
             register={register}
+            showScores={showScores}
           />
         ))}
       </fieldset>
@@ -225,6 +229,7 @@ type QuestionFieldProps = {
   number: number;
   error: unknown;
   register: ReturnType<typeof useForm<QuestionnaireFormValues>>["register"];
+  showScores: boolean;
 };
 
 function QuestionField({
@@ -232,6 +237,7 @@ function QuestionField({
   number,
   error,
   register,
+  showScores,
 }: QuestionFieldProps) {
   const inputClass =
     "mt-3 w-full rounded-lg border border-mendoza-border bg-white px-3 py-2.5 outline-none transition focus:border-mendoza-sky focus:ring-2 focus:ring-mendoza-sky/25";
@@ -255,7 +261,10 @@ function QuestionField({
           >
             {question.prompt}
             {question.required && (
-              <span className="ml-1 text-mendoza-error" aria-label="obligatoria">
+              <span
+                className="ml-1 text-mendoza-error"
+                aria-label="obligatoria"
+              >
                 *
               </span>
             )}
@@ -359,7 +368,7 @@ function QuestionField({
                       }
                       value={option.value}
                     />
-                    <span>
+                    <span className="min-w-0 flex-1">
                       <span className="block text-mendoza-text">
                         {option.label}
                       </span>
@@ -369,6 +378,13 @@ function QuestionField({
                         </span>
                       )}
                     </span>
+                    {showScores && (
+                      <span className="shrink-0 rounded-full bg-mendoza-gold/20 px-2.5 py-1 text-xs font-bold text-mendoza-text">
+                        {option.score === null
+                          ? "Sin puntaje"
+                          : `${option.score} puntos`}
+                      </span>
+                    )}
                   </label>
                 ))
               )}
@@ -376,7 +392,10 @@ function QuestionField({
           )}
 
           {errorMessage && (
-            <p className="mt-2 text-sm font-medium text-mendoza-error" role="alert">
+            <p
+              className="mt-2 text-sm font-medium text-mendoza-error"
+              role="alert"
+            >
               {errorMessage}
             </p>
           )}
