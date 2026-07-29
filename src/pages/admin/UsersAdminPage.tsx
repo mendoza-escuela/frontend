@@ -1,4 +1,6 @@
 import {
+  Eye,
+  EyeOff,
   KeyRound,
   Pencil,
   Plus,
@@ -47,6 +49,19 @@ export function UsersAdminPage() {
   const listRequest = useRef<AbortController | null>(null);
   const [resetUser, setResetUser] = useState<ManagedUser | null>(null);
   const [temporaryPassword, setTemporaryPassword] = useState("");
+  const [showTemporaryPassword, setShowTemporaryPassword] = useState(false);
+
+  const openPasswordReset = (user: ManagedUser) => {
+    setResetUser(user);
+    setTemporaryPassword("");
+    setShowTemporaryPassword(false);
+  };
+
+  const closePasswordReset = () => {
+    setResetUser(null);
+    setTemporaryPassword("");
+    setShowTemporaryPassword(false);
+  };
 
   const loadUsers = async (nextFilters = filters) => {
     listRequest.current?.abort();
@@ -106,8 +121,7 @@ export function UsersAdminPage() {
       showSuccess(
         "Contraseña restablecida. Se cerraron las sesiones del usuario.",
       );
-      setResetUser(null);
-      setTemporaryPassword("");
+      closePasswordReset();
       await loadUsers();
     } catch (error) {
       showError(getHttpErrorMessage(error));
@@ -297,7 +311,7 @@ export function UsersAdminPage() {
                         <button
                           aria-label={`Restablecer contraseña de ${user.email}`}
                           className="rounded-lg p-2 text-mendoza-blue hover:bg-mendoza-blue-soft"
-                          onClick={() => setResetUser(user)}
+                          onClick={() => openPasswordReset(user)}
                           type="button"
                         >
                           <KeyRound size={17} />
@@ -348,23 +362,43 @@ export function UsersAdminPage() {
             </p>
             <label className="mt-5 block text-sm font-semibold">
               Contraseña temporal
-              <input
-                autoComplete="new-password"
-                className="mt-2 w-full rounded-lg border border-mendoza-border px-3 py-2.5"
-                onChange={(e) => setTemporaryPassword(e.target.value)}
-                type="password"
-                value={temporaryPassword}
-              />
+              <span className="relative mt-2 block">
+                <input
+                  autoComplete="new-password"
+                  className="w-full rounded-lg border border-mendoza-border px-3 py-2.5 pr-11 outline-none focus:border-mendoza-sky focus:ring-2 focus:ring-mendoza-sky/25"
+                  onChange={(event) =>
+                    setTemporaryPassword(event.target.value)
+                  }
+                  type={showTemporaryPassword ? "text" : "password"}
+                  value={temporaryPassword}
+                />
+                <button
+                  aria-label={
+                    showTemporaryPassword
+                      ? "Ocultar contraseña"
+                      : "Mostrar contraseña"
+                  }
+                  aria-pressed={showTemporaryPassword}
+                  className="absolute inset-y-0 right-0 rounded-r-lg px-3 text-mendoza-muted outline-none hover:text-mendoza-blue focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-mendoza-sky"
+                  onClick={() =>
+                    setShowTemporaryPassword((current) => !current)
+                  }
+                  type="button"
+                >
+                  {showTemporaryPassword ? (
+                    <EyeOff aria-hidden="true" size={18} />
+                  ) : (
+                    <Eye aria-hidden="true" size={18} />
+                  )}
+                </button>
+              </span>
             </label>
             <p className="mt-2 text-xs text-mendoza-muted">
               Mínimo 12 caracteres con mayúscula, minúscula, número y símbolo.
             </p>
             <div className="mt-6 flex justify-end gap-2">
               <Button
-                onClick={() => {
-                  setResetUser(null);
-                  setTemporaryPassword("");
-                }}
+                onClick={closePasswordReset}
                 variant="outline"
               >
                 Cancelar

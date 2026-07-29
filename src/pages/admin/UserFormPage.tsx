@@ -1,5 +1,5 @@
 import { zodResolver } from "@hookform/resolvers/zod";
-import { ArrowLeft, Save } from "lucide-react";
+import { ArrowLeft, Eye, EyeOff, Save } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { Controller, useForm } from "react-hook-form";
 import { Link, useNavigate, useParams } from "react-router-dom";
@@ -21,6 +21,7 @@ export function UserFormPage() {
   const [selectedSchool, setSelectedSchool] = useState<SchoolOption | null>(
     null,
   );
+  const [showTemporaryPassword, setShowTemporaryPassword] = useState(false);
   const [loading, setLoading] = useState(editing);
   const schema = useMemo(() => createUserFormSchema(editing), [editing]);
   const {
@@ -173,12 +174,33 @@ export function UserFormPage() {
                 error={errors.temporaryPassword?.message}
                 wide
               >
-                <input
-                  {...register("temporaryPassword")}
-                  className="field"
-                  autoComplete="new-password"
-                  type="password"
-                />
+                <span className="relative block">
+                  <input
+                    {...register("temporaryPassword")}
+                    className="field pr-11"
+                    autoComplete="new-password"
+                    type={showTemporaryPassword ? "text" : "password"}
+                  />
+                  <button
+                    aria-label={
+                      showTemporaryPassword
+                        ? "Ocultar contraseña"
+                        : "Mostrar contraseña"
+                    }
+                    aria-pressed={showTemporaryPassword}
+                    className="absolute inset-y-0 right-0 rounded-r-lg px-3 text-mendoza-muted outline-none hover:text-mendoza-blue focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-mendoza-sky"
+                    onClick={() =>
+                      setShowTemporaryPassword((current) => !current)
+                    }
+                    type="button"
+                  >
+                    {showTemporaryPassword ? (
+                      <EyeOff aria-hidden="true" size={18} />
+                    ) : (
+                      <Eye aria-hidden="true" size={18} />
+                    )}
+                  </button>
+                </span>
                 <span className="mt-1 block text-xs font-normal text-mendoza-muted">
                   12 caracteres, mayúscula, minúscula, número y símbolo.
                 </span>
