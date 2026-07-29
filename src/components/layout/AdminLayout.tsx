@@ -38,7 +38,7 @@ export function AdminLayout() {
 
   return (
     <div className="min-h-screen bg-mendoza-background lg:flex">
-      <aside className="bg-mendoza-blue p-4 text-white lg:min-h-screen lg:w-64 lg:p-6">
+      <aside className="bg-mendoza-blue p-4 text-white lg:sticky lg:top-0 lg:h-screen lg:w-64 lg:shrink-0 lg:self-start lg:overflow-y-auto lg:p-6">
         <div className="flex items-center gap-3 border-b border-white/20 pb-5">
           <Building2 aria-hidden="true" />
           <div>
