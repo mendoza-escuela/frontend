@@ -1,5 +1,6 @@
 import {
   Building2,
+  CalendarRange,
   ClipboardList,
   Home,
   LogOut,
@@ -21,6 +22,11 @@ const links = [
     to: "/admin/cuestionarios",
     label: "Cuestionarios",
     icon: ClipboardList,
+  },
+  {
+    to: "/admin/campanas",
+    label: "Campañas",
+    icon: CalendarRange,
   },
 ];
 

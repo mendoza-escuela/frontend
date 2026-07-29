@@ -2,7 +2,7 @@
 
 import "@testing-library/jest-dom/vitest";
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import type { PublishedSurvey } from "../../types/survey";
 import { QuestionnaireRenderer } from "./QuestionnaireRenderer";
 
@@ -104,6 +104,34 @@ describe("QuestionnaireRenderer", () => {
       await screen.findByText("Fin de la vista del cuestionario"),
     ).toBeVisible();
     expect(screen.getByRole("radio", { name: "Sí" })).toBeDisabled();
+  });
+
+  it("permite avanzar incompleto y guardar un borrador cuando se configura el flujo escolar", async () => {
+    const saveDraft = vi.fn();
+    render(
+      <QuestionnaireRenderer
+        defaultValues={{ "question-1": "Respuesta recuperada" }}
+        onSaveDraft={saveDraft}
+        survey={survey}
+        validateOnSectionChange={false}
+      />,
+    );
+
+    expect(screen.getByLabelText(/Nombre del proyecto/)).toHaveValue(
+      "Respuesta recuperada",
+    );
+    fireEvent.change(screen.getByLabelText(/Nombre del proyecto/), {
+      target: { value: "" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Siguiente" }));
+    expect(
+      await screen.findByRole("heading", { name: "Acciones" }),
+    ).toBeVisible();
+
+    fireEvent.click(screen.getByRole("button", { name: "Guardar borrador" }));
+    expect(saveDraft).toHaveBeenCalledWith(
+      expect.objectContaining({ "question-1": "" }),
+    );
   });
 
   it("muestra puntajes únicamente cuando la vista administrativa lo solicita", () => {

@@ -114,6 +114,16 @@ const SurveyApplicabilityRulesPage = lazy(() =>
     default: module.SurveyApplicabilityRulesPage,
   })),
 );
+const CampaignsAdminPage = lazy(() =>
+  import("../pages/admin/CampaignsAdminPage").then((module) => ({
+    default: module.CampaignsAdminPage,
+  })),
+);
+const CampaignFormPage = lazy(() =>
+  import("../pages/admin/CampaignFormPage").then((module) => ({
+    default: module.CampaignFormPage,
+  })),
+);
 const SchoolHomePage = lazy(() =>
   import("../pages/school/SchoolHomePage").then((module) => ({
     default: module.SchoolHomePage,
@@ -223,6 +233,18 @@ const router = createBrowserRouter([
           {
             path: "cuestionarios/:id",
             element: lazyPage(<SurveyDetailPage />),
+          },
+          {
+            path: "campanas",
+            element: lazyPage(<CampaignsAdminPage />),
+          },
+          {
+            path: "campanas/nueva",
+            element: lazyPage(<CampaignFormPage />),
+          },
+          {
+            path: "campanas/:id/editar",
+            element: lazyPage(<CampaignFormPage />),
           },
         ],
       },

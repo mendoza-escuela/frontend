@@ -20,9 +20,13 @@ El portal responsive `/colegio` ofrece Inicio, Mi establecimiento, Cuestionario 
 
 En `/colegio/establecimiento`, el usuario revisa los ocho datos obligatorios de la ficha y confirma su rectificación para el año calendario. El portal informa si el período vigente está rectificado y envía los cambios mediante `PUT /schools/me/rectification`; el backend conserva el historial y la auditoría.
 
-El renderizador de cuestionarios consume la última versión publicada y soporta selección simple, selección múltiple, sí/no, texto corto, texto largo, número y fecha. Navega por secciones y usa React Hook Form con Zod para las validaciones configuradas. En el portal permanece en modo de sólo lectura hasta que estén implementados campañas, borradores y envíos; no simula persistencia ni resultados.
+El renderizador de cuestionarios consume una versión publicada y soporta selección simple, selección múltiple, sí/no, texto corto, texto largo, número y fecha. Navega por secciones y usa React Hook Form con Zod para las validaciones configuradas.
+
+En `/colegio/cuestionario`, el portal lista campañas activas dentro de su período, informa bloqueos por establecimiento inactivo o rectificación anual pendiente y permite iniciar o recuperar la presentación de la escuela. El formulario admite avance parcial, restaura respuestas, muestra progreso, guarda manualmente, realiza autoguardado y confirma el envío definitivo. Después del envío se abre en modo de sólo lectura.
 
 El panel `/admin/cuestionarios` incorpora el ABM de cuestionarios y versiones. Permite crear versiones con las seis dimensiones oficiales, vacías o clonadas; editar la estructura y los puntajes; validar antes de publicar; consultar auditoría; comparar versiones, incluido el puntaje; y abrir una vista previa administrativa que muestra los puntos sin exponerlos en el portal escolar. Las versiones publicadas son de sólo lectura.
+
+El panel `/admin/campanas` permite crear campañas anuales o semestrales, asociarlas a una versión publicada, buscarlas y filtrarlas. Los borradores pueden editarse o eliminarse y luego recorren el ciclo irreversible Activa, Cerrada y Archivada. La interfaz informa que la fecha final cierra a las 23:59:59 de Mendoza.
 
 Desde el detalle de un cuestionario se accede a `/admin/cuestionarios/:surveyId/importar`. Allí se descargan plantillas CSV/Excel, se previsualizan errores por fila y se crea una versión borrador únicamente cuando la planilla completa es válida. El perfil institucional restringe el editor a selección simple y no ofrece “Otro”, “No aplica”, selección múltiple ni campos de observaciones.
 

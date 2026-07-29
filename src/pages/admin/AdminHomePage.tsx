@@ -1,4 +1,4 @@
-import { School, Upload, UserPlus, Users } from "lucide-react";
+import { CalendarRange, School, Upload, UserPlus, Users } from "lucide-react";
 import { Link } from "react-router-dom";
 
 export function AdminHomePage() {
@@ -14,7 +14,7 @@ export function AdminHomePage() {
         <p className="mt-2 text-mendoza-muted">
           Administrá usuarios, colegios, accesos y asociaciones institucionales.
         </p>
-        <div className="mt-8 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+        <div className="mt-8 grid gap-4 sm:grid-cols-2 xl:grid-cols-5">
           {[
             {
               to: "/admin/usuarios",
@@ -39,6 +39,12 @@ export function AdminHomePage() {
               label: "Padrón de colegios",
               text: "Gestionar establecimientos, contactos y asociaciones.",
               icon: School,
+            },
+            {
+              to: "/admin/campanas",
+              label: "Campañas",
+              text: "Configurar períodos y versiones de evaluación.",
+              icon: CalendarRange,
             },
           ].map(({ to, label, text, icon: Icon }) => (
             <Link
