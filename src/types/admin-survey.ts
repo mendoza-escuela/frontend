@@ -165,6 +165,15 @@ export type SurveyImportPreview = {
     questions: number;
     options: number;
   };
+  detectedDimensions: Array<{ code: string; title: string }>;
+  detectedSections: Array<{ code: string; title: string }>;
+  groupedQuestions: Array<{
+    code: string;
+    prompt: string;
+    options: Array<{ label: string; score: number | null }>;
+  }>;
+  warnings: string[];
+  summary: string;
   rows: Array<{
     line: number;
     dimensionCode: string;
@@ -177,5 +186,47 @@ export type SurveyImportPreview = {
     required: boolean | null;
     order: number | null;
     errors: string[];
+    issues: Array<{
+      field: string;
+      receivedValue: string | null;
+      reason: string;
+    }>;
   }>;
+};
+
+export type ApplicabilityAction = "show" | "omit";
+export type ApplicabilityRule = {
+  id: string;
+  questionId: string;
+  groupOperator: "all" | "any";
+  action: ApplicabilityAction;
+  defaultAction: ApplicabilityAction;
+  order: number;
+  question?: { id: string; code: string; prompt: string };
+  conditions: Array<{
+    id?: string;
+    feature: string;
+    operator: string;
+    expectedValue: string | boolean | string[];
+    order: number;
+  }>;
+};
+export type ApplicabilityMetadata = {
+  features: Array<{
+    key: string;
+    label: string;
+    type: "boolean" | "string" | "string_array";
+    operators: string[];
+    allowedValues?: Array<{ value: string | boolean; label: string }>;
+  }>;
+  operators: Array<{ key: string; label: string }>;
+  resolution: string;
+};
+export type ApplicabilityDecision = {
+  status: "applicable" | "excluded" | "incomplete";
+  applicable: boolean | null;
+  action: ApplicabilityAction | null;
+  matchedRuleId: string | null;
+  explanation: string;
+  missingFeatures: string[];
 };

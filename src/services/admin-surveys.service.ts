@@ -10,6 +10,9 @@ import type {
   SurveyStructureValidation,
   SurveyVersionWriteInput,
   SurveyWriteInput,
+  ApplicabilityDecision,
+  ApplicabilityMetadata,
+  ApplicabilityRule,
 } from "../types/admin-survey";
 
 export const adminSurveysService = {
@@ -86,6 +89,103 @@ export const adminSurveysService = {
     return (
       await api.post<AdminSurveyVersion>(
         `/admin/surveys/${surveyId}/versions/${versionId}/publish`,
+      )
+    ).data;
+  },
+
+  async archiveVersion(surveyId: string, versionId: string) {
+    return (
+      await api.post<AdminSurveyVersion>(
+        `/admin/surveys/${surveyId}/versions/${versionId}/archive`,
+      )
+    ).data;
+  },
+
+  async applicabilityMetadata() {
+    return (
+      await api.get<ApplicabilityMetadata>(
+        "/admin/surveys/templates/applicability-metadata",
+      )
+    ).data;
+  },
+
+  async listApplicabilityRules(
+    surveyId: string,
+    versionId: string,
+    questionId?: string,
+  ) {
+    return (
+      await api.get<ApplicabilityRule[]>(
+        `/admin/surveys/${surveyId}/versions/${versionId}/applicability-rules`,
+        { params: { questionId } },
+      )
+    ).data;
+  },
+
+  async createApplicabilityRule(
+    surveyId: string,
+    versionId: string,
+    questionId: string,
+    input: Omit<ApplicabilityRule, "id" | "questionId" | "question">,
+  ) {
+    return (
+      await api.post<ApplicabilityRule>(
+        `/admin/surveys/${surveyId}/versions/${versionId}/questions/${questionId}/applicability-rules`,
+        input,
+      )
+    ).data;
+  },
+
+  async updateApplicabilityRule(
+    surveyId: string,
+    versionId: string,
+    questionId: string,
+    ruleId: string,
+    input: Omit<ApplicabilityRule, "id" | "questionId" | "question">,
+  ) {
+    return (
+      await api.put<ApplicabilityRule>(
+        `/admin/surveys/${surveyId}/versions/${versionId}/questions/${questionId}/applicability-rules/${ruleId}`,
+        input,
+      )
+    ).data;
+  },
+
+  async removeApplicabilityRule(
+    surveyId: string,
+    versionId: string,
+    questionId: string,
+    ruleId: string,
+  ) {
+    await api.delete(
+      `/admin/surveys/${surveyId}/versions/${versionId}/questions/${questionId}/applicability-rules/${ruleId}`,
+    );
+  },
+
+  async reorderApplicabilityRules(
+    surveyId: string,
+    versionId: string,
+    questionId: string,
+    ruleIds: string[],
+  ) {
+    return (
+      await api.put<ApplicabilityRule[]>(
+        `/admin/surveys/${surveyId}/versions/${versionId}/questions/${questionId}/applicability-rules-order`,
+        { ruleIds },
+      )
+    ).data;
+  },
+
+  async previewApplicability(
+    surveyId: string,
+    versionId: string,
+    questionId: string,
+    schoolId: string,
+  ) {
+    return (
+      await api.post<ApplicabilityDecision>(
+        `/admin/surveys/${surveyId}/versions/${versionId}/questions/${questionId}/applicability-preview`,
+        { schoolId },
       )
     ).data;
   },

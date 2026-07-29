@@ -109,6 +109,11 @@ const SurveyImportPage = lazy(() =>
     default: module.SurveyImportPage,
   })),
 );
+const SurveyApplicabilityRulesPage = lazy(() =>
+  import("../pages/admin/SurveyApplicabilityRulesPage").then((module) => ({
+    default: module.SurveyApplicabilityRulesPage,
+  })),
+);
 const SchoolHomePage = lazy(() =>
   import("../pages/school/SchoolHomePage").then((module) => ({
     default: module.SchoolHomePage,
@@ -202,6 +207,10 @@ const router = createBrowserRouter([
           {
             path: "cuestionarios/:surveyId/versiones/:versionId/vista-previa",
             element: lazyPage(<SurveyVersionPreviewPage />),
+          },
+          {
+            path: "cuestionarios/:surveyId/versiones/:versionId/reglas",
+            element: lazyPage(<SurveyApplicabilityRulesPage />),
           },
           {
             path: "cuestionarios/:surveyId/comparar",

@@ -1,6 +1,7 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import {
   Activity,
+  Archive,
   ClipboardCopy,
   Eye,
   GitCompareArrows,
@@ -8,6 +9,7 @@ import {
   Pencil,
   Plus,
   Send,
+  Settings2,
   Trash2,
 } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
@@ -46,6 +48,7 @@ const createVersionSchema = z.object({
 type CreateVersionForm = z.infer<typeof createVersionSchema>;
 type PendingAction =
   | { type: "publish"; version: SurveyVersionSummary }
+  | { type: "archive"; version: SurveyVersionSummary }
   | { type: "delete"; version: SurveyVersionSummary }
   | null;
 
@@ -141,6 +144,9 @@ export function SurveyDetailPage() {
         showSuccess(
           "La versión fue publicada y quedó protegida contra cambios.",
         );
+      } else if (pendingAction.type === "archive") {
+        await adminSurveysService.archiveVersion(id, pendingAction.version.id);
+        showSuccess("La versión fue archivada y queda disponible para consulta.");
       } else {
         await adminSurveysService.removeVersion(id, pendingAction.version.id);
         showSuccess("La versión borrador fue eliminada.");
@@ -318,6 +324,12 @@ export function SurveyDetailPage() {
                     >
                       <Eye aria-hidden="true" size={16} /> Vista previa
                     </Link>
+                    <Link
+                      className="inline-flex min-h-10 items-center gap-2 rounded-lg border border-mendoza-blue px-3 text-sm font-semibold text-mendoza-blue hover:bg-mendoza-blue-soft"
+                      to={`/admin/cuestionarios/${survey.id}/versiones/${version.id}/reglas`}
+                    >
+                      <Settings2 aria-hidden="true" size={16} /> Reglas
+                    </Link>
                     <button
                       className="inline-flex min-h-10 items-center gap-2 rounded-lg px-3 text-sm font-semibold text-mendoza-blue hover:bg-mendoza-blue-soft"
                       onClick={() => openNewVersion(version)}
@@ -345,6 +357,17 @@ export function SurveyDetailPage() {
                           <Trash2 aria-hidden="true" size={16} /> Eliminar
                         </button>
                       </>
+                    )}
+                    {version.status === "published" && (
+                      <button
+                        className="inline-flex min-h-10 items-center gap-2 rounded-lg px-3 text-sm font-semibold text-mendoza-muted hover:bg-mendoza-blue-soft"
+                        onClick={() =>
+                          setPendingAction({ type: "archive", version })
+                        }
+                        type="button"
+                      >
+                        <Archive aria-hidden="true" size={16} /> Archivar
+                      </button>
                     )}
                   </div>
                 </Card>
@@ -453,12 +476,18 @@ export function SurveyDetailPage() {
 
       <ConfirmDialog
         confirmLabel={
-          pendingAction?.type === "publish" ? "Publicar versión" : "Eliminar"
+          pendingAction?.type === "publish"
+            ? "Publicar versión"
+            : pendingAction?.type === "archive"
+              ? "Archivar versión"
+              : "Eliminar"
         }
         description={
           pendingAction?.type === "publish"
             ? "La estructura será validada y quedará inmutable. Para realizar cambios posteriores deberás clonarla como una nueva versión."
-            : "Esta acción eliminará definitivamente el borrador y su estructura."
+            : pendingAction?.type === "archive"
+              ? "No podrá usarse para nuevas evaluaciones, pero seguirá disponible para consultas históricas y clonación."
+              : "Esta acción eliminará definitivamente el borrador y su estructura."
         }
         destructive={pendingAction?.type === "delete"}
         isProcessing={isProcessing}
@@ -468,7 +497,9 @@ export function SurveyDetailPage() {
         title={
           pendingAction?.type === "publish"
             ? "¿Publicar esta versión?"
-            : "¿Eliminar este borrador?"
+            : pendingAction?.type === "archive"
+              ? "¿Archivar esta versión?"
+              : "¿Eliminar este borrador?"
         }
       />
 

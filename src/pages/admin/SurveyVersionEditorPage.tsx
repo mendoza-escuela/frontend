@@ -1,8 +1,15 @@
 import { zodResolver } from "@hookform/resolvers/zod";
-import { ArrowDown, ArrowUp, CirclePlus, Save, Trash2 } from "lucide-react";
+import {
+  ArrowDown,
+  ArrowUp,
+  CirclePlus,
+  Save,
+  Settings2,
+  Trash2,
+} from "lucide-react";
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
-import { useParams } from "react-router-dom";
+import { Link, useParams } from "react-router-dom";
 import { z } from "zod";
 import { Button } from "../../components/ui/Button";
 import { Card } from "../../components/ui/Card";
@@ -57,6 +64,7 @@ const optionSchema = z.object({
   ),
 });
 const questionSchema = z.object({
+  id: z.string().uuid().optional(),
   code: codeSchema,
   type: z.enum([
     "single_choice",
@@ -161,9 +169,14 @@ export function SurveyVersionEditorPage() {
   const submit = handleSubmit(async (values) => {
     if (!surveyId || !versionId) return;
     try {
-      await adminSurveysService.updateVersion(surveyId, versionId, values);
+      const updated = await adminSurveysService.updateVersion(
+        surveyId,
+        versionId,
+        toWriteInput(values),
+      );
+      setVersion(updated);
       showSuccess("La versión borrador fue guardada.");
-      reset(values);
+      reset(toEditorForm(updated));
     } catch (error) {
       showError(getHttpErrorMessage(error));
     }
@@ -273,6 +286,7 @@ export function SurveyVersionEditorPage() {
                 key={`dimension-${dimensionIndex}`}
                 register={register}
                 isInstitutional={isInstitutional}
+                rulesPath={`/admin/cuestionarios/${surveyId}/versiones/${versionId}/reglas`}
                 updateDimensions={updateDimensions}
               />
             ))}
@@ -305,6 +319,7 @@ function DimensionEditor({
   errors,
   register,
   isInstitutional,
+  rulesPath,
   updateDimensions,
 }: {
   dimension: EditorForm["dimensions"][number];
@@ -313,6 +328,7 @@ function DimensionEditor({
   errors: EditorErrors;
   register: EditorRegister;
   isInstitutional: boolean;
+  rulesPath: string;
   updateDimensions: (dimensions: EditorForm["dimensions"]) => void;
 }) {
   const updateSections = (
@@ -399,6 +415,7 @@ function DimensionEditor({
             key={`section-${sectionIndex}`}
             register={register}
             isInstitutional={isInstitutional}
+            rulesPath={rulesPath}
             section={section}
             sectionIndex={sectionIndex}
             sections={dimension.sections}
@@ -423,6 +440,7 @@ function SectionEditor({
   errors,
   register,
   isInstitutional,
+  rulesPath,
   updateSections,
 }: {
   dimensionIndex: number;
@@ -432,6 +450,7 @@ function SectionEditor({
   errors: EditorErrors;
   register: EditorRegister;
   isInstitutional: boolean;
+  rulesPath: string;
   updateSections: (
     sections: EditorForm["dimensions"][number]["sections"],
   ) => void;
@@ -533,6 +552,7 @@ function SectionEditor({
             questions={section.questions}
             register={register}
             isInstitutional={isInstitutional}
+            rulesPath={rulesPath}
             sectionIndex={sectionIndex}
             updateQuestions={updateQuestions}
           />
@@ -556,6 +576,7 @@ function QuestionEditor({
   errors,
   register,
   isInstitutional,
+  rulesPath,
   updateQuestions,
 }: {
   dimensionIndex: number;
@@ -566,6 +587,7 @@ function QuestionEditor({
   errors: EditorErrors;
   register: EditorRegister;
   isInstitutional: boolean;
+  rulesPath: string;
   updateQuestions: (
     questions: EditorForm["dimensions"][number]["sections"][number]["questions"],
   ) => void;
@@ -594,17 +616,30 @@ function QuestionEditor({
         <p className="font-bold text-mendoza-text">
           Pregunta {questionIndex + 1}
         </p>
-        <OrderActions
-          canMoveDown={questionIndex < questions.length - 1}
-          canMoveUp={questionIndex > 0}
-          onMoveDown={() => updateQuestions(move(questions, questionIndex, 1))}
-          onMoveUp={() => updateQuestions(move(questions, questionIndex, -1))}
-          onRemove={() =>
-            updateQuestions(
-              questions.filter((_, index) => index !== questionIndex),
-            )
-          }
-        />
+        <div className="flex flex-wrap items-center gap-2">
+          {question.id && (
+            <Link
+              className="inline-flex min-h-9 items-center gap-2 rounded-lg border border-mendoza-blue px-3 text-sm font-semibold text-mendoza-blue hover:bg-mendoza-blue-soft"
+              to={`${rulesPath}?questionId=${question.id}`}
+            >
+              <Settings2 aria-hidden="true" size={16} />
+              Configurar reglas
+            </Link>
+          )}
+          <OrderActions
+            canMoveDown={questionIndex < questions.length - 1}
+            canMoveUp={questionIndex > 0}
+            onMoveDown={() =>
+              updateQuestions(move(questions, questionIndex, 1))
+            }
+            onMoveUp={() => updateQuestions(move(questions, questionIndex, -1))}
+            onRemove={() =>
+              updateQuestions(
+                questions.filter((_, index) => index !== questionIndex),
+              )
+            }
+          />
+        </div>
       </div>
       <div className="mt-4 grid gap-4 md:grid-cols-3">
         <CompactField
@@ -991,6 +1026,7 @@ function toEditorForm(version: AdminSurveyVersion): EditorForm {
         title: section.title,
         description: section.description ?? "",
         questions: section.questions.map((question) => ({
+          id: question.id,
           code: question.code,
           type: question.type,
           prompt: question.prompt,
@@ -1011,6 +1047,22 @@ function toEditorForm(version: AdminSurveyVersion): EditorForm {
             score: option.score ?? undefined,
           })),
         })),
+      })),
+    })),
+  };
+}
+
+function toWriteInput(values: EditorForm) {
+  return {
+    title: values.title,
+    instructions: values.instructions,
+    dimensions: values.dimensions.map((dimension) => ({
+      ...dimension,
+      sections: dimension.sections.map((section) => ({
+        ...section,
+        questions: section.questions.map(
+          ({ id: _persistedQuestionId, ...question }) => question,
+        ),
       })),
     })),
   };

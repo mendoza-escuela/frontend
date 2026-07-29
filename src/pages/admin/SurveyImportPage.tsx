@@ -192,6 +192,47 @@ export function SurveyImportPage() {
               <Metric label="Preguntas" value={preview.counts.questions} />
               <Metric label="Opciones" value={preview.counts.options} />
             </div>
+            <Card className="mt-4">
+              <h2 className="text-lg font-bold text-mendoza-text">
+                Resumen de creación
+              </h2>
+              <p className="mt-2 text-sm text-mendoza-muted">
+                {preview.summary}
+              </p>
+              <dl className="mt-4 grid gap-3 sm:grid-cols-2">
+                <div>
+                  <dt className="font-semibold">Dimensiones detectadas</dt>
+                  <dd className="text-sm text-mendoza-muted">
+                    {preview.detectedDimensions
+                      .map(({ title }) => title)
+                      .join(", ") || "Ninguna"}
+                  </dd>
+                </div>
+                <div>
+                  <dt className="font-semibold">Secciones detectadas</dt>
+                  <dd className="text-sm text-mendoza-muted">
+                    {preview.detectedSections
+                      .map(({ title }) => title)
+                      .join(", ") || "Ninguna"}
+                  </dd>
+                </div>
+              </dl>
+              <details className="mt-4">
+                <summary className="cursor-pointer font-semibold text-mendoza-blue">
+                  Ver opciones agrupadas por pregunta
+                </summary>
+                <ul className="mt-2 space-y-2 text-sm">
+                  {preview.groupedQuestions.map((question) => (
+                    <li key={question.code}>
+                      <strong>{question.code}</strong>:{" "}
+                      {question.options
+                        .map(({ label, score }) => `${label} (${score ?? "sin puntaje"})`)
+                        .join(", ")}
+                    </li>
+                  ))}
+                </ul>
+              </details>
+            </Card>
 
             {preview.errorCount > 0 && (
               <div className="mt-4 flex gap-3 rounded-xl border border-amber-300 bg-amber-50 p-4 text-sm text-amber-950">
