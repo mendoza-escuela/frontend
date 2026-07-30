@@ -184,4 +184,29 @@ describe("QuestionnaireRenderer", () => {
     );
     expect(screen.getByText("100 puntos")).toBeVisible();
   });
+
+  it("bloquea el envío cuando backend informa aplicabilidad incompleta", async () => {
+    const submit = vi.fn();
+    render(
+      <QuestionnaireRenderer
+        onSubmit={submit}
+        submitDisabled
+        submitDisabledReason="Completá la ficha escolar antes de enviar."
+        survey={survey}
+        validateOnSectionChange={false}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "Siguiente" }));
+
+    const submitButton = await screen.findByRole("button", {
+      name: "Finalizar",
+    });
+    expect(submitButton).toBeDisabled();
+    expect(
+      screen.getByText("Completá la ficha escolar antes de enviar."),
+    ).toBeVisible();
+    fireEvent.click(submitButton);
+    expect(submit).not.toHaveBeenCalled();
+  });
 });

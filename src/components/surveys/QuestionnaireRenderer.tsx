@@ -28,6 +28,8 @@ type QuestionnaireRendererProps = {
   onSaveDraft?: (answers: QuestionnaireFormValues) => void | Promise<void>;
   onSubmit?: (answers: QuestionnaireFormValues) => void | Promise<void>;
   submitLabel?: string;
+  submitDisabled?: boolean;
+  submitDisabledReason?: string;
   validateOnSectionChange?: boolean;
 };
 
@@ -92,6 +94,8 @@ export function QuestionnaireRenderer({
   onSaveDraft,
   onSubmit,
   submitLabel = "Finalizar",
+  submitDisabled = false,
+  submitDisabledReason,
   validateOnSectionChange = true,
 }: QuestionnaireRendererProps) {
   const sections = useMemo(
@@ -318,9 +322,19 @@ export function QuestionnaireRenderer({
               Fin de la vista del cuestionario
             </span>
           ) : (
-            <Button disabled={isSubmitting} type="submit">
-              {isSubmitting ? "Procesando…" : submitLabel}
-            </Button>
+            <div className="flex flex-col items-end gap-1">
+              <Button
+                disabled={isSubmitting || submitDisabled}
+                type="submit"
+              >
+                {isSubmitting ? "Procesando…" : submitLabel}
+              </Button>
+              {submitDisabled && submitDisabledReason && (
+                <span className="max-w-sm text-right text-xs text-mendoza-error">
+                  {submitDisabledReason}
+                </span>
+              )}
+            </div>
           )
         ) : (
           <Button

@@ -72,8 +72,32 @@ export type SchoolSubmissionWorkspace = {
       email: string;
     };
     editable: boolean;
+    canSubmit: boolean;
     blockingReason: string | null;
     progress: SubmissionProgress;
+  };
+  applicability: {
+    status: "ready" | "incomplete";
+    source: "evaluated" | "persisted" | "reconstructed";
+    evaluatedAt: string;
+    missingFields: Array<{
+      code: string;
+      label: string;
+    }>;
+    excluded: Array<{
+      questionId: string;
+      questionCode: string;
+      appliedRuleId: string | null;
+      reasonCode: string;
+      reasonDescription: string;
+    }>;
+    incomplete: Array<{
+      questionId: string;
+      questionCode: string;
+      reasonCode: "MISSING_SCHOOL_DATA";
+      reasonDescription: string;
+      missingFeatures: string[];
+    }>;
   };
   answers: QuestionnaireFormValues;
   survey: PublishedSurvey;

@@ -207,7 +207,7 @@ export type ApplicabilityRule = {
     id?: string;
     feature: string;
     operator: string;
-    expectedValue: string | boolean | string[];
+    expectedValue: string | number | boolean | string[];
     order: number;
   }>;
 };
@@ -215,7 +215,7 @@ export type ApplicabilityMetadata = {
   features: Array<{
     key: string;
     label: string;
-    type: "boolean" | "string" | "string_array";
+    type: "boolean" | "string" | "string_array" | "number";
     operators: string[];
     allowedValues?: Array<{ value: string | boolean; label: string }>;
   }>;

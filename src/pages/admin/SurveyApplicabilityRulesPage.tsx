@@ -181,6 +181,8 @@ export function SurveyApplicabilityRulesPage() {
           expectedValue:
             feature?.type === "boolean"
               ? raw === "true"
+              : feature?.type === "number"
+                ? Number(raw)
               : condition.operator === "in" ||
                   condition.operator === "contains_any" ||
                   condition.operator === "contains_all"
@@ -464,6 +466,7 @@ export function SurveyApplicabilityRulesPage() {
                             <input
                               className={`${inputClassName} mt-1`}
                               placeholder="Separá múltiples valores con comas"
+                              type={feature?.type === "number" ? "number" : "text"}
                               {...form.register(`conditions.${index}.expectedValue`)}
                             />
                           )}

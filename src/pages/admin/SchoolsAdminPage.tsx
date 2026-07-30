@@ -281,7 +281,9 @@ export function SchoolsAdminPage() {
                         </span>
                       </td>
                       <td className="px-4 py-3">
-                        {school.enrollment.toLocaleString("es-AR")}
+                        {school.enrollment === null
+                          ? "Sin informar"
+                          : school.enrollment.toLocaleString("es-AR")}
                       </td>
                       <td className="px-4 py-3">
                         <Status active={school.isActive} />

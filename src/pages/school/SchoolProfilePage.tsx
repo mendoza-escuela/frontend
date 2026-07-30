@@ -2,6 +2,7 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import {
   AlertCircle,
   Building2,
+  CalendarDays,
   CheckCircle2,
   Mail,
   MapPin,
@@ -10,8 +11,14 @@ import {
   Users,
 } from "lucide-react";
 import { useEffect, useState } from "react";
-import { useForm } from "react-hook-form";
+import {
+  Controller,
+  type Control,
+  useForm,
+} from "react-hook-form";
 import { Button } from "../../components/ui/Button";
+import { ConfirmDialog } from "../../components/ui/ConfirmDialog";
+import { ErrorState } from "../../components/ui/ErrorState";
 import { getHttpErrorMessage } from "../../lib/http-error";
 import {
   schoolRectificationSchema,
@@ -19,28 +26,51 @@ import {
 } from "../../lib/school-form-schema";
 import { showError, showSuccess } from "../../lib/toast";
 import { schoolPortalService } from "../../services/school-portal.service";
-import type { SchoolProfile } from "../../types/admin-school";
+import type {
+  SchoolCatalogOption,
+  SchoolProfile,
+  SchoolRectificationCatalogs,
+  SchoolRectificationSnapshot,
+} from "../../types/admin-school";
+
+type TriStateName = "hasKiosk" | "hasFoodService" | "isBoarding";
 
 export function SchoolProfilePage() {
   const [school, setSchool] = useState<SchoolProfile | null>(null);
+  const [catalogs, setCatalogs] =
+    useState<SchoolRectificationCatalogs | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [loadError, setLoadError] = useState("");
+  const [pendingRemoval, setPendingRemoval] =
+    useState<SchoolCatalogOption | null>(null);
   const {
+    control,
+    getValues,
     register,
     handleSubmit,
     reset,
+    setValue,
+    watch,
     formState: { errors, isSubmitting },
   } = useForm<SchoolRectificationValues>({
     resolver: zodResolver(schoolRectificationSchema),
   });
 
   useEffect(() => {
-    schoolPortalService
-      .ownSchool()
-      .then((profile) => {
+    Promise.all([
+      schoolPortalService.ownSchool(),
+      schoolPortalService.rectificationCatalogs(),
+    ])
+      .then(([profile, availableCatalogs]) => {
         setSchool(profile);
+        setCatalogs(availableCatalogs);
         reset(rectificationValues(profile));
       })
-      .catch((error) => showError(getHttpErrorMessage(error)))
+      .catch((error) => {
+        const message = getHttpErrorMessage(error);
+        setLoadError(message);
+        showError(message);
+      })
       .finally(() => setIsLoading(false));
   }, [reset]);
 
@@ -48,6 +78,10 @@ export function SchoolProfilePage() {
     return (
       <main className="p-8 text-mendoza-blue">Cargando establecimiento…</main>
     );
+  }
+
+  if (loadError) {
+    return <ErrorState message={loadError} />;
   }
 
   if (!school) {
@@ -60,13 +94,51 @@ export function SchoolProfilePage() {
     );
   }
 
-  const characteristics = Object.entries(school.characteristics);
+  const selectedLevels = watch("educationLevels") ?? [];
+  const removeLevel = (levelId: string) => {
+    setValue(
+      "educationLevels",
+      getValues("educationLevels").filter(
+        (selection) => selection.levelId !== levelId,
+      ),
+      { shouldDirty: true, shouldValidate: true },
+    );
+  };
+  const toggleLevel = (level: SchoolCatalogOption, checked: boolean) => {
+    const current = getValues("educationLevels");
+    const selection = current.find(({ levelId }) => levelId === level.id);
+    if (checked && !selection) {
+      const orderById = new Map(
+        (catalogs?.educationLevels.items ?? []).map((item, order) => [
+          item.id,
+          order,
+        ]),
+      );
+      setValue(
+        "educationLevels",
+        [...current, { levelId: level.id, enrollment: null }].sort(
+          (left, right) =>
+            (orderById.get(left.levelId) ?? 0) -
+            (orderById.get(right.levelId) ?? 0),
+        ),
+        { shouldDirty: true, shouldValidate: true },
+      );
+      return;
+    }
+    if (!checked && selection) {
+      if (selection.enrollment !== null) setPendingRemoval(level);
+      else removeLevel(level.id);
+    }
+  };
+
   const submit = handleSubmit(async (values) => {
     try {
       const profile = await schoolPortalService.rectify(values);
       setSchool(profile);
       reset(rectificationValues(profile));
-      showSuccess(`Ficha rectificada para el período ${profile.rectification.periodYear}.`);
+      showSuccess(
+        `Ficha rectificada para el período ${profile.rectification.periodYear}.`,
+      );
     } catch (error) {
       showError(getHttpErrorMessage(error));
     }
@@ -92,37 +164,13 @@ export function SchoolProfilePage() {
                 : "bg-red-50 text-mendoza-error"
             }`}
           >
-            {school.isActive ? "Establecimiento activo" : "Establecimiento inactivo"}
+            {school.isActive
+              ? "Establecimiento activo"
+              : "Establecimiento inactivo"}
           </span>
         </div>
 
-        <section
-          className={`mt-6 rounded-2xl border p-5 shadow-sm ${
-            school.rectification.isRectified
-              ? "border-green-200 bg-green-50"
-              : "border-mendoza-gold bg-white"
-          }`}
-        >
-          <div className="flex items-start gap-3">
-            {school.rectification.isRectified ? (
-              <CheckCircle2 className="shrink-0 text-mendoza-success" />
-            ) : (
-              <AlertCircle className="shrink-0 text-mendoza-warning" />
-            )}
-            <div>
-              <h2 className="font-bold text-mendoza-text">
-                {school.rectification.isRectified
-                  ? `Ficha rectificada para ${school.rectification.periodYear}`
-                  : `Rectificación pendiente para ${school.rectification.periodYear}`}
-              </h2>
-              <p className="mt-1 text-sm text-mendoza-muted">
-                {school.rectification.rectifiedAt
-                  ? `Última confirmación: ${formatDate(school.rectification.rectifiedAt)}.`
-                  : "Revisá los datos obligatorios y confirmalos para el período vigente."}
-              </p>
-            </div>
-          </div>
-        </section>
+        <RectificationStatus school={school} />
 
         <div className="mt-8 grid gap-5 lg:grid-cols-2">
           <ProfileCard icon={MapPin} title="Ubicación">
@@ -135,23 +183,55 @@ export function SchoolProfilePage() {
           <ProfileCard icon={Building2} title="Datos educativos">
             <Definition label="Director/a" value={school.directorName} />
             <Definition label="Número" value={school.schoolNumber} />
-            <Definition label="Nivel" value={school.educationLevel} />
+            <Definition
+              label="Niveles estructurados"
+              value={
+                school.educationLevels.map(({ label }) => label).join(", ") ||
+                null
+              }
+            />
+            <Definition
+              label="Nivel heredado"
+              value={school.educationLevel}
+            />
             <Definition label="Gestión" value={school.managementType} />
             <Definition label="Ámbito" value={school.scope} />
-            <Definition label="Jornada" value={school.shift} />
+            <Definition
+              label="Jornada estructurada"
+              value={school.shiftCatalog?.label}
+            />
+            <Definition label="Jornada heredada" value={school.shift} />
             <Definition label="Matrícula total" value={school.enrollment} />
           </ProfileCard>
 
-          <ProfileCard icon={Users} title="Referente institucional">
+          <ProfileCard icon={Users} title="Características">
             <Definition
-              label="Nombre y apellido"
-              value={`${school.referentFirstName} ${school.referentLastName}`}
+              label="Tiene kiosco"
+              value={formatBoolean(school.hasKiosk)}
             />
-            <Definition label="Correo" value={school.referentEmail} />
-            <Definition label="Teléfono" value={school.referentPhone} />
+            <Definition
+              label="Tiene comedor o servicio alimentario"
+              value={formatBoolean(school.hasFoodService)}
+            />
+            <Definition
+              label="Es albergue"
+              value={formatBoolean(school.isBoarding)}
+            />
           </ProfileCard>
 
-          <ProfileCard icon={Mail} title="Contacto del establecimiento">
+          <ProfileCard icon={Mail} title="Contacto">
+            <Definition
+              label="Referente"
+              value={`${school.referentFirstName} ${school.referentLastName}`}
+            />
+            <Definition
+              label="Correo del referente"
+              value={school.referentEmail}
+            />
+            <Definition
+              label="Teléfono del referente"
+              value={school.referentPhone}
+            />
             <Definition label="Correo" value={school.email} icon={Mail} />
             <Definition label="Teléfono" value={school.phone} icon={Phone} />
           </ProfileCard>
@@ -162,85 +242,429 @@ export function SchoolProfilePage() {
             Revisar y rectificar ficha anual
           </h2>
           <p className="mt-2 text-sm text-mendoza-muted">
-            Estos datos son obligatorios. Al confirmar se guardará una copia
-            histórica con tu usuario, fecha y período.
+            Al confirmar se guardará una copia histórica e inmutable con tu
+            usuario, fecha y período. Los datos sin definición de obligatoriedad
+            pueden mantenerse como “Sin informar”.
           </p>
           <form
             className="mt-6 grid gap-5 md:grid-cols-2"
             noValidate
             onSubmit={submit}
           >
-            <RectificationField label="Nombre del establecimiento" error={errors.name?.message}>
+            <RectificationField
+              error={errors.name?.message}
+              label="Nombre del establecimiento"
+            >
               <input className="field" {...register("name")} />
             </RectificationField>
-            <RectificationField label="CUE" error={errors.cue?.message}>
+            <RectificationField error={errors.cue?.message} label="CUE">
               <input className="field" {...register("cue")} />
             </RectificationField>
-            <RectificationField label="Director/a" error={errors.directorName?.message}>
+            <RectificationField
+              error={errors.directorName?.message}
+              label="Director/a"
+            >
               <input className="field" {...register("directorName")} />
             </RectificationField>
-            <RectificationField label="Dirección" error={errors.address?.message}>
+            <RectificationField
+              error={errors.address?.message}
+              label="Dirección"
+            >
               <input className="field" {...register("address")} />
             </RectificationField>
-            <RectificationField label="Localidad" error={errors.locality?.message}>
+            <RectificationField
+              error={errors.locality?.message}
+              label="Localidad"
+            >
               <input className="field" {...register("locality")} />
             </RectificationField>
-            <RectificationField label="Ámbito" error={errors.scope?.message}>
+            <RectificationField error={errors.scope?.message} label="Ámbito">
               <input className="field" {...register("scope")} />
             </RectificationField>
-            <RectificationField label="Tipo de educación" error={errors.educationLevel?.message}>
-              <input className="field" {...register("educationLevel")} />
+
+            <div className="md:col-span-2">
+              <h3 className="font-bold text-mendoza-text">
+                Características del establecimiento
+              </h3>
+              <div className="mt-3 grid gap-4 lg:grid-cols-3">
+                <TriStateField
+                  control={control}
+                  label="¿Tiene kiosco?"
+                  name="hasKiosk"
+                />
+                <TriStateField
+                  control={control}
+                  label="¿Tiene comedor o servicio alimentario?"
+                  name="hasFoodService"
+                />
+                <TriStateField
+                  control={control}
+                  label="¿Es albergue?"
+                  name="isBoarding"
+                />
+              </div>
+            </div>
+
+            {catalogs?.shifts.available ? (
+              <RectificationField
+                error={errors.shiftCatalogId?.message}
+                label="Jornada"
+                required={false}
+              >
+                <select
+                  className="field"
+                  {...register("shiftCatalogId", {
+                    setValueAs: (value) => value || null,
+                  })}
+                >
+                  <option value="">Sin informar</option>
+                  {catalogs.shifts.items.map((shift) => (
+                    <option
+                      disabled={
+                        !shift.isActive &&
+                        school.shiftCatalogId !== shift.id
+                      }
+                      key={shift.id}
+                      value={shift.id}
+                    >
+                      {shift.label}
+                      {!shift.isActive ? " (inactiva)" : ""}
+                    </option>
+                  ))}
+                </select>
+              </RectificationField>
+            ) : (
+              <div>
+                <p className="text-sm font-semibold text-mendoza-text">
+                  Jornada
+                </p>
+                <div className="mt-2">
+                <CatalogUnavailable message={catalogs?.shifts.message} />
+                </div>
+              </div>
+            )}
+
+            <RectificationField
+              error={errors.enrollment?.message}
+              label="Matrícula total"
+              required={false}
+            >
+              <input
+                className="field"
+                inputMode="numeric"
+                min="0"
+                step="1"
+                type="number"
+                {...register("enrollment", {
+                  setValueAs: nullableInteger,
+                })}
+              />
             </RectificationField>
-            <RectificationField label="Jornada" error={errors.shift?.message}>
-              <input className="field" {...register("shift")} />
-            </RectificationField>
+
+            <fieldset className="md:col-span-2">
+              <legend className="font-bold text-mendoza-text">
+                Niveles educativos
+              </legend>
+              <p className="mt-1 text-sm text-mendoza-muted">
+                Seleccioná todos los niveles que correspondan. La matrícula por
+                nivel es opcional y no tiene que coincidir obligatoriamente con
+                el total.
+              </p>
+              {catalogs?.educationLevels.available ? (
+                <div className="mt-3 grid gap-3 sm:grid-cols-2">
+                  {catalogs.educationLevels.items.map((level) => {
+                    const selected = selectedLevels.some(
+                      ({ levelId }) => levelId === level.id,
+                    );
+                    const currentSelection = school.educationLevels.some(
+                      ({ levelId }) => levelId === level.id,
+                    );
+                    return (
+                      <label
+                        className="flex items-center gap-3 rounded-xl border border-mendoza-border p-3 text-sm"
+                        key={level.id}
+                      >
+                        <input
+                          checked={selected}
+                          disabled={!level.isActive && !currentSelection}
+                          onChange={(event) =>
+                            toggleLevel(level, event.target.checked)
+                          }
+                          type="checkbox"
+                        />
+                        <span>
+                          {level.label}
+                          {!level.isActive ? " (inactivo)" : ""}
+                        </span>
+                      </label>
+                    );
+                  })}
+                </div>
+              ) : (
+                <div className="mt-3">
+                  <CatalogUnavailable
+                    message={catalogs?.educationLevels.message}
+                  />
+                </div>
+              )}
+              {errors.educationLevels?.root?.message && (
+                <p className="mt-2 text-sm text-mendoza-error">
+                  {errors.educationLevels.root.message}
+                </p>
+              )}
+            </fieldset>
+
+            {selectedLevels.length > 0 && (
+              <div className="grid gap-4 rounded-xl bg-mendoza-background p-4 md:col-span-2 sm:grid-cols-2">
+                {selectedLevels.map((selection, index) => {
+                  const level = catalogs?.educationLevels.items.find(
+                    ({ id }) => id === selection.levelId,
+                  );
+                  return (
+                    <RectificationField
+                      error={
+                        errors.educationLevels?.[index]?.enrollment?.message
+                      }
+                      key={selection.levelId}
+                      label={`Matrícula de ${level?.label ?? "nivel"}`}
+                      required={false}
+                    >
+                      <input
+                        className="field"
+                        inputMode="numeric"
+                        min="0"
+                        step="1"
+                        type="number"
+                        {...register(
+                          `educationLevels.${index}.enrollment` as const,
+                          { setValueAs: nullableInteger },
+                        )}
+                      />
+                    </RectificationField>
+                  );
+                })}
+              </div>
+            )}
+
             <div className="flex justify-end md:col-span-2">
-              <Button disabled={isSubmitting} icon={<Save size={17} />} type="submit">
-                {isSubmitting ? "Rectificando…" : "Confirmar rectificación anual"}
+              <Button
+                disabled={isSubmitting}
+                icon={<Save size={17} />}
+                type="submit"
+              >
+                {isSubmitting
+                  ? "Rectificando…"
+                  : "Confirmar rectificación anual"}
               </Button>
             </div>
           </form>
         </section>
 
-        {characteristics.length > 0 && (
-          <section className="mt-5 rounded-2xl border border-mendoza-border bg-white p-6 shadow-sm">
-            <h2 className="text-xl font-bold text-mendoza-blue">
-              Características registradas
-            </h2>
-            <dl className="mt-5 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-              {characteristics.map(([key, value]) => (
-                <Definition key={key} label={key} value={formatValue(value)} />
-              ))}
-            </dl>
-          </section>
-        )}
-
+        <RectificationHistory entries={school.rectifications ?? []} />
       </div>
+
+      <ConfirmDialog
+        confirmLabel="Quitar nivel"
+        description={`El nivel ${pendingRemoval?.label ?? ""} tiene una matrícula informada. Si lo quitás, ese dato se eliminará únicamente de esta nueva rectificación; el historial anterior no cambiará.`}
+        open={Boolean(pendingRemoval)}
+        title="¿Quitar el nivel y su matrícula?"
+        onCancel={() => setPendingRemoval(null)}
+        onConfirm={() => {
+          if (pendingRemoval) removeLevel(pendingRemoval.id);
+          setPendingRemoval(null);
+        }}
+      />
     </main>
+  );
+}
+
+function RectificationStatus({ school }: { school: SchoolProfile }) {
+  return (
+    <section
+      className={`mt-6 rounded-2xl border p-5 shadow-sm ${
+        school.rectification.isRectified
+          ? "border-green-200 bg-green-50"
+          : "border-mendoza-gold bg-white"
+      }`}
+    >
+      <div className="flex items-start gap-3">
+        {school.rectification.isRectified ? (
+          <CheckCircle2 className="shrink-0 text-mendoza-success" />
+        ) : (
+          <AlertCircle className="shrink-0 text-mendoza-warning" />
+        )}
+        <div>
+          <h2 className="font-bold text-mendoza-text">
+            {school.rectification.isRectified
+              ? `Ficha rectificada para ${school.rectification.periodYear}`
+              : `Rectificación pendiente para ${school.rectification.periodYear}`}
+          </h2>
+          <p className="mt-1 text-sm text-mendoza-muted">
+            {school.rectification.rectifiedAt
+              ? `Última confirmación: ${formatDate(school.rectification.rectifiedAt)}.`
+              : "Revisá los datos obligatorios y confirmalos para el período vigente."}
+          </p>
+        </div>
+      </div>
+    </section>
+  );
+}
+
+function TriStateField({
+  control,
+  label,
+  name,
+}: {
+  control: Control<SchoolRectificationValues>;
+  label: string;
+  name: TriStateName;
+}) {
+  return (
+    <fieldset className="rounded-xl border border-mendoza-border p-4">
+      <legend className="px-1 text-sm font-semibold text-mendoza-text">
+        {label}
+      </legend>
+      <Controller
+        control={control}
+        name={name}
+        render={({ field }) => (
+          <div className="mt-1 flex flex-wrap gap-4">
+            {[
+              { label: "Sí", value: true },
+              { label: "No", value: false },
+              { label: "Sin informar", value: null },
+            ].map((option) => (
+              <label className="flex items-center gap-2 text-sm" key={option.label}>
+                <input
+                  checked={field.value === option.value}
+                  name={field.name}
+                  onBlur={field.onBlur}
+                  onChange={() => field.onChange(option.value)}
+                  ref={field.ref}
+                  type="radio"
+                />
+                {option.label}
+              </label>
+            ))}
+          </div>
+        )}
+      />
+    </fieldset>
   );
 }
 
 function RectificationField({
   label,
   error,
+  required = true,
   children,
 }: {
   label: string;
   error?: string;
+  required?: boolean;
   children: React.ReactNode;
 }) {
   return (
     <label className="text-sm font-semibold text-mendoza-text">
-      {label} *
-      <span className="mt-2 block [&_.field]:w-full [&_.field]:rounded-lg [&_.field]:border [&_.field]:border-mendoza-border [&_.field]:px-3 [&_.field]:py-2.5 [&_.field]:outline-none focus-within:[&_.field]:border-mendoza-sky">
+      {label}
+      {required ? " *" : ""}
+      <span className="mt-2 block [&_.field]:w-full [&_.field]:rounded-lg [&_.field]:border [&_.field]:border-mendoza-border [&_.field]:bg-white [&_.field]:px-3 [&_.field]:py-2.5 [&_.field]:outline-none focus-within:[&_.field]:border-mendoza-sky">
         {children}
       </span>
-      {error && <span className="mt-1 block font-normal text-mendoza-error">{error}</span>}
+      {error && (
+        <span className="mt-1 block font-normal text-mendoza-error">
+          {error}
+        </span>
+      )}
     </label>
   );
 }
 
-function rectificationValues(school: SchoolProfile): SchoolRectificationValues {
+function CatalogUnavailable({ message }: { message?: string | null }) {
+  return (
+    <span className="block rounded-lg border border-mendoza-gold bg-amber-50 p-3 font-normal text-amber-900">
+      {message ?? "El catálogo no está disponible."}
+    </span>
+  );
+}
+
+function RectificationHistory({
+  entries,
+}: {
+  entries: SchoolProfile["rectifications"];
+}) {
+  if (!entries.length) return null;
+  return (
+    <section className="mt-5 rounded-2xl border border-mendoza-border bg-white p-5 shadow-sm sm:p-6">
+      <div className="flex items-center gap-3 text-mendoza-blue">
+        <CalendarDays aria-hidden="true" size={21} />
+        <h2 className="text-xl font-bold">Historial de rectificaciones</h2>
+      </div>
+      <p className="mt-2 text-sm text-mendoza-muted">
+        Estas copias son de sólo lectura y conservan las etiquetas vigentes al
+        momento de confirmar.
+      </p>
+      <div className="mt-4 space-y-3">
+        {entries.map((entry) => (
+          <details
+            className="rounded-xl border border-mendoza-border p-4"
+            key={entry.id}
+          >
+            <summary className="cursor-pointer font-semibold text-mendoza-text">
+              Período {entry.periodYear} · {formatDate(entry.rectifiedAt)}
+            </summary>
+            <SnapshotDetails snapshot={entry.snapshot} />
+          </details>
+        ))}
+      </div>
+    </section>
+  );
+}
+
+function SnapshotDetails({
+  snapshot,
+}: {
+  snapshot: SchoolRectificationSnapshot;
+}) {
+  return (
+    <dl className="mt-4 grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+      <Definition label="Nombre" value={snapshot.name} />
+      <Definition label="CUE" value={snapshot.cue} />
+      <Definition label="Director/a" value={snapshot.directorName} />
+      <Definition
+        label="Jornada"
+        value={snapshot.shiftCatalog?.label ?? snapshot.shift}
+      />
+      <Definition
+        label="Niveles"
+        value={
+          snapshot.educationLevels?.map(({ label }) => label).join(", ") ??
+          snapshot.educationLevel
+        }
+      />
+      <Definition
+        label="Matrícula total"
+        value={snapshot.enrollmentTotal}
+      />
+      <Definition
+        label="Tiene kiosco"
+        value={formatBoolean(snapshot.hasKiosk)}
+      />
+      <Definition
+        label="Tiene comedor o servicio alimentario"
+        value={formatBoolean(snapshot.hasFoodService)}
+      />
+      <Definition
+        label="Es albergue"
+        value={formatBoolean(snapshot.isBoarding)}
+      />
+    </dl>
+  );
+}
+
+function rectificationValues(
+  school: SchoolProfile,
+): SchoolRectificationValues {
   return {
     name: school.name,
     cue: school.cue,
@@ -248,10 +672,23 @@ function rectificationValues(school: SchoolProfile): SchoolRectificationValues {
     address: school.address,
     locality: school.locality,
     scope: school.scope,
-    educationLevel: school.educationLevel,
-    shift: school.shift,
+    hasKiosk: school.hasKiosk ?? null,
+    hasFoodService: school.hasFoodService ?? null,
+    isBoarding: school.isBoarding ?? null,
+    shiftCatalogId: school.shiftCatalogId ?? null,
+    enrollment: school.enrollment ?? null,
+    educationLevels: school.educationLevels.map(
+      ({ levelId, enrollment }) => ({
+        levelId,
+        enrollment,
+      }),
+    ),
+    expectedUpdatedAt: school.updatedAt,
   };
 }
+
+const nullableInteger = (value: unknown) =>
+  value === "" || value === null || value === undefined ? null : Number(value);
 
 const formatDate = (value: string) =>
   new Intl.DateTimeFormat("es-AR", {
@@ -295,14 +732,15 @@ function Definition({
       </dt>
       <dd className="mt-1 flex items-center gap-2 break-words text-sm text-mendoza-text">
         {Icon && <Icon aria-hidden="true" size={15} />}
-        {value === null || value === undefined || value === "" ? "—" : String(value)}
+        {value === null || value === undefined || value === ""
+          ? "—"
+          : String(value)}
       </dd>
     </div>
   );
 }
 
-function formatValue(value: string | number | boolean | null) {
-  if (value === null || value === "") return "—";
-  if (typeof value === "boolean") return value ? "Sí" : "No";
-  return value;
+function formatBoolean(value: boolean | null | undefined) {
+  if (value === null || value === undefined) return "Sin informar";
+  return value ? "Sí" : "No";
 }

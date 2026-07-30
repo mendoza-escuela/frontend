@@ -237,18 +237,50 @@ export function SchoolSurveyPage() {
             ) : (
               workspace && (
                 <div className="mt-6">
-                  <QuestionnaireRenderer
-                    defaultValues={workspace.answers}
-                    key={workspace.submission.id}
-                    onSaveDraft={
-                      workspace.submission.editable ? saveDraft : undefined
-                    }
-                    onSubmit={(answers) => setPendingSubmission(answers)}
-                    readOnly={!workspace.submission.editable}
-                    submitLabel="Enviar presentación"
-                    survey={workspace.survey}
-                    validateOnSectionChange={false}
-                  />
+                  <ApplicabilityNotice workspace={workspace} />
+                  {workspace.survey.version.dimensions.length ? (
+                    <QuestionnaireRenderer
+                      defaultValues={workspace.answers}
+                      key={workspace.submission.id}
+                      onSaveDraft={
+                        workspace.submission.editable ? saveDraft : undefined
+                      }
+                      onSubmit={(answers) => setPendingSubmission(answers)}
+                      readOnly={!workspace.submission.editable}
+                      submitDisabled={!workspace.submission.canSubmit}
+                      submitDisabledReason={
+                        workspace.applicability.status === "incomplete"
+                          ? "Completá la ficha escolar antes de enviar."
+                          : undefined
+                      }
+                      submitLabel="Enviar presentación"
+                      survey={workspace.survey}
+                      validateOnSectionChange={false}
+                    />
+                  ) : (
+                    <Card>
+                      <Info
+                        aria-hidden="true"
+                        className="text-mendoza-blue"
+                        size={24}
+                      />
+                      <h2 className="mt-3 text-lg font-bold text-mendoza-text">
+                        No hay preguntas aplicables
+                      </h2>
+                      <p className="mt-2 text-sm text-mendoza-muted">
+                        Las reglas del cuestionario excluyeron todas las
+                        preguntas para la ficha rectificada de esta
+                        presentación.
+                      </p>
+                      {workspace.submission.canSubmit && (
+                        <div className="mt-5 flex justify-end">
+                          <Button onClick={() => setPendingSubmission({})}>
+                            Enviar presentación
+                          </Button>
+                        </div>
+                      )}
+                    </Card>
+                  )}
                 </div>
               )
             )}
@@ -266,6 +298,52 @@ export function SchoolSurveyPage() {
         title="¿Confirmar el envío definitivo?"
       />
     </main>
+  );
+}
+
+function ApplicabilityNotice({
+  workspace,
+}: {
+  workspace: SchoolSubmissionWorkspace;
+}) {
+  if (workspace.applicability.status === "incomplete") {
+    return (
+      <section
+        className="mb-4 rounded-xl border border-amber-200 bg-amber-50 p-4 text-sm text-amber-950"
+        role="alert"
+      >
+        <div className="flex gap-3">
+          <AlertCircle aria-hidden="true" className="shrink-0" size={20} />
+          <div>
+            <h2 className="font-bold">Faltan datos en la ficha escolar</h2>
+            <p className="mt-1">
+              Para determinar qué preguntas corresponden, completá:{" "}
+              {workspace.applicability.missingFields
+                .map(({ label }) => label)
+                .join(", ")}
+              .
+            </p>
+            <Link
+              className="mt-3 inline-flex font-semibold text-mendoza-blue hover:underline"
+              to="/colegio/establecimiento"
+            >
+              Ir a la rectificación escolar
+            </Link>
+          </div>
+        </div>
+      </section>
+    );
+  }
+  if (!workspace.applicability.excluded.length) return null;
+  return (
+    <p className="mb-4 flex gap-2 rounded-xl bg-mendoza-blue-soft p-4 text-sm text-mendoza-blue">
+      <Info aria-hidden="true" className="shrink-0" size={19} />
+      {workspace.applicability.excluded.length}{" "}
+      {workspace.applicability.excluded.length === 1
+        ? "pregunta fue excluida"
+        : "preguntas fueron excluidas"}{" "}
+      automáticamente según la ficha escolar.
+    </p>
   );
 }
 
@@ -380,10 +458,18 @@ function CampaignIntroduction({
       )}
 
       {submitted && (
-        <p className="mt-4 flex gap-2 rounded-lg bg-green-50 p-3 text-sm text-mendoza-success">
-          <CheckCircle2 aria-hidden="true" className="shrink-0" size={18} />
-          La presentación fue enviada y las respuestas quedaron protegidas.
-        </p>
+        <div className="mt-4 flex flex-wrap items-center justify-between gap-3 rounded-lg bg-green-50 p-3 text-sm text-mendoza-success">
+          <p className="flex gap-2">
+            <CheckCircle2 aria-hidden="true" className="shrink-0" size={18} />
+            La presentación fue enviada y las respuestas quedaron protegidas.
+          </p>
+          <Link
+            className="font-semibold text-mendoza-blue hover:underline focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-mendoza-blue"
+            to={`/colegio/resultados/${campaign.id}`}
+          >
+            Ver resultado preliminar
+          </Link>
+        </div>
       )}
     </Card>
   );

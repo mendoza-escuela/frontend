@@ -202,6 +202,14 @@ export function SchoolDetailPage() {
                 value={`${school.address}, ${school.locality}, ${school.department}`}
               />
               <Datum label="Nivel" value={school.educationLevel} />
+              <Datum
+                label="Niveles estructurados"
+                value={
+                  school.educationLevels
+                    .map(({ label }) => label)
+                    .join(", ") || "Sin informar"
+                }
+              />
               <Datum label="Director/a" value={school.directorName} />
               <Datum label="Gestión" value={school.managementType} />
               <Datum
@@ -212,8 +220,28 @@ export function SchoolDetailPage() {
                 }
               />
               <Datum
+                label="Jornada estructurada"
+                value={school.shiftCatalog?.label ?? "Sin informar"}
+              />
+              <Datum
                 label="Matrícula"
-                value={school.enrollment.toLocaleString("es-AR")}
+                value={
+                  school.enrollment === null
+                    ? "Sin informar"
+                    : school.enrollment.toLocaleString("es-AR")
+                }
+              />
+              <Datum
+                label="Kiosco"
+                value={yesNoUnknown(school.hasKiosk)}
+              />
+              <Datum
+                label="Comedor o servicio alimentario"
+                value={yesNoUnknown(school.hasFoodService)}
+              />
+              <Datum
+                label="Albergue"
+                value={yesNoUnknown(school.isBoarding)}
               />
               <Datum
                 label="Contacto"
@@ -393,8 +421,8 @@ export function SchoolDetailPage() {
             date: entry.rectifiedAt,
             title: `Período ${entry.periodYear}`,
             detail: entry.actorUser
-              ? `${entry.actorUser.firstName} ${entry.actorUser.lastName}`
-              : "Usuario eliminado",
+              ? `${entry.actorUser.firstName} ${entry.actorUser.lastName} · ${snapshotSummary(entry.snapshot)}`
+              : `Usuario eliminado · ${snapshotSummary(entry.snapshot)}`,
           }))}
         />
         <Timeline
@@ -422,6 +450,19 @@ function Datum({ label, value }: { label: string; value: string }) {
       <dd className="mt-1 break-words text-sm text-mendoza-text">{value}</dd>
     </div>
   );
+}
+
+function yesNoUnknown(value: boolean | null) {
+  if (value === null) return "Sin informar";
+  return value ? "Sí" : "No";
+}
+
+function snapshotSummary(snapshot: SchoolDetail["rectifications"][number]["snapshot"]) {
+  const shift = snapshot.shiftCatalog?.label ?? snapshot.shift;
+  const levels =
+    snapshot.educationLevels?.map(({ label }) => label).join(", ") ||
+    snapshot.educationLevel;
+  return `Jornada: ${shift || "Sin informar"} · Niveles: ${levels || "Sin informar"} · Matrícula: ${snapshot.enrollmentTotal ?? "Sin informar"}`;
 }
 function Unavailable({
   icon,

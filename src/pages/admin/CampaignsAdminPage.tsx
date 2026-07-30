@@ -2,6 +2,7 @@ import {
   Archive,
   CalendarRange,
   CirclePlay,
+  ListChecks,
   LockKeyhole,
   Pencil,
   Plus,
@@ -305,6 +306,12 @@ function CampaignCard({
       </dl>
 
       <div className="mt-5 flex flex-wrap gap-2">
+        <Link
+          className="inline-flex min-h-10 items-center gap-2 rounded-lg border border-mendoza-blue px-3 text-sm font-semibold text-mendoza-blue hover:bg-mendoza-blue-soft"
+          to={`/admin/seguimiento?campania=${campaign.id}`}
+        >
+          <ListChecks aria-hidden="true" size={16} /> Seguimiento
+        </Link>
         {campaign.status === "draft" && (
           <>
             <Link

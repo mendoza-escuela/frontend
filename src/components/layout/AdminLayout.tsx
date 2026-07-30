@@ -4,6 +4,7 @@ import {
   ClipboardList,
   Home,
   LayoutDashboard,
+  ListChecks,
   LogOut,
   School,
   Upload,
@@ -33,6 +34,11 @@ const links = [
     to: "/admin/campanas",
     label: "Campañas",
     icon: CalendarRange,
+  },
+  {
+    to: "/admin/seguimiento",
+    label: "Seguimiento",
+    icon: ListChecks,
   },
 ];
 

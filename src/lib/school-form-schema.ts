@@ -66,8 +66,42 @@ export const schoolRectificationSchema = schoolFormSchema.pick({
   address: true,
   locality: true,
   scope: true,
-  educationLevel: true,
-  shift: true,
+}).extend({
+  hasKiosk: z.boolean().nullable(),
+  hasFoodService: z.boolean().nullable(),
+  isBoarding: z.boolean().nullable(),
+  shiftCatalogId: z.uuid().nullable(),
+  enrollment: z
+    .number()
+    .int("Debe ser un número entero.")
+    .min(0, "No puede ser negativa.")
+    .max(1_000_000)
+    .nullable(),
+  educationLevels: z
+    .array(
+      z.object({
+        levelId: z.uuid(),
+        enrollment: z
+          .number()
+          .int("Debe ser un número entero.")
+          .min(0, "No puede ser negativa.")
+          .max(1_000_000)
+          .nullable(),
+      }),
+    )
+    .superRefine((levels, context) => {
+      const seen = new Set<string>();
+      levels.forEach((level, index) => {
+        if (seen.has(level.levelId))
+          context.addIssue({
+            code: "custom",
+            message: "El nivel educativo está repetido.",
+            path: [index, "levelId"],
+          });
+        seen.add(level.levelId);
+      });
+    }),
+  expectedUpdatedAt: z.iso.datetime(),
 });
 export type SchoolRectificationValues = z.infer<
   typeof schoolRectificationSchema

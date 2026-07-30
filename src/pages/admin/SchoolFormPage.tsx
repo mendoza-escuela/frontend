@@ -73,7 +73,7 @@ export function SchoolFormPage() {
           referentLastName: school.referentLastName,
           referentEmail: school.referentEmail ?? "",
           referentPhone: school.referentPhone ?? "",
-          enrollment: school.enrollment,
+          enrollment: school.enrollment ?? 0,
           isActive: school.isActive,
         }),
       )

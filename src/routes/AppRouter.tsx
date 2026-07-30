@@ -129,6 +129,11 @@ const ParticipationDashboardPage = lazy(() =>
     default: module.ParticipationDashboardPage,
   })),
 );
+const CampaignTrackingPage = lazy(() =>
+  import("../pages/admin/CampaignTrackingPage").then((module) => ({
+    default: module.CampaignTrackingPage,
+  })),
+);
 const SchoolHomePage = lazy(() =>
   import("../pages/school/SchoolHomePage").then((module) => ({
     default: module.SchoolHomePage,
@@ -255,6 +260,10 @@ const router = createBrowserRouter([
             path: "campanas/:id/editar",
             element: lazyPage(<CampaignFormPage />),
           },
+          {
+            path: "seguimiento",
+            element: lazyPage(<CampaignTrackingPage />),
+          },
         ],
       },
     ],
@@ -277,6 +286,10 @@ const router = createBrowserRouter([
           },
           {
             path: "resultados",
+            element: lazyPage(<SchoolResultsPage />),
+          },
+          {
+            path: "resultados/:campaignId",
             element: lazyPage(<SchoolResultsPage />),
           },
         ],
