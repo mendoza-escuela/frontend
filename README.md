@@ -28,6 +28,8 @@ El panel `/admin/cuestionarios` incorpora el ABM de cuestionarios y versiones. P
 
 El panel `/admin/campanas` permite crear campañas anuales o semestrales, asociarlas a una versión publicada, buscarlas y filtrarlas. Los borradores pueden editarse o eliminarse y luego recorren el ciclo irreversible Activa, Cerrada y Archivada. La interfaz informa que la fecha final cierra a las 23:59:59 de Mendoza.
 
+El dashboard `/admin/participacion` permite seguir por campaña el total de escuelas activas, las no iniciadas, los borradores, los envíos y el porcentaje de participación. Los filtros de campaña, ubicación y características institucionales se conservan en la URL; departamento y localidad actualizan las opciones dependientes. Las solicitudes anteriores se cancelan cuando el administrador cambia rápidamente los filtros.
+
 Desde el detalle de un cuestionario se accede a `/admin/cuestionarios/:surveyId/importar`. Allí se descargan plantillas CSV/Excel, se previsualizan errores por fila y se crea una versión borrador únicamente cuando la planilla completa es válida. El perfil institucional restringe el editor a selección simple y no ofrece “Otro”, “No aplica”, selección múltiple ni campos de observaciones.
 
 Las pantallas administrativas reutilizan componentes comunes para encabezados, cards, campos, estados de carga/error/vacío, badges, modales y confirmaciones. Los accesos HTTP permanecen centralizados en `src/services/admin-surveys.service.ts`.

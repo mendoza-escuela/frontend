@@ -3,6 +3,7 @@ import {
   CalendarRange,
   ClipboardList,
   Home,
+  LayoutDashboard,
   LogOut,
   School,
   Upload,
@@ -14,6 +15,11 @@ import { showError } from "../../lib/toast";
 
 const links = [
   { to: "/admin", label: "Inicio", icon: Home, end: true },
+  {
+    to: "/admin/participacion",
+    label: "Participación",
+    icon: LayoutDashboard,
+  },
   { to: "/admin/usuarios", label: "Usuarios", icon: Users, end: true },
   { to: "/admin/usuarios/importar", label: "Importar usuarios", icon: Upload },
   { to: "/admin/colegios", label: "Colegios", icon: School, end: true },
@@ -74,7 +80,9 @@ export function AdminLayout() {
       <div className="min-w-0 flex-1">
         <header className="flex flex-wrap items-center justify-between gap-3 border-b border-mendoza-border bg-white px-4 py-4 sm:px-8">
           <div>
-            <p className="text-sm text-mendoza-muted">Sesión de administrador</p>
+            <p className="text-sm text-mendoza-muted">
+              Sesión de administrador
+            </p>
             <p className="font-semibold text-mendoza-text">
               {user?.firstName} {user?.lastName}
             </p>
