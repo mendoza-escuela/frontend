@@ -139,6 +139,11 @@ const CampaignTrackingPage = lazy(() =>
     default: module.CampaignTrackingPage,
   })),
 );
+const AdminSchoolResultDetailPage = lazy(() =>
+  import("../pages/admin/AdminSchoolResultDetailPage").then((module) => ({
+    default: module.AdminSchoolResultDetailPage,
+  })),
+);
 const SchoolHomePage = lazy(() =>
   import("../pages/school/SchoolHomePage").then((module) => ({
     default: module.SchoolHomePage,
@@ -272,6 +277,10 @@ const router = createBrowserRouter([
           {
             path: "seguimiento",
             element: lazyPage(<CampaignTrackingPage />),
+          },
+          {
+            path: "campanas/:campaignId/colegios/:schoolId/resultado",
+            element: lazyPage(<AdminSchoolResultDetailPage />),
           },
         ],
       },

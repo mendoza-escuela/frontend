@@ -7,7 +7,7 @@ import {
   Star,
 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
-import { useSearchParams } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
 import { Bar, BarChart, CartesianGrid, ResponsiveContainer, XAxis, YAxis } from "recharts";
 import { Button } from "../../components/ui/Button";
 import { Card } from "../../components/ui/Card";
@@ -239,17 +239,17 @@ export function ParticipationDashboardPage() {
             <LoadingState label="Actualizando indicadores…" />
           </State>
         ) : dashboard ? (
-          <><Metrics dashboard={dashboard} />{results && <ResultsMetrics dashboard={results} />}</>
+          <><Metrics dashboard={dashboard} />{results && <ResultsMetrics dashboard={results} filters={filters} returnTo={`/admin/participacion?${searchParams.toString()}`} />}</>
         ) : null}
       </div>
     </main>
   );
 }
 
-function ResultsMetrics({ dashboard }: { dashboard: ResultsDashboardResponse }) {
+function ResultsMetrics({ dashboard, filters, returnTo }: { dashboard: ResultsDashboardResponse; filters: ParticipationFilters; returnTo: string }) {
   return <section aria-labelledby="results-metrics-title" className="mt-10">
     <h2 className="text-2xl font-bold text-mendoza-text" id="results-metrics-title">Resultados de evaluación</h2>
-    <p className="mt-1 text-sm text-mendoza-muted">Promedios sobre {dashboard.denominators.averages} resultados vigentes. Escala 0–100.</p>
+    <div className="flex flex-wrap items-end justify-between gap-3"><p className="mt-1 text-sm text-mendoza-muted">Promedios sobre {dashboard.denominators.averages} resultados vigentes. Escala 0–100.</p>{filters.campaignId && <Link className="inline-flex min-h-11 items-center rounded-lg border border-mendoza-blue px-4 text-sm font-semibold text-mendoza-blue hover:bg-mendoza-blue/5" to={filters.schoolId ? `/admin/campanas/${filters.campaignId}/colegios/${filters.schoolId}/resultado?volver=${encodeURIComponent(returnTo)}` : `/admin/seguimiento?campania=${filters.campaignId}`}>{filters.schoolId ? "Ver detalle de la escuela" : "Ver resultados por escuela"}</Link>}</div>
     {dashboard.metrics.schoolsWithResult === 0 ? <div className="mt-4"><EmptyState title="No hay resultados para los filtros seleccionados" description="Las presentaciones enviadas con resultado aparecerán aquí." /></div> : <>
       <div className="mt-4 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <ResultCard label="Escuelas del universo" value={String(dashboard.metrics.universeSchools)} />
