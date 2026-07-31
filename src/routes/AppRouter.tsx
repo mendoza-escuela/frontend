@@ -129,9 +129,19 @@ const ParticipationDashboardPage = lazy(() =>
     default: module.ParticipationDashboardPage,
   })),
 );
+const EvaluationConfigurationsPage = lazy(() =>
+  import("../pages/admin/EvaluationConfigurationsPage").then((module) => ({
+    default: module.EvaluationConfigurationsPage,
+  })),
+);
 const CampaignTrackingPage = lazy(() =>
   import("../pages/admin/CampaignTrackingPage").then((module) => ({
     default: module.CampaignTrackingPage,
+  })),
+);
+const AdminSchoolResultDetailPage = lazy(() =>
+  import("../pages/admin/AdminSchoolResultDetailPage").then((module) => ({
+    default: module.AdminSchoolResultDetailPage,
   })),
 );
 const SchoolHomePage = lazy(() =>
@@ -196,6 +206,10 @@ const router = createBrowserRouter([
           {
             path: "participacion",
             element: lazyPage(<ParticipationDashboardPage />),
+          },
+          {
+            path: "configuracion-evaluacion",
+            element: lazyPage(<EvaluationConfigurationsPage />),
           },
           { path: "usuarios", element: lazyPage(<UsersAdminPage />) },
           { path: "usuarios/nuevo", element: lazyPage(<UserFormPage />) },
@@ -263,6 +277,10 @@ const router = createBrowserRouter([
           {
             path: "seguimiento",
             element: lazyPage(<CampaignTrackingPage />),
+          },
+          {
+            path: "campanas/:campaignId/colegios/:schoolId/resultado",
+            element: lazyPage(<AdminSchoolResultDetailPage />),
           },
         ],
       },

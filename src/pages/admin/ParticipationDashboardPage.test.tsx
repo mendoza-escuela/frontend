@@ -9,6 +9,7 @@ import { ParticipationDashboardPage } from "./ParticipationDashboardPage";
 vi.mock("../../services/admin-dashboard.service", () => ({
   adminDashboardService: {
     participation: vi.fn(),
+    results: vi.fn(),
     filterOptions: vi.fn(),
   },
 }));
@@ -48,6 +49,13 @@ const response = {
     participationPercentage: 40,
   },
 };
+const resultsResponse = {
+  campaign: response.campaign,
+  denominators: { universeSchools: 10, submittedSchools: 4, schoolsWithCurrentResult: 4, averages: 4, starDistribution: 4 },
+  metrics: { universeSchools: 10, schoolsWithResult: 4, coveragePercentage: 40, generalAverage: 75, dimensionAverages: [] },
+  starDistribution: [1, 2, 3, 4, 5].map((stars) => ({ stars, label: `${stars} estrella${stars === 1 ? "" : "s"}`, count: stars === 4 ? 4 : 0, percentage: stars === 4 ? 100 : 0, denominator: 4 })),
+  excludedResultsWithoutStars: 0,
+};
 
 describe("ParticipationDashboardPage", () => {
   afterEach(cleanup);
@@ -55,6 +63,7 @@ describe("ParticipationDashboardPage", () => {
     vi.clearAllMocks();
     vi.mocked(adminDashboardService.filterOptions).mockResolvedValue(options);
     vi.mocked(adminDashboardService.participation).mockResolvedValue(response);
+    vi.mocked(adminDashboardService.results).mockResolvedValue(resultsResponse);
   });
 
   it("selects the active campaign and renders its indicators", async () => {
@@ -67,7 +76,7 @@ describe("ParticipationDashboardPage", () => {
       screen.getByText("Cargando campañas y filtros…"),
     ).toBeInTheDocument();
     expect(await screen.findByText("Total de escuelas")).toBeInTheDocument();
-    expect(screen.getByText("40 %")).toBeInTheDocument();
+    expect(screen.getAllByText("40 %")).toHaveLength(2);
     expect(adminDashboardService.participation).toHaveBeenCalledWith(
       expect.objectContaining({ campaignId: "campaign-1" }),
       expect.any(AbortSignal),

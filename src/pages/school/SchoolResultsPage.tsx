@@ -8,6 +8,7 @@ import {
   ClipboardCheck,
   FileClock,
   School,
+  Star,
 } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
@@ -18,6 +19,7 @@ import { ErrorState } from "../../components/ui/ErrorState";
 import { LoadingState } from "../../components/ui/LoadingState";
 import { PageHeader } from "../../components/ui/PageHeader";
 import { formatDateTime } from "../../lib/format";
+import { getHttpErrorMessage } from "../../lib/http-error";
 import { schoolResultsService } from "../../services/school-results.service";
 import type {
   PreliminaryResultAnswer,
@@ -46,8 +48,9 @@ export function SchoolResultsPage() {
 }
 
 function PreliminaryResultHistory() {
-  const [history, setHistory] =
-    useState<SchoolPreliminaryResultList | null>(null);
+  const [history, setHistory] = useState<SchoolPreliminaryResultList | null>(
+    null,
+  );
   const [error, setError] = useState("");
   const [isLoading, setIsLoading] = useState(true);
 
@@ -170,9 +173,7 @@ function PreliminaryResultDetail({ campaignId }: { campaignId: string }) {
   }
 
   if (error) {
-    return (
-      <ResultErrorView error={error} onRetry={() => void load()} />
-    );
+    return <ResultErrorView error={error} onRetry={() => void load()} />;
   }
 
   if (!preliminaryResult) {
@@ -235,6 +236,12 @@ function PreliminaryResultDetail({ campaignId }: { campaignId: string }) {
                   {formatScore(preliminaryResult.result.generalScore)}
                 </p>
                 <p className="mt-1 text-sm text-white/80">sobre 100 puntos</p>
+                <Stars value={preliminaryResult.result.stars.final} />
+                <p className="mt-2 text-xs text-white/75">
+                  Configuración{" "}
+                  {preliminaryResult.result.stars.configurationVersion ??
+                    "histórica no disponible"}
+                </p>
               </div>
             </div>
           </div>
@@ -272,6 +279,16 @@ function PreliminaryResultDetail({ campaignId }: { campaignId: string }) {
                     : formatScore(mentalHealth.threshold)}
                   .
                 </p>
+                {preliminaryResult.result.stars.wasLimited && (
+                  <p className="mt-3 text-sm font-semibold leading-6 text-mendoza-text">
+                    El puntaje general corresponde a{" "}
+                    {preliminaryResult.result.stars.base} estrellas. Sin
+                    embargo, el resultado preliminar se limita a{" "}
+                    {preliminaryResult.result.stars.final} estrellas porque la
+                    dimensión Salud Mental obtuvo un valor menor al umbral
+                    crítico configurado.
+                  </p>
+                )}
               </div>
             </div>
           </section>
@@ -488,6 +505,35 @@ function Metadata({ label, value }: { label: string; value: string }) {
   );
 }
 
+function Stars({ value }: { value: number | null }) {
+  if (value === null)
+    return (
+      <p className="mt-4 text-sm font-semibold text-white">
+        Estrellas no disponibles para este resultado histórico
+      </p>
+    );
+  return (
+    <div
+      aria-label={`${value} de 5 estrellas`}
+      className="mt-4 flex justify-center gap-1"
+      role="img"
+    >
+      {[1, 2, 3, 4, 5].map((star) => (
+        <Star
+          aria-hidden="true"
+          className={
+            star <= value
+              ? "fill-mendoza-gold text-mendoza-gold"
+              : "text-white/40"
+          }
+          key={star}
+          size={25}
+        />
+      ))}
+    </div>
+  );
+}
+
 function answerValue(answer: PreliminaryResultAnswer) {
   if (answer.answer.optionLabel) return answer.answer.optionLabel;
   if (typeof answer.answer.value === "boolean") {
@@ -513,11 +559,9 @@ function resultError(error: unknown): ResultError {
     }>(error)
   ) {
     const code = error.response?.data?.code;
-    const message =
-      error.response?.data?.message ?? "No pudimos consultar el resultado.";
+    const message = getHttpErrorMessage(error);
     if (code === "SUBMISSION_DRAFT") return { kind: "draft", message };
-    if (code === "SUBMISSION_NOT_FOUND")
-      return { kind: "not-found", message };
+    if (code === "SUBMISSION_NOT_FOUND") return { kind: "not-found", message };
     if (code === "PRELIMINARY_RESULT_NOT_GENERATED")
       return { kind: "not-generated", message };
     if (code === "HISTORICAL_RESULT_INCOMPLETE")

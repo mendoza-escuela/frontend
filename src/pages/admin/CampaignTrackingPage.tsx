@@ -14,7 +14,7 @@ import {
   useRef,
   useState,
 } from "react";
-import { useSearchParams } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
 import { ActiveStatusBadge } from "../../components/ui/StatusBadge";
 import { Button } from "../../components/ui/Button";
 import { Card } from "../../components/ui/Card";
@@ -59,16 +59,17 @@ export function CampaignTrackingPage() {
   const [campaignId, setCampaignId] = useState("");
   const [summary, setSummary] = useState<CampaignTrackingSummary | null>(null);
   const [tracking, setTracking] = useState(emptyList);
-  const [search, setSearch] = useState("");
-  const [appliedSearch, setAppliedSearch] = useState("");
-  const [status, setStatus] = useState<CampaignParticipationStatus | "">("");
-  const [sortBy, setSortBy] = useState<CampaignTrackingSort>("school");
-  const [sortDirection, setSortDirection] = useState<"asc" | "desc">("asc");
+  const [search, setSearch] = useState(searchParams.get("buscar") ?? "");
+  const [appliedSearch, setAppliedSearch] = useState(searchParams.get("buscar") ?? "");
+  const [status, setStatus] = useState<CampaignParticipationStatus | "">((searchParams.get("estado") as CampaignParticipationStatus | null) ?? "");
+  const [sortBy, setSortBy] = useState<CampaignTrackingSort>((searchParams.get("orden") as CampaignTrackingSort | null) ?? "school");
+  const [sortDirection, setSortDirection] = useState<"asc" | "desc">((searchParams.get("direccion") as "asc" | "desc" | null) ?? "asc");
   const [campaignsLoading, setCampaignsLoading] = useState(true);
   const [trackingLoading, setTrackingLoading] = useState(false);
   const [campaignError, setCampaignError] = useState("");
   const [trackingError, setTrackingError] = useState("");
   const request = useRef<AbortController | null>(null);
+  const requestedCampaign = useRef(searchParams.get("campania"));
 
   const loadCampaigns = useCallback(async () => {
     setCampaignsLoading(true);
@@ -76,9 +77,8 @@ export function CampaignTrackingPage() {
     try {
       const response = await adminCampaignTrackingService.campaigns();
       setCampaigns(response);
-      const requestedCampaign = searchParams.get("campania");
       const selected =
-        response.find(({ id }) => id === requestedCampaign) ??
+        response.find(({ id }) => id === requestedCampaign.current) ??
         response[0] ??
         null;
       setCampaignId(selected?.id ?? "");
@@ -87,7 +87,7 @@ export function CampaignTrackingPage() {
     } finally {
       setCampaignsLoading(false);
     }
-  }, [searchParams]);
+  }, []);
 
   useEffect(() => {
     void loadCampaigns();
@@ -138,6 +138,16 @@ export function CampaignTrackingPage() {
     () => campaigns.find(({ id }) => id === campaignId) ?? null,
     [campaignId, campaigns],
   );
+
+  useEffect(() => {
+    const next = new URLSearchParams();
+    if (campaignId) next.set("campania", campaignId);
+    if (appliedSearch) next.set("buscar", appliedSearch);
+    if (status) next.set("estado", status);
+    if (sortBy !== "school") next.set("orden", sortBy);
+    if (sortDirection !== "asc") next.set("direccion", sortDirection);
+    setSearchParams(next, { replace: true });
+  }, [appliedSearch, campaignId, setSearchParams, sortBy, sortDirection, status]);
 
   const selectCampaign = (nextCampaignId: string) => {
     setCampaignId(nextCampaignId);
@@ -316,7 +326,7 @@ export function CampaignTrackingPage() {
                       }
                     />
                   ) : (
-                    <TrackingTable items={tracking.items} />
+                    <TrackingTable campaignId={campaignId} items={tracking.items} returnTo={`/admin/seguimiento?${searchParams.toString()}`} />
                   )}
                 </div>
 
@@ -415,12 +425,12 @@ function TrackingSummary({ summary }: { summary: CampaignTrackingSummary }) {
   );
 }
 
-function TrackingTable({ items }: { items: CampaignTrackingSchool[] }) {
+function TrackingTable({ campaignId, items, returnTo }: { campaignId: string; items: CampaignTrackingSchool[]; returnTo: string }) {
   return (
     <>
       <div className="grid gap-3 lg:hidden">
         {items.map((item) => (
-          <TrackingCard item={item} key={item.school.id} />
+          <TrackingCard campaignId={campaignId} item={item} key={item.school.id} returnTo={returnTo} />
         ))}
       </div>
       <div className="hidden overflow-x-auto rounded-2xl border border-mendoza-border bg-white shadow-sm lg:block">
@@ -438,6 +448,7 @@ function TrackingTable({ items }: { items: CampaignTrackingSchool[] }) {
                 "Fecha de envío",
                 "Usuario original",
                 "Estados actuales",
+                "Acciones",
               ].map((header) => (
                 <th className="px-4 py-3" key={header} scope="col">
                   {header}
@@ -489,6 +500,7 @@ function TrackingTable({ items }: { items: CampaignTrackingSchool[] }) {
                     <UserStatus item={item} />
                   </div>
                 </td>
+                <td className="px-4 py-3"><DetailLink campaignId={campaignId} schoolId={item.school.id} returnTo={returnTo} /></td>
               </tr>
             ))}
           </tbody>
@@ -498,7 +510,7 @@ function TrackingTable({ items }: { items: CampaignTrackingSchool[] }) {
   );
 }
 
-function TrackingCard({ item }: { item: CampaignTrackingSchool }) {
+function TrackingCard({ campaignId, item, returnTo }: { campaignId: string; item: CampaignTrackingSchool; returnTo: string }) {
   return (
     <Card
       as="article"
@@ -535,8 +547,13 @@ function TrackingCard({ item }: { item: CampaignTrackingSchool }) {
         <span className="ml-2 text-xs text-mendoza-muted">Usuario:</span>
         <UserStatus item={item} />
       </div>
+      <div className="mt-4"><DetailLink campaignId={campaignId} schoolId={item.school.id} returnTo={returnTo} /></div>
     </Card>
   );
+}
+
+function DetailLink({ campaignId, schoolId, returnTo }: { campaignId: string; schoolId: string; returnTo: string }) {
+  return <Link className="inline-flex min-h-11 items-center rounded-lg border border-mendoza-blue px-4 text-sm font-semibold text-mendoza-blue hover:bg-mendoza-blue/5" to={`/admin/campanas/${campaignId}/colegios/${schoolId}/resultado?volver=${encodeURIComponent(returnTo)}`}>Ver detalle</Link>;
 }
 
 function ParticipationBadge({

@@ -65,7 +65,8 @@ describe("SchoolResultsPage", () => {
     expect(screen.getByText("La escuela no posee kiosco.")).toBeVisible();
     expect(screen.getByText("Sí, completamente")).toBeVisible();
     expect(screen.queryAllByRole("textbox")).toHaveLength(0);
-    expect(screen.queryByText(/estrella/i)).not.toBeInTheDocument();
+    expect(screen.getByRole("img", { name: "4 de 5 estrellas" })).toBeVisible();
+    expect(screen.getByText(/se limita a 4 estrellas/i)).toBeVisible();
   });
 
   it("does not show the critical alert when Mental Health equals 33", async () => {
@@ -149,6 +150,7 @@ describe("SchoolResultsPage", () => {
           schoolName: "Escuela Histórica",
           submittedAt: "2026-07-30T15:00:00.000Z",
           generalScore: 58.17,
+          stars: 3,
           calculatedAt: "2026-07-30T15:00:01.000Z",
         },
       ],
@@ -298,6 +300,32 @@ function preliminaryResultFixture(
     },
     result: {
       generalScore: 58.17,
+      stars: {
+        available: true,
+        base: mentalHealthCritical ? 5 : 3,
+        final: mentalHealthCritical ? 4 : 3,
+        wasLimited: mentalHealthCritical,
+        maxWhenMentalHealthCritical: 4,
+        configurationVersion: "v1.0.0",
+        blockingReasons: mentalHealthCritical
+          ? ["CRITICAL_MENTAL_HEALTH"]
+          : [],
+      },
+      alerts: mentalHealthCritical
+        ? [
+            {
+              code: "CRITICAL_MENTAL_HEALTH",
+              severity: "critical",
+              dimensionCode: "salud_mental",
+              threshold: 33,
+              observedValue: mentalHealthScore,
+              message: "Salud Mental crítica.",
+              causedBlocking: true,
+              starsBefore: 5,
+              starsAfter: 4,
+            },
+          ]
+        : [],
       dimensions,
       mentalHealthCritical: {
         isCritical: mentalHealthCritical,

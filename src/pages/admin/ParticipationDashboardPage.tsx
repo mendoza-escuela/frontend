@@ -4,9 +4,11 @@ import {
   Gauge,
   RotateCcw,
   School,
+  Star,
 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
-import { useSearchParams } from "react-router-dom";
+import { Link, useSearchParams } from "react-router-dom";
+import { Bar, BarChart, CartesianGrid, ResponsiveContainer, XAxis, YAxis } from "recharts";
 import { Button } from "../../components/ui/Button";
 import { Card } from "../../components/ui/Card";
 import { EmptyState } from "../../components/ui/EmptyState";
@@ -19,6 +21,7 @@ import type {
   ParticipationDashboardResponse,
   ParticipationFilterOptions,
   ParticipationFilters,
+  ResultsDashboardResponse,
 } from "../../types/admin-dashboard";
 
 const emptyOptions: ParticipationFilterOptions = {
@@ -57,6 +60,7 @@ export function ParticipationDashboardPage() {
   const [options, setOptions] = useState(emptyOptions);
   const [dashboard, setDashboard] =
     useState<ParticipationDashboardResponse | null>(null);
+  const [results, setResults] = useState<ResultsDashboardResponse | null>(null);
   const [optionsLoading, setOptionsLoading] = useState(true);
   const [metricsLoading, setMetricsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
@@ -101,12 +105,15 @@ export function ParticipationDashboardPage() {
     const controller = new AbortController();
     setMetricsLoading(true);
     setError(null);
-    adminDashboardService
-      .participation(filters, controller.signal)
-      .then(setDashboard)
+    Promise.all([
+      adminDashboardService.participation(filters, controller.signal),
+      adminDashboardService.results(filters, controller.signal),
+    ])
+      .then(([participation, resultMetrics]) => { setDashboard(participation); setResults(resultMetrics); })
       .catch((requestError) => {
         if (!controller.signal.aborted) {
           setDashboard(null);
+          setResults(null);
           setError(getHttpErrorMessage(requestError));
         }
       })
@@ -232,12 +239,33 @@ export function ParticipationDashboardPage() {
             <LoadingState label="Actualizando indicadores…" />
           </State>
         ) : dashboard ? (
-          <Metrics dashboard={dashboard} />
+          <><Metrics dashboard={dashboard} />{results && <ResultsMetrics dashboard={results} filters={filters} returnTo={`/admin/participacion?${searchParams.toString()}`} />}</>
         ) : null}
       </div>
     </main>
   );
 }
+
+function ResultsMetrics({ dashboard, filters, returnTo }: { dashboard: ResultsDashboardResponse; filters: ParticipationFilters; returnTo: string }) {
+  return <section aria-labelledby="results-metrics-title" className="mt-10">
+    <h2 className="text-2xl font-bold text-mendoza-text" id="results-metrics-title">Resultados de evaluación</h2>
+    <div className="flex flex-wrap items-end justify-between gap-3"><p className="mt-1 text-sm text-mendoza-muted">Promedios sobre {dashboard.denominators.averages} resultados vigentes. Escala 0–100.</p>{filters.campaignId && <Link className="inline-flex min-h-11 items-center rounded-lg border border-mendoza-blue px-4 text-sm font-semibold text-mendoza-blue hover:bg-mendoza-blue/5" to={filters.schoolId ? `/admin/campanas/${filters.campaignId}/colegios/${filters.schoolId}/resultado?volver=${encodeURIComponent(returnTo)}` : `/admin/seguimiento?campania=${filters.campaignId}`}>{filters.schoolId ? "Ver detalle de la escuela" : "Ver resultados por escuela"}</Link>}</div>
+    {dashboard.metrics.schoolsWithResult === 0 ? <div className="mt-4"><EmptyState title="No hay resultados para los filtros seleccionados" description="Las presentaciones enviadas con resultado aparecerán aquí." /></div> : <>
+      <div className="mt-4 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
+        <ResultCard label="Escuelas del universo" value={String(dashboard.metrics.universeSchools)} />
+        <ResultCard label="Escuelas con resultado" value={String(dashboard.metrics.schoolsWithResult)} />
+        <ResultCard label="Cobertura" value={formatPercentage(dashboard.metrics.coveragePercentage)} />
+        <ResultCard label="Promedio general" value={dashboard.metrics.generalAverage === null ? "No disponible" : `${dashboard.metrics.generalAverage} / 100`} />
+      </div>
+      <div className="mt-4 grid gap-4 md:grid-cols-2 xl:grid-cols-3">{dashboard.metrics.dimensionAverages.map(dimension=><ResultCard key={dimension.code} label={dimension.title} value={dimension.average===null?"No disponible":`${dimension.average} / 100`} />)}</div>
+      <Card className="mt-6"><h3 className="text-lg font-bold text-mendoza-text">Distribución de estrellas finales</h3><p className="mt-1 text-sm text-mendoza-muted">Denominador: {dashboard.denominators.starDistribution} resultados con estrellas. Excluidos sin estrellas: {dashboard.excludedResultsWithoutStars}.</p>
+        <div className="mt-4 h-72" aria-label="Distribución horizontal de estrellas"><ResponsiveContainer width="100%" height="100%"><BarChart data={dashboard.starDistribution} layout="vertical" margin={{left:12,right:24}}><CartesianGrid strokeDasharray="3 3"/><XAxis type="number" domain={[0,100]} unit="%"/><YAxis dataKey="label" type="category" width={85}/><Bar dataKey="percentage" fill="#000F9F" radius={[0,6,6,0]}/></BarChart></ResponsiveContainer></div>
+        <ul className="mt-4 grid gap-2 sm:grid-cols-5">{dashboard.starDistribution.map(item=><li className="rounded-lg bg-mendoza-background p-3 text-sm" key={item.stars}><span className="flex items-center gap-1 font-bold text-mendoza-gold"><Star aria-hidden="true" className="fill-current" size={16}/>{item.label}</span><span className="mt-1 block text-mendoza-text">{item.count} · {formatPercentage(item.percentage)}</span></li>)}</ul>
+      </Card>
+    </>}
+  </section>;
+}
+function ResultCard({label,value}:{label:string;value:string}) { return <Card as="article"><p className="text-sm font-semibold text-mendoza-muted">{label}</p><p className="mt-2 text-2xl font-bold text-mendoza-blue">{value}</p></Card>; }
 
 function Metrics({ dashboard }: { dashboard: ParticipationDashboardResponse }) {
   const cards = [

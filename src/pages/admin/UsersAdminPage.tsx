@@ -147,7 +147,7 @@ export function UsersAdminPage() {
               to="/admin/usuarios/importar"
             >
               <Upload size={17} />
-              Importar
+              Importar usuarios
             </Link>
             <Link
               className="inline-flex min-h-11 items-center gap-2 rounded-lg bg-mendoza-blue px-4 text-sm font-semibold text-white"
