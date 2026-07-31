@@ -90,9 +90,9 @@ describe("ParticipationDashboardPage", () => {
       </MemoryRouter>,
     );
     await screen.findByText("Total de escuelas");
-    fireEvent.change(screen.getByLabelText("Departamento"), {
-      target: { value: "Capital" },
-    });
+    fireEvent.click(screen.getByRole("button", { name: "Departamento" }));
+    fireEvent.change(screen.getByRole("combobox", { name: "Buscar en Departamento" }), { target: { value: "Cap" } });
+    fireEvent.click(screen.getByRole("option", { name: "Capital" }));
     await waitFor(() =>
       expect(adminDashboardService.participation).toHaveBeenLastCalledWith(
         expect.objectContaining({

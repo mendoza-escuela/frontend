@@ -4,7 +4,9 @@ import {
   Gauge,
   RotateCcw,
   School,
+  SlidersHorizontal,
   Star,
+  X,
 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
@@ -15,6 +17,7 @@ import { EmptyState } from "../../components/ui/EmptyState";
 import { ErrorState } from "../../components/ui/ErrorState";
 import { LoadingState } from "../../components/ui/LoadingState";
 import { PageHeader } from "../../components/ui/PageHeader";
+import { SearchableSelect } from "../../components/ui/SearchableSelect";
 import { getHttpErrorMessage } from "../../lib/http-error";
 import { adminDashboardService } from "../../services/admin-dashboard.service";
 import type {
@@ -140,6 +143,15 @@ export function ParticipationDashboardPage() {
       next.set("campaignId", options.defaultCampaignId);
     setSearchParams(next, { replace: true });
   };
+  const activeFilters = [
+    { key: "department" as const, label: "Departamento", value: filters.department },
+    { key: "locality" as const, label: "Localidad", value: filters.locality },
+    { key: "schoolId" as const, label: "Escuela", value: options.schools.find(({ id }) => id === filters.schoolId)?.name },
+    { key: "educationLevel" as const, label: "Nivel", value: filters.educationLevel },
+    { key: "managementType" as const, label: "Gestión", value: filters.managementType },
+    { key: "scope" as const, label: "Ámbito", value: filters.scope },
+    { key: "shift" as const, label: "Jornada", value: filters.shift },
+  ].filter((filter): filter is typeof filter & { value: string } => Boolean(filter.value));
 
   return (
     <main className="p-4 sm:p-8">
@@ -149,66 +161,81 @@ export function ParticipationDashboardPage() {
           title="Participación por campaña"
           description="Seguimiento de escuelas que iniciaron, guardaron o enviaron su presentación."
         />
-        <Card className="mt-6">
-          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-4">
-            <Select
+        <Card className="relative mt-6 border-t-4 border-t-mendoza-sky">
+          <div className="mb-6 flex flex-wrap items-center justify-between gap-3 border-b border-mendoza-border pb-4">
+            <div className="flex items-center gap-3">
+              <span className="grid size-10 place-items-center rounded-xl bg-mendoza-blue text-white"><SlidersHorizontal aria-hidden="true" size={20} /></span>
+              <div><h2 className="font-bold text-mendoza-text">Filtros de consulta</h2><p className="text-sm text-mendoza-muted">Buscá y combiná opciones para acotar los indicadores.</p></div>
+            </div>
+            <span className="rounded-full bg-mendoza-blue/5 px-3 py-1.5 text-xs font-bold text-mendoza-blue">{activeFilters.length} {activeFilters.length === 1 ? "filtro activo" : "filtros activos"}</span>
+          </div>
+          <div className="grid gap-x-5 gap-y-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+            <SearchableSelect
               label="Campaña"
               value={filters.campaignId}
               onChange={(value) => update("campaignId", value)}
-              values={options.campaigns.map(({ id, name, status }) => ({
+              options={options.campaigns.map(({ id, name, status }) => ({
                 value: id,
                 label: `${name} · ${statusLabel(status)}`,
               }))}
             />
-            <Select
+            <SearchableSelect
               label="Departamento"
               value={filters.department}
               onChange={(value) => update("department", value)}
-              values={asOptions(options.departments)}
+              options={asOptions(options.departments)}
             />
-            <Select
+            <SearchableSelect
               label="Localidad"
               value={filters.locality}
               onChange={(value) => update("locality", value)}
-              values={asOptions(options.localities)}
+              options={asOptions(options.localities)}
             />
-            <Select
+            <SearchableSelect
               label="Escuela"
               value={filters.schoolId}
               onChange={(value) => update("schoolId", value)}
-              values={options.schools.map(({ id, cue, name }) => ({
+              options={options.schools.map(({ id, cue, name }) => ({
                 value: id,
                 label: `${name} · CUE ${cue}`,
               }))}
             />
-            <Select
+            <SearchableSelect
               label="Nivel"
               value={filters.educationLevel}
               onChange={(value) => update("educationLevel", value)}
-              values={asOptions(options.educationLevels)}
+              options={asOptions(options.educationLevels)}
             />
-            <Select
+            <SearchableSelect
               label="Gestión"
               value={filters.managementType}
               onChange={(value) => update("managementType", value)}
-              values={asOptions(options.managementTypes)}
+              options={asOptions(options.managementTypes)}
             />
-            <Select
+            <SearchableSelect
               label="Ámbito"
               value={filters.scope}
               onChange={(value) => update("scope", value)}
-              values={asOptions(options.scopes)}
+              options={asOptions(options.scopes)}
             />
-            <Select
+            <SearchableSelect
               label="Jornada"
               value={filters.shift}
               onChange={(value) => update("shift", value)}
-              values={asOptions(options.shifts)}
+              options={asOptions(options.shifts)}
             />
           </div>
-          <div className="mt-4 flex justify-end">
+          <div className="mt-6 flex flex-wrap items-center justify-between gap-3 border-t border-mendoza-border pt-4">
+            <div className="flex flex-wrap gap-2">
+              {activeFilters.length ? activeFilters.map((filter) => (
+                <button className="inline-flex min-h-9 items-center gap-2 rounded-full bg-mendoza-sky/15 px-3 text-xs font-semibold text-mendoza-blue transition hover:bg-mendoza-sky/25 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-mendoza-blue" key={filter.key} onClick={() => update(filter.key, "")} title={`Quitar filtro ${filter.label}`} type="button">
+                  <span>{filter.label}: {filter.value}</span><X aria-hidden="true" size={14} />
+                </button>
+              )) : <p className="text-sm text-mendoza-muted">Mostrando todos los datos de la campaña.</p>}
+            </div>
             <Button
               icon={<RotateCcw aria-hidden="true" size={17} />}
+              disabled={activeFilters.length === 0}
               onClick={reset}
               variant="outline"
             >
@@ -323,35 +350,6 @@ function Metrics({ dashboard }: { dashboard: ParticipationDashboardResponse }) {
   );
 }
 
-function Select({
-  label,
-  value,
-  values,
-  onChange,
-}: {
-  label: string;
-  value?: string;
-  values: Array<{ value: string; label: string }>;
-  onChange: (value: string) => void;
-}) {
-  return (
-    <label className="grid gap-1.5 text-sm font-semibold text-mendoza-text">
-      {label}
-      <select
-        className="field"
-        onChange={(event) => onChange(event.target.value)}
-        value={value ?? ""}
-      >
-        <option value="">Todos</option>
-        {values.map((option) => (
-          <option key={option.value} value={option.value}>
-            {option.label}
-          </option>
-        ))}
-      </select>
-    </label>
-  );
-}
 function State({ children }: { children: React.ReactNode }) {
   return <div className="mt-6">{children}</div>;
 }

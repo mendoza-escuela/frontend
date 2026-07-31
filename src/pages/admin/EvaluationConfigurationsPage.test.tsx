@@ -36,6 +36,30 @@ describe("EvaluationConfigurationsPage", () => {
     expect(screen.getAllByLabelText(/Límite superior/i)).toHaveLength(5);
   });
 
+  it("muestra un resumen visual y campos claramente delimitados", async () => {
+    render(<EvaluationConfigurationsPage />);
+    expect(await screen.findByText("Versión activa")).toBeVisible();
+    expect(screen.getByText("Borradores")).toBeVisible();
+    expect(screen.getByLabelText("Código de versión")).toHaveClass("border");
+    expect(screen.getByLabelText("Nombre")).toHaveAttribute(
+      "placeholder",
+      "Nombre descriptivo de la configuración",
+    );
+    expect(screen.getByText("Regla de criticidad")).toBeVisible();
+  });
+
+  it("rechaza límites decimales en los rangos de estrellas", async () => {
+    render(<EvaluationConfigurationsPage />);
+    await screen.findByText("Versión activa");
+    const decimalInput = screen.getAllByLabelText(/Límite inferior/i)[1];
+    fireEvent.change(decimalInput, {
+      target: { value: "20.5" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Guardar borrador" }));
+    expect(decimalInput).toBeInvalid();
+    expect(evaluationConfigurationsService.create).not.toHaveBeenCalled();
+  });
+
   it("muestra las validaciones finales del formulario en español", async () => {
     render(<EvaluationConfigurationsPage />);
     await screen.findByText(/v1.0.0 · Inicial/);

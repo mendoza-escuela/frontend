@@ -1,9 +1,13 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import {
+  AlertTriangle,
   Archive,
+  CalendarDays,
   CheckCircle2,
   Copy,
+  FileText,
   Pencil,
+  Plus,
   Settings2,
   ShieldCheck,
 } from "lucide-react";
@@ -17,6 +21,7 @@ import { EmptyState } from "../../components/ui/EmptyState";
 import { ErrorState } from "../../components/ui/ErrorState";
 import { LoadingState } from "../../components/ui/LoadingState";
 import { PageHeader } from "../../components/ui/PageHeader";
+import { checkboxClassName, inputClassName } from "../../components/ui/form-styles";
 import { formatDateTime } from "../../lib/format";
 import { getHttpErrorMessage } from "../../lib/http-error";
 import { showError, showSuccess } from "../../lib/toast";
@@ -34,10 +39,12 @@ const rangeSchema = z.object({
     .max(5, "El máximo es 5 estrellas."),
   lowerBound: z
     .number("Ingresá un límite inferior válido.")
+    .int("El límite inferior debe ser un número entero.")
     .min(0, "El límite inferior no puede ser menor a 0.")
     .max(100, "El límite inferior no puede superar 100."),
   upperBound: z
     .number("Ingresá un límite superior válido.")
+    .int("El límite superior debe ser un número entero.")
     .min(0, "El límite superior no puede ser menor a 0.")
     .max(100, "El límite superior no puede superar 100."),
   lowerInclusive: z.boolean(),
@@ -193,8 +200,13 @@ export function EvaluationConfigurationsPage() {
           title="Configuraciones de evaluación"
           description="Versiones inmutables de rangos, umbrales y límites de certificación."
         />
-        <div className="mt-6 grid gap-6 xl:grid-cols-[1.15fr_0.85fr]">
+        <ConfigurationOverview items={items} loading={loading} />
+        <div className="mt-6 grid items-start gap-6 xl:grid-cols-[minmax(0,1.1fr)_minmax(430px,0.9fr)]">
           <section aria-label="Historial de configuraciones">
+            <div className="mb-4 flex flex-wrap items-end justify-between gap-3">
+              <div><p className="text-xs font-bold uppercase tracking-wider text-mendoza-blue">Historial versionado</p><h2 className="mt-1 text-2xl font-bold text-mendoza-text">Versiones configuradas</h2><p className="mt-1 text-sm text-mendoza-muted">Consultá, validá o cloná las reglas sin alterar versiones ya utilizadas.</p></div>
+              <span className="rounded-full border border-mendoza-border bg-white px-3 py-1.5 text-xs font-bold text-mendoza-muted">{items.length} {items.length === 1 ? "versión" : "versiones"}</span>
+            </div>
             {loading ? (
               <LoadingState label="Cargando configuraciones…" />
             ) : error ? (
@@ -208,10 +220,10 @@ export function EvaluationConfigurationsPage() {
             ) : (
               <div className="space-y-4">
                 {items.map((item) => (
-                  <Card as="article" key={item.id}>
+                  <Card as="article" className={`overflow-hidden border-l-4 transition-shadow hover:shadow-md ${item.status === "active" ? "border-l-mendoza-success" : item.status === "draft" ? "border-l-mendoza-gold" : "border-l-slate-300"}`} key={item.id}>
                     <div className="flex flex-wrap items-start justify-between gap-3">
                       <div>
-                        <div className="flex items-center gap-2">
+                        <div className="flex flex-wrap items-center gap-2">
                           <h2 className="text-lg font-bold text-mendoza-text">
                             {item.versionCode} · {item.name}
                           </h2>
@@ -232,7 +244,7 @@ export function EvaluationConfigurationsPage() {
                           </p>
                         )}
                       </div>
-                      <div className="flex flex-wrap gap-2">
+                      <div className="flex w-full flex-wrap gap-2 border-t border-mendoza-border pt-4 sm:w-auto sm:border-0 sm:pt-0">
                         {item.status === "draft" && (
                           <>
                             <Button
@@ -298,15 +310,20 @@ export function EvaluationConfigurationsPage() {
                         </Button>
                       </div>
                     </div>
-                    <div className="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-5">
+                    {item.description && <p className="mt-4 rounded-xl bg-mendoza-background px-4 py-3 text-sm leading-6 text-mendoza-muted">{item.description}</p>}
+                    <dl className="mt-4 grid gap-2 sm:grid-cols-2">
+                      <div className="flex items-center gap-3 rounded-xl border border-mendoza-border px-3 py-2.5"><AlertTriangle aria-hidden="true" className="shrink-0 text-mendoza-gold" size={18} /><div><dt className="text-xs font-semibold text-mendoza-muted">Umbral de Salud Mental</dt><dd className="font-bold text-mendoza-text">Menor a {Number(item.mentalHealthCriticalThreshold)} puntos</dd></div></div>
+                      <div className="flex items-center gap-3 rounded-xl border border-mendoza-border px-3 py-2.5"><ShieldCheck aria-hidden="true" className="shrink-0 text-mendoza-blue" size={18} /><div><dt className="text-xs font-semibold text-mendoza-muted">Tope con criticidad</dt><dd className="font-bold text-mendoza-text">{item.mentalHealthMaxStars} estrellas</dd></div></div>
+                    </dl>
+                    <div className="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-5" aria-label={`Rangos de estrellas de ${item.versionCode}`}>
                       {[...item.starRanges]
                         .sort((a, b) => a.order - b.order)
                         .map((range) => (
                           <div
-                            className="rounded-lg bg-mendoza-background p-2 text-center text-xs"
+                            className="rounded-xl border border-mendoza-border bg-gradient-to-b from-white to-mendoza-background p-2.5 text-center text-xs"
                             key={range.stars}
                           >
-                            <strong className="block text-mendoza-blue">
+                            <strong className="mb-1 block text-sm text-mendoza-gold">
                               {range.stars} ★
                             </strong>
                             {range.lowerInclusive ? "[" : "("}
@@ -321,41 +338,51 @@ export function EvaluationConfigurationsPage() {
               </div>
             )}
           </section>
-          <Card as="section">
-            <h2 className="text-xl font-bold text-mendoza-text">
+          <Card as="section" className="border-t-4 border-t-mendoza-blue xl:sticky xl:top-6">
+            <div className="flex items-start gap-3 border-b border-mendoza-border pb-4">
+              <span className="grid size-11 shrink-0 place-items-center rounded-xl bg-mendoza-blue text-white">{editing ? <Pencil aria-hidden="true" size={20} /> : <Plus aria-hidden="true" size={21} />}</span>
+              <div><p className="text-xs font-bold uppercase tracking-wider text-mendoza-blue">Editor de reglas</p><h2 className="mt-1 text-xl font-bold text-mendoza-text">
               {editing
                 ? `Editar ${editing.versionCode}`
                 : "Nueva configuración"}
-            </h2>
+              </h2><p className="mt-1 text-sm leading-5 text-mendoza-muted">Definí una versión auditable. Se podrá modificar únicamente mientras sea borrador.</p></div>
+            </div>
             {editing?.status !== "draft" && editing ? (
               <p className="mt-2 text-sm text-mendoza-error">
                 Las versiones activas o archivadas son inmutables.
               </p>
             ) : (
-              <form className="mt-5 space-y-4" onSubmit={submit}>
+              <form className="mt-5 space-y-6" onSubmit={submit}>
+                <section aria-labelledby="configuration-identity-title" className="space-y-4 rounded-2xl bg-mendoza-background/70 p-4">
+                  <div className="flex items-center gap-2"><FileText aria-hidden="true" className="text-mendoza-blue" size={19} /><h3 className="font-bold text-mendoza-text" id="configuration-identity-title">Identificación de la versión</h3></div>
                 <Field
                   label="Código de versión"
                   error={form.formState.errors.versionCode?.message}
                 >
-                  <input className="field" {...form.register("versionCode")} />
+                  <input className={inputClassName} placeholder="Ej.: v2.1.0" {...form.register("versionCode")} />
                 </Field>
                 <Field
                   label="Nombre"
                   error={form.formState.errors.name?.message}
                 >
-                  <input className="field" {...form.register("name")} />
+                  <input className={inputClassName} placeholder="Nombre descriptivo de la configuración" {...form.register("name")} />
                 </Field>
-                <Field label="Descripción">
+                <Field label="Descripción" error={form.formState.errors.description?.message} hint="Opcional · hasta 2000 caracteres">
                   <textarea
-                    className="field"
-                    rows={2}
+                    className={inputClassName}
+                    placeholder="Explicá brevemente qué cambia en esta versión…"
+                    rows={3}
                     {...form.register("description")}
                   />
                 </Field>
-                <div className="grid grid-cols-2 gap-3">
-                  <Field label="Umbral Salud Mental">
+                </section>
+                <section aria-labelledby="critical-rule-title" className="rounded-2xl border border-amber-200 bg-amber-50/60 p-4">
+                  <div className="mb-1 flex items-center gap-2"><AlertTriangle aria-hidden="true" className="text-amber-700" size={19} /><h3 className="font-bold text-mendoza-text" id="critical-rule-title">Regla de criticidad</h3></div>
+                  <p className="mb-4 text-sm leading-5 text-mendoza-muted">Si Salud Mental queda por debajo del umbral, las estrellas finales no podrán superar el máximo definido.</p>
+                <div className="grid gap-3 sm:grid-cols-2">
+                  <Field label="Umbral Salud Mental" hint="Puntaje de 0 a 100" error={form.formState.errors.mentalHealthCriticalThreshold?.message}>
                     <input
-                      className="field"
+                      className={inputClassName}
                       type="number"
                       step="0.0001"
                       {...form.register("mentalHealthCriticalThreshold", {
@@ -363,9 +390,9 @@ export function EvaluationConfigurationsPage() {
                       })}
                     />
                   </Field>
-                  <Field label="Máximo con criticidad">
+                  <Field label="Máximo con criticidad" hint="Entre 1 y 5 estrellas" error={form.formState.errors.mentalHealthMaxStars?.message}>
                     <input
-                      className="field"
+                      className={inputClassName}
                       type="number"
                       {...form.register("mentalHealthMaxStars", {
                         valueAsNumber: true,
@@ -373,39 +400,47 @@ export function EvaluationConfigurationsPage() {
                     />
                   </Field>
                 </div>
-                <fieldset>
-                  <legend className="font-semibold text-mendoza-text">
+                </section>
+                <fieldset className="rounded-2xl border border-mendoza-border p-4">
+                  <legend className="px-2 font-bold text-mendoza-text">
                     Rangos de estrellas
                   </legend>
-                  <div className="mt-2 space-y-2">
+                  <p className="mb-4 text-sm leading-5 text-mendoza-muted">Definí la cobertura completa de 0 a 100 y qué extremo pertenece a cada rango.</p>
+                  <div className="space-y-3">
                     {fields.map((field, index) => (
                       <div
-                        className="grid grid-cols-[3rem_1fr_1fr] items-center gap-2 lg:grid-cols-[3rem_1fr_1fr_auto_auto]"
+                        className="rounded-xl border border-mendoza-border bg-mendoza-background/50 p-3"
                         key={field.id}
                       >
-                        <span className="font-bold text-mendoza-gold">
-                          {index + 1} ★
-                        </span>
-                        <input
-                          aria-label={`Límite inferior ${index + 1} estrellas`}
-                          className="field"
-                          type="number"
-                          step="0.0001"
-                          {...form.register(`starRanges.${index}.lowerBound`, {
-                            valueAsNumber: true,
-                          })}
-                        />
-                        <input
-                          aria-label={`Límite superior ${index + 1} estrellas`}
-                          className="field"
-                          type="number"
-                          step="0.0001"
-                          {...form.register(`starRanges.${index}.upperBound`, {
-                            valueAsNumber: true,
-                          })}
-                        />
-                        <label className="flex items-center gap-1 text-xs text-mendoza-muted">
+                        <div className="mb-3 flex items-center justify-between gap-3"><span className="font-bold text-mendoza-gold">{index + 1} ★</span><span className="text-xs font-semibold text-mendoza-muted">Rango {index + 1} de 5</span></div>
+                        <div className="grid grid-cols-2 gap-3">
+                        <label className="grid min-w-0 gap-1.5 text-xs font-semibold text-mendoza-muted">Desde
                           <input
+                            aria-label={`Límite inferior ${index + 1} estrellas`}
+                            className={inputClassName}
+                            type="number"
+                            step="1"
+                            {...form.register(`starRanges.${index}.lowerBound`, {
+                              valueAsNumber: true,
+                            })}
+                          />
+                        </label>
+                        <label className="grid min-w-0 gap-1.5 text-xs font-semibold text-mendoza-muted">Hasta
+                          <input
+                            aria-label={`Límite superior ${index + 1} estrellas`}
+                            className={inputClassName}
+                            type="number"
+                            step="1"
+                            {...form.register(`starRanges.${index}.upperBound`, {
+                              valueAsNumber: true,
+                            })}
+                          />
+                        </label>
+                        </div>
+                        <div className="mt-3 grid gap-2 sm:grid-cols-2">
+                        <label className="flex min-h-11 cursor-pointer items-center gap-2 rounded-lg border border-mendoza-border bg-white px-3 text-xs text-mendoza-muted transition hover:border-mendoza-sky">
+                          <input
+                            className={checkboxClassName}
                             type="checkbox"
                             {...form.register(
                               `starRanges.${index}.lowerInclusive`,
@@ -413,8 +448,9 @@ export function EvaluationConfigurationsPage() {
                           />
                           Incluye mínimo
                         </label>
-                        <label className="flex items-center gap-1 text-xs text-mendoza-muted">
+                        <label className="flex min-h-11 cursor-pointer items-center gap-2 rounded-lg border border-mendoza-border bg-white px-3 text-xs text-mendoza-muted transition hover:border-mendoza-sky">
                           <input
+                            className={checkboxClassName}
                             type="checkbox"
                             {...form.register(
                               `starRanges.${index}.upperInclusive`,
@@ -422,17 +458,18 @@ export function EvaluationConfigurationsPage() {
                           />
                           Incluye máximo
                         </label>
+                        </div>
                       </div>
                     ))}
                   </div>
                   {form.formState.errors.starRanges && (
-                    <p className="mt-1 text-sm text-mendoza-error">
+                    <p className="mt-3 rounded-lg bg-red-50 p-3 text-sm text-mendoza-error" role="alert">
                       Revisá la cobertura y los límites de los rangos.
                     </p>
                   )}
                 </fieldset>
-                <div className="flex gap-2">
-                  <Button disabled={form.formState.isSubmitting} type="submit">
+                <div className="flex flex-col-reverse gap-2 border-t border-mendoza-border pt-5 sm:flex-row sm:justify-end">
+                  <Button className="sm:min-w-44" disabled={form.formState.isSubmitting} type="submit">
                     {form.formState.isSubmitting
                       ? "Guardando…"
                       : "Guardar borrador"}
@@ -468,20 +505,33 @@ export function EvaluationConfigurationsPage() {
     </main>
   );
 }
+
+function ConfigurationOverview({ items, loading }: { items: EvaluationConfiguration[]; loading: boolean }) {
+  const active = items.find(({ status }) => status === "active");
+  const summaries = [
+    { label: "Versión activa", value: active?.versionCode ?? (loading ? "…" : "Sin activar"), detail: active ? active.name : "Todavía no hay una regla vigente", icon: CheckCircle2, tone: "text-mendoza-success bg-green-50" },
+    { label: "Borradores", value: loading ? "…" : String(items.filter(({ status }) => status === "draft").length), detail: "Versiones que todavía pueden editarse", icon: Pencil, tone: "text-amber-700 bg-amber-50" },
+    { label: "Versiones archivadas", value: loading ? "…" : String(items.filter(({ status }) => status === "archived").length), detail: "Histórico inmutable disponible", icon: Archive, tone: "text-slate-600 bg-slate-100" },
+    { label: "Última activación", value: active?.activatedAt ? formatDateTime(active.activatedAt) : (loading ? "…" : "No disponible"), detail: active ? `Responsable: ${person(active.activatedBy)}` : "Se mostrará al activar una versión", icon: CalendarDays, tone: "text-mendoza-blue bg-mendoza-blue/5" },
+  ];
+  return <section aria-label="Resumen de configuraciones" className="mt-6 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">{summaries.map(({ label, value, detail, icon: Icon, tone }) => <Card as="article" className="relative overflow-hidden" key={label}><div className={`grid size-10 place-items-center rounded-xl ${tone}`}><Icon aria-hidden="true" size={20} /></div><p className="mt-4 text-xs font-bold uppercase tracking-wide text-mendoza-muted">{label}</p><p className="mt-1 truncate text-xl font-bold text-mendoza-text" title={value}>{value}</p><p className="mt-1 text-xs leading-5 text-mendoza-muted">{detail}</p></Card>)}</section>;
+}
 function Field({
   label,
   error,
+  hint,
   children,
 }: {
   label: string;
   error?: string;
+  hint?: string;
   children: React.ReactNode;
 }) {
   return (
     <label className="grid gap-1.5 text-sm font-semibold text-mendoza-text">
       {label}
       {children}
-      {error && <span className="text-mendoza-error">{error}</span>}
+      {error ? <span className="text-sm font-normal text-mendoza-error" role="alert">{error}</span> : hint ? <span className="text-xs font-normal text-mendoza-muted">{hint}</span> : null}
     </label>
   );
 }

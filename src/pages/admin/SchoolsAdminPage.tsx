@@ -13,6 +13,8 @@ import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { Button } from "../../components/ui/Button";
 import { PaginationControls } from "../../components/ui/PaginationControls";
+import { SearchableSelect } from "../../components/ui/SearchableSelect";
+import { inputClassName } from "../../components/ui/form-styles";
 import { getHttpErrorMessage } from "../../lib/http-error";
 import { showError, showSuccess } from "../../lib/toast";
 import {
@@ -154,7 +156,7 @@ export function SchoolsAdminPage() {
         >
           <Filter label="Buscar">
             <input
-              className="field"
+              className={inputClassName}
               onChange={(e) => setDraft({ ...draft, search: e.target.value })}
               placeholder="CUE, nombre o número"
               value={draft.search ?? ""}
@@ -200,23 +202,12 @@ export function SchoolsAdminPage() {
             setDraft={setDraft}
             draft={draft}
           />
-          <Filter label="Estado">
-            <select
-              className="field"
-              onChange={(e) =>
-                setDraft({
-                  ...draft,
-                  isActive:
-                    e.target.value === "" ? "" : e.target.value === "true",
-                })
-              }
-              value={String(draft.isActive ?? "")}
-            >
-              <option value="">Todos</option>
-              <option value="true">Activos</option>
-              <option value="false">Inactivos</option>
-            </select>
-          </Filter>
+          <SearchableSelect
+            label="Estado"
+            onChange={(value) => setDraft({ ...draft, isActive: value === "" ? "" : value === "true" })}
+            options={[{ value: "true", label: "Activos" }, { value: "false", label: "Inactivos" }]}
+            value={String(draft.isActive ?? "")}
+          />
           <Button
             className="self-end"
             icon={<Search size={17} />}
@@ -339,20 +330,7 @@ function SelectFilter({
   draft: SchoolFilters;
   setDraft: React.Dispatch<React.SetStateAction<SchoolFilters>>;
 }) {
-  return (
-    <Filter label={label}>
-      <select
-        className="field"
-        onChange={(e) => setDraft({ ...draft, [name]: e.target.value })}
-        value={value ?? ""}
-      >
-        <option value="">Todos</option>
-        {values.map((option) => (
-          <option key={option}>{option}</option>
-        ))}
-      </select>
-    </Filter>
-  );
+  return <SearchableSelect label={label} onChange={(nextValue) => setDraft({ ...draft, [name]: nextValue })} options={values.map((option) => ({ value: option, label: option }))} value={value} />;
 }
 function Status({ active }: { active: boolean }) {
   return (
