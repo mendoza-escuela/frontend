@@ -3,6 +3,7 @@ import type {
   ParticipationDashboardResponse,
   ParticipationFilterOptions,
   ParticipationFilters,
+  ResultsDashboardResponse,
 } from "../types/admin-dashboard";
 
 const cleanParams = (filters: ParticipationFilters) =>
@@ -30,5 +31,8 @@ export const adminDashboardService = {
         { params: cleanParams(filters), signal },
       )
     ).data;
+  },
+  async results(filters: ParticipationFilters, signal?: AbortSignal) {
+    return (await api.get<ResultsDashboardResponse>("/admin/dashboard/results", { params: cleanParams(filters), signal })).data;
   },
 };

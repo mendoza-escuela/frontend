@@ -7,7 +7,7 @@ import {
   ListChecks,
   LogOut,
   School,
-  Upload,
+  Settings2,
   Users,
 } from "lucide-react";
 import { NavLink, Outlet, useNavigate } from "react-router-dom";
@@ -21,10 +21,13 @@ const links = [
     label: "Participación",
     icon: LayoutDashboard,
   },
+  {
+    to: "/admin/configuracion-evaluacion",
+    label: "Evaluación",
+    icon: Settings2,
+  },
   { to: "/admin/usuarios", label: "Usuarios", icon: Users, end: true },
-  { to: "/admin/usuarios/importar", label: "Importar usuarios", icon: Upload },
   { to: "/admin/colegios", label: "Colegios", icon: School, end: true },
-  { to: "/admin/colegios/importar", label: "Importar colegios", icon: Upload },
   {
     to: "/admin/cuestionarios",
     label: "Cuestionarios",

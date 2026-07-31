@@ -129,6 +129,11 @@ const ParticipationDashboardPage = lazy(() =>
     default: module.ParticipationDashboardPage,
   })),
 );
+const EvaluationConfigurationsPage = lazy(() =>
+  import("../pages/admin/EvaluationConfigurationsPage").then((module) => ({
+    default: module.EvaluationConfigurationsPage,
+  })),
+);
 const CampaignTrackingPage = lazy(() =>
   import("../pages/admin/CampaignTrackingPage").then((module) => ({
     default: module.CampaignTrackingPage,
@@ -196,6 +201,10 @@ const router = createBrowserRouter([
           {
             path: "participacion",
             element: lazyPage(<ParticipationDashboardPage />),
+          },
+          {
+            path: "configuracion-evaluacion",
+            element: lazyPage(<EvaluationConfigurationsPage />),
           },
           { path: "usuarios", element: lazyPage(<UsersAdminPage />) },
           { path: "usuarios/nuevo", element: lazyPage(<UserFormPage />) },

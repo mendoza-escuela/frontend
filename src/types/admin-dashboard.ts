@@ -45,3 +45,11 @@ export type ParticipationFilterOptions = {
   shifts: string[];
   schools: Array<{ id: string; cue: string; name: string }>;
 };
+
+export type ResultsDashboardResponse = {
+  campaign: ParticipationDashboardResponse["campaign"];
+  denominators: { universeSchools: number; submittedSchools: number; schoolsWithCurrentResult: number; averages: number; starDistribution: number };
+  metrics: { universeSchools: number; schoolsWithResult: number; coveragePercentage: number; generalAverage: number | null; dimensionAverages: Array<{ code: string; title: string; order: number; average: number | null }> };
+  starDistribution: Array<{ stars: number; label: string; count: number; percentage: number; denominator: number }>;
+  excludedResultsWithoutStars: number;
+};
