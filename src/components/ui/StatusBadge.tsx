@@ -1,4 +1,5 @@
 import type { SurveyVersionStatus } from "../../types/admin-survey";
+import type { CampaignStatus } from "../../types/admin-campaign";
 
 const versionStyles: Record<SurveyVersionStatus, string> = {
   draft: "bg-amber-50 text-amber-800",
@@ -30,6 +31,30 @@ export function ActiveStatusBadge({ isActive }: { isActive: boolean }) {
       }`}
     >
       {isActive ? "Activo" : "Inactivo"}
+    </span>
+  );
+}
+
+const campaignStyles: Record<CampaignStatus, string> = {
+  draft: "bg-amber-50 text-amber-800",
+  active: "bg-green-50 text-mendoza-success",
+  closed: "bg-slate-100 text-slate-700",
+  archived: "bg-mendoza-blue-soft text-mendoza-blue",
+};
+
+const campaignLabels: Record<CampaignStatus, string> = {
+  draft: "Borrador",
+  active: "Activa",
+  closed: "Cerrada",
+  archived: "Archivada",
+};
+
+export function CampaignStatusBadge({ status }: { status: CampaignStatus }) {
+  return (
+    <span
+      className={`rounded-full px-3 py-1 text-xs font-bold ${campaignStyles[status]}`}
+    >
+      {campaignLabels[status]}
     </span>
   );
 }

@@ -1,7 +1,17 @@
 import { zodResolver } from "@hookform/resolvers/zod";
-import { ArrowLeft, ArrowRight, CheckCircle2, Info } from "lucide-react";
-import { useMemo, useState } from "react";
-import { useForm, type Resolver } from "react-hook-form";
+import {
+  ArrowLeft,
+  ArrowRight,
+  CheckCircle2,
+  Info,
+  Save,
+} from "lucide-react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import {
+  useForm,
+  useWatch,
+  type Resolver,
+} from "react-hook-form";
 import { z } from "zod";
 import type {
   PublishedSurvey,
@@ -13,7 +23,14 @@ import { Button } from "../ui/Button";
 type QuestionnaireRendererProps = {
   survey: PublishedSurvey;
   readOnly?: boolean;
+  showScores?: boolean;
+  defaultValues?: QuestionnaireFormValues;
+  onSaveDraft?: (answers: QuestionnaireFormValues) => void | Promise<void>;
   onSubmit?: (answers: QuestionnaireFormValues) => void | Promise<void>;
+  submitLabel?: string;
+  submitDisabled?: boolean;
+  submitDisabledReason?: string;
+  validateOnSectionChange?: boolean;
 };
 
 const requiredMessage = "Esta pregunta es obligatoria.";
@@ -46,7 +63,8 @@ function questionSchema(question: SurveyQuestion): z.ZodType {
       );
     }
     return z.preprocess(
-      (value) => (value === "" || value === undefined ? undefined : Number(value)),
+      (value) =>
+        value === "" || value === undefined ? undefined : Number(value),
       question.required ? schema : schema.optional(),
     );
   }
@@ -71,7 +89,14 @@ function questionSchema(question: SurveyQuestion): z.ZodType {
 export function QuestionnaireRenderer({
   survey,
   readOnly = false,
+  showScores = false,
+  defaultValues,
+  onSaveDraft,
   onSubmit,
+  submitLabel = "Finalizar",
+  submitDisabled = false,
+  submitDisabledReason,
+  validateOnSectionChange = true,
 }: QuestionnaireRendererProps) {
   const sections = useMemo(
     () =>
@@ -95,24 +120,83 @@ export function QuestionnaireRenderer({
     [sections],
   );
   const [activeSectionIndex, setActiveSectionIndex] = useState(0);
+  const [isSavingDraft, setIsSavingDraft] = useState(false);
+  const [draftStatus, setDraftStatus] = useState<string | null>(null);
+  const autoSaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
   const {
+    control,
     formState: { errors, isSubmitting },
+    getValues,
     handleSubmit,
     register,
     trigger,
+    watch,
   } = useForm<QuestionnaireFormValues>({
     resolver: zodResolver(
       validationSchema,
     ) as Resolver<QuestionnaireFormValues>,
-    defaultValues: Object.fromEntries(
-      sections.flatMap(({ section }) =>
-        section.questions.map((question) => [
-          question.id,
-          question.type === "multiple_choice" ? [] : "",
-        ]),
+    defaultValues: {
+      ...Object.fromEntries(
+        sections.flatMap(({ section }) =>
+          section.questions.map((question) => [
+            question.id,
+            question.type === "multiple_choice" ? [] : "",
+          ]),
+        ),
       ),
-    ),
+      ...defaultValues,
+    },
   });
+  const currentValues = useWatch({ control });
+  const totalQuestions = sections.reduce(
+    (total, { section }) => total + section.questions.length,
+    0,
+  );
+  const answeredQuestions = sections.reduce(
+    (total, { section }) =>
+      total +
+      section.questions.filter((question) =>
+        isAnswered(currentValues?.[question.id]),
+      ).length,
+    0,
+  );
+  const answerProgress = totalQuestions
+    ? (answeredQuestions / totalQuestions) * 100
+    : 0;
+
+  const persistDraft = useCallback(async () => {
+    if (!onSaveDraft || readOnly) return;
+    setIsSavingDraft(true);
+    setDraftStatus(null);
+    try {
+      await onSaveDraft(getValues());
+      setDraftStatus(
+        `Guardado ${new Intl.DateTimeFormat("es-AR", {
+          hour: "2-digit",
+          minute: "2-digit",
+          second: "2-digit",
+        }).format(new Date())}`,
+      );
+    } catch {
+      setDraftStatus("No se pudo guardar el borrador.");
+    } finally {
+      setIsSavingDraft(false);
+    }
+  }, [getValues, onSaveDraft, readOnly]);
+
+  useEffect(() => {
+    if (!onSaveDraft || readOnly) return;
+    const subscription = watch(() => {
+      if (autoSaveTimer.current) clearTimeout(autoSaveTimer.current);
+      autoSaveTimer.current = setTimeout(() => {
+        void persistDraft();
+      }, 1_200);
+    });
+    return () => {
+      subscription.unsubscribe();
+      if (autoSaveTimer.current) clearTimeout(autoSaveTimer.current);
+    };
+  }, [onSaveDraft, persistDraft, readOnly, watch]);
 
   if (sections.length === 0) {
     return (
@@ -127,11 +211,13 @@ export function QuestionnaireRenderer({
 
   const current = sections[activeSectionIndex];
   const isLastSection = activeSectionIndex === sections.length - 1;
-  const progress = ((activeSectionIndex + 1) / sections.length) * 100;
+  const sectionProgress = ((activeSectionIndex + 1) / sections.length) * 100;
+  const progress = readOnly ? sectionProgress : answerProgress;
 
   const goNext = async () => {
     const fieldNames = current.section.questions.map((question) => question.id);
-    const isValid = readOnly ? true : await trigger(fieldNames);
+    const isValid =
+      readOnly || !validateOnSectionChange ? true : await trigger(fieldNames);
     if (isValid) setActiveSectionIndex((index) => index + 1);
   };
 
@@ -139,7 +225,10 @@ export function QuestionnaireRenderer({
     <form
       className="overflow-hidden rounded-2xl border border-mendoza-border bg-white shadow-sm"
       noValidate
-      onSubmit={handleSubmit(async (answers) => onSubmit?.(answers))}
+      onSubmit={handleSubmit(async (answers) => {
+        if (autoSaveTimer.current) clearTimeout(autoSaveTimer.current);
+        await onSubmit?.(answers);
+      })}
     >
       <header className="border-b border-mendoza-border bg-mendoza-blue-soft p-5 sm:p-6">
         <div className="flex flex-wrap items-start justify-between gap-4">
@@ -161,7 +250,7 @@ export function QuestionnaireRenderer({
           </p>
         </div>
         <div
-          aria-label={`${Math.round(progress)}% del cuestionario recorrido`}
+          aria-label={`${Math.round(progress)}% del cuestionario completado`}
           aria-valuemax={100}
           aria-valuemin={0}
           aria-valuenow={Math.round(progress)}
@@ -173,6 +262,11 @@ export function QuestionnaireRenderer({
             style={{ width: `${progress}%` }}
           />
         </div>
+        {!readOnly && (
+          <p className="mt-2 text-xs font-medium text-mendoza-muted">
+            {answeredQuestions} de {totalQuestions} preguntas respondidas
+          </p>
+        )}
       </header>
 
       <fieldset className="space-y-5 p-5 sm:p-6" disabled={readOnly}>
@@ -183,6 +277,7 @@ export function QuestionnaireRenderer({
             number={questionIndex + 1}
             question={question}
             register={register}
+            showScores={showScores}
           />
         ))}
       </fieldset>
@@ -196,6 +291,30 @@ export function QuestionnaireRenderer({
         >
           Anterior
         </Button>
+        {!readOnly && onSaveDraft && (
+          <div className="flex flex-col items-center gap-1">
+            <Button
+              disabled={isSavingDraft || isSubmitting}
+              icon={<Save aria-hidden="true" size={17} />}
+              onClick={() => void persistDraft()}
+              variant="outline"
+            >
+              {isSavingDraft ? "Guardando…" : "Guardar borrador"}
+            </Button>
+            {draftStatus && (
+              <span
+                className={`text-xs ${
+                  draftStatus.startsWith("No")
+                    ? "text-mendoza-error"
+                    : "text-mendoza-muted"
+                }`}
+                role="status"
+              >
+                {draftStatus}
+              </span>
+            )}
+          </div>
+        )}
         {isLastSection ? (
           readOnly ? (
             <span className="inline-flex items-center gap-2 text-sm font-semibold text-mendoza-muted">
@@ -203,9 +322,19 @@ export function QuestionnaireRenderer({
               Fin de la vista del cuestionario
             </span>
           ) : (
-            <Button disabled={isSubmitting} type="submit">
-              {isSubmitting ? "Procesando…" : "Finalizar"}
-            </Button>
+            <div className="flex flex-col items-end gap-1">
+              <Button
+                disabled={isSubmitting || submitDisabled}
+                type="submit"
+              >
+                {isSubmitting ? "Procesando…" : submitLabel}
+              </Button>
+              {submitDisabled && submitDisabledReason && (
+                <span className="max-w-sm text-right text-xs text-mendoza-error">
+                  {submitDisabledReason}
+                </span>
+              )}
+            </div>
           )
         ) : (
           <Button
@@ -225,6 +354,7 @@ type QuestionFieldProps = {
   number: number;
   error: unknown;
   register: ReturnType<typeof useForm<QuestionnaireFormValues>>["register"];
+  showScores: boolean;
 };
 
 function QuestionField({
@@ -232,6 +362,7 @@ function QuestionField({
   number,
   error,
   register,
+  showScores,
 }: QuestionFieldProps) {
   const inputClass =
     "mt-3 w-full rounded-lg border border-mendoza-border bg-white px-3 py-2.5 outline-none transition focus:border-mendoza-sky focus:ring-2 focus:ring-mendoza-sky/25";
@@ -255,7 +386,10 @@ function QuestionField({
           >
             {question.prompt}
             {question.required && (
-              <span className="ml-1 text-mendoza-error" aria-label="obligatoria">
+              <span
+                className="ml-1 text-mendoza-error"
+                aria-label="obligatoria"
+              >
                 *
               </span>
             )}
@@ -357,9 +491,9 @@ function QuestionField({
                       type={
                         question.type === "single_choice" ? "radio" : "checkbox"
                       }
-                      value={option.value}
+                      value={option.id}
                     />
-                    <span>
+                    <span className="min-w-0 flex-1">
                       <span className="block text-mendoza-text">
                         {option.label}
                       </span>
@@ -369,6 +503,13 @@ function QuestionField({
                         </span>
                       )}
                     </span>
+                    {showScores && (
+                      <span className="shrink-0 rounded-full bg-mendoza-gold/20 px-2.5 py-1 text-xs font-bold text-mendoza-text">
+                        {option.score === null
+                          ? "Sin puntaje"
+                          : `${option.score} puntos`}
+                      </span>
+                    )}
                   </label>
                 ))
               )}
@@ -376,7 +517,10 @@ function QuestionField({
           )}
 
           {errorMessage && (
-            <p className="mt-2 text-sm font-medium text-mendoza-error" role="alert">
+            <p
+              className="mt-2 text-sm font-medium text-mendoza-error"
+              role="alert"
+            >
               {errorMessage}
             </p>
           )}
@@ -384,4 +528,9 @@ function QuestionField({
       </div>
     </div>
   );
+}
+
+function isAnswered(value: QuestionnaireFormValues[string]) {
+  if (Array.isArray(value)) return value.length > 0;
+  return value !== undefined && value !== null && String(value).trim() !== "";
 }

@@ -2,6 +2,7 @@ export type School = {
   id: string;
   cue: string;
   name: string;
+  directorName: string;
   schoolNumber: string | null;
   department: string;
   locality: string;
@@ -9,24 +10,151 @@ export type School = {
   postalCode: string | null;
   educationLevel: string;
   managementType: string;
-  scope: string | null;
-  shift: string | null;
+  scope: string;
+  shift: string;
+  shiftCatalogId: string | null;
+  shiftCatalog: SchoolCatalogOption | null;
   phone: string | null;
   email: string | null;
   referentFirstName: string;
   referentLastName: string;
   referentEmail: string | null;
   referentPhone: string | null;
-  enrollment: number;
+  enrollment: number | null;
+  hasKiosk: boolean | null;
+  hasFoodService: boolean | null;
+  isBoarding: boolean | null;
+  educationLevels: SchoolEducationLevelSelection[];
   characteristics: Record<string, string | number | boolean | null>;
   isActive: boolean;
   createdAt: string;
   updatedAt: string;
 };
 
-export type SchoolWriteInput = Omit<School, "id" | "createdAt" | "updatedAt">;
+export type SchoolCatalogOption = {
+  id: string;
+  code: string;
+  label: string;
+  isActive: boolean;
+  order: number;
+};
+
+export type SchoolEducationLevelSelection = {
+  levelId: string;
+  code: string;
+  label: string;
+  isActive: boolean;
+  enrollment: number | null;
+  order: number;
+};
+
+export type SchoolRectificationInput = {
+  name: string;
+  cue: string;
+  directorName: string;
+  address: string;
+  locality: string;
+  scope: string;
+  educationLevel?: string;
+  shift?: string;
+  hasKiosk?: boolean | null;
+  hasFoodService?: boolean | null;
+  isBoarding?: boolean | null;
+  shiftCatalogId?: string | null;
+  educationLevels?: Array<{
+    levelId: string;
+    enrollment: number | null;
+  }>;
+  enrollment?: number | null;
+  expectedUpdatedAt?: string;
+};
+
+export type SchoolRectificationSnapshot = {
+  schemaVersion?: number;
+  sourceRectificationId?: string;
+  capturedAt?: string;
+  name: string;
+  cue: string;
+  directorName: string;
+  address: string;
+  locality: string;
+  scope: string;
+  educationLevel: string;
+  shift: string;
+  hasKiosk?: boolean | null;
+  hasFoodService?: boolean | null;
+  isBoarding?: boolean | null;
+  shiftCatalog?: Pick<SchoolCatalogOption, "id" | "code" | "label"> | null;
+  educationLevels?: Array<{
+    id: string;
+    code: string;
+    label: string;
+    enrollment: number | null;
+  }>;
+  enrollmentTotal?: number | null;
+};
+
+export type SchoolRectificationCatalogs = {
+  shifts: {
+    available: boolean;
+    message: string | null;
+    items: SchoolCatalogOption[];
+  };
+  educationLevels: {
+    available: boolean;
+    message: string | null;
+    items: SchoolCatalogOption[];
+  };
+};
+
+export type SchoolRectificationStatus = {
+  periodYear: number;
+  isRectified: boolean;
+  rectifiedAt: string | null;
+  rectifiedBy: SchoolUserSummary | null;
+};
+
+export type SchoolProfile = School & {
+  rectification: SchoolRectificationStatus;
+  rectifications: Array<{
+    id: string;
+    periodYear: number;
+    rectifiedAt: string;
+    actorUser: SchoolUserSummary | null;
+    snapshot: SchoolRectificationSnapshot;
+  }>;
+};
+
+export type SchoolWriteInput = Omit<
+  School,
+  | "id"
+  | "createdAt"
+  | "updatedAt"
+  | "characteristics"
+  | "shiftCatalogId"
+  | "shiftCatalog"
+  | "hasKiosk"
+  | "hasFoodService"
+  | "isBoarding"
+  | "educationLevels"
+> & {
+  characteristics?: School["characteristics"];
+};
+export type SchoolListItem = Pick<
+  School,
+  | "id"
+  | "cue"
+  | "name"
+  | "schoolNumber"
+  | "department"
+  | "locality"
+  | "educationLevel"
+  | "managementType"
+  | "enrollment"
+  | "isActive"
+>;
 export type SchoolListResponse = {
-  items: School[];
+  items: SchoolListItem[];
   pagination: {
     page: number;
     limit: number;
@@ -51,7 +179,24 @@ export type SchoolUserSummary = {
   isActive?: boolean;
   lastLoginAt?: string | null;
 };
+export type SchoolUserListResponse = {
+  items: SchoolUserSummary[];
+  pagination: {
+    page: number;
+    limit: number;
+    total: number;
+    totalPages: number;
+  };
+};
 export type SchoolDetail = School & {
+  rectification: SchoolRectificationStatus;
+  rectifications: Array<{
+    id: string;
+    periodYear: number;
+    rectifiedAt: string;
+    actorUser: SchoolUserSummary | null;
+    snapshot: SchoolRectificationSnapshot;
+  }>;
   users: SchoolUserSummary[];
   accesses: Array<{
     id: string;

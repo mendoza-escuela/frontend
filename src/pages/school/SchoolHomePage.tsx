@@ -4,25 +4,26 @@ import { Link } from "react-router-dom";
 import { useAuth } from "../../hooks/useAuth";
 import { getHttpErrorMessage } from "../../lib/http-error";
 import { showError } from "../../lib/toast";
+import { schoolCampaignsService } from "../../services/school-campaigns.service";
 import { schoolPortalService } from "../../services/school-portal.service";
-import { surveysService } from "../../services/surveys.service";
 import type { School } from "../../types/admin-school";
-import type { AvailableSurvey } from "../../types/survey";
+import type { AvailableSchoolCampaignsResponse } from "../../types/school-campaign";
 
 export function SchoolHomePage() {
   const { user } = useAuth();
   const [school, setSchool] = useState<School | null>(null);
-  const [surveys, setSurveys] = useState<AvailableSurvey[]>([]);
+  const [campaigns, setCampaigns] =
+    useState<AvailableSchoolCampaignsResponse | null>(null);
   const [isLoading, setIsLoading] = useState(true);
 
   useEffect(() => {
     Promise.all([
       schoolPortalService.ownSchool(),
-      surveysService.listAvailable(),
+      schoolCampaignsService.list(),
     ])
-      .then(([ownSchool, availableSurveys]) => {
+      .then(([ownSchool, availableCampaigns]) => {
         setSchool(ownSchool);
-        setSurveys(availableSurveys);
+        setCampaigns(availableCampaigns);
       })
       .catch((error) => showError(getHttpErrorMessage(error)))
       .finally(() => setIsLoading(false));
@@ -89,25 +90,26 @@ export function SchoolHomePage() {
             <h2 className="mt-4 text-xl font-bold text-mendoza-text">
               Cuestionario institucional
             </h2>
-            {surveys.length > 0 ? (
+            {campaigns && campaigns.items.length > 0 ? (
               <>
                 <p className="mt-2 text-sm leading-6 text-mendoza-muted">
-                  Hay {surveys.length} cuestionario
-                  {surveys.length === 1 ? "" : "s"} con versión publicada para
-                  consultar.
+                  Hay {campaigns.items.length} campaña
+                  {campaigns.items.length === 1 ? "" : "s"} abierta
+                  {campaigns.items.length === 1 ? "" : "s"} para tu
+                  establecimiento.
                 </p>
                 <Link
                   className="mt-6 inline-flex min-h-11 items-center rounded-lg bg-mendoza-blue px-4 text-sm font-semibold text-white transition hover:bg-mendoza-blue-dark"
                   to="/colegio/cuestionario"
                 >
-                  Ver cuestionario
+                  Ir a la evaluación
                 </Link>
               </>
             ) : (
               <div className="mt-4 flex gap-3 rounded-xl bg-mendoza-background p-4 text-sm text-mendoza-muted">
                 <Info aria-hidden="true" className="shrink-0" size={19} />
-                Todavía no hay un cuestionario publicado. El portal lo mostrará
-                cuando el equipo administrador publique una versión.
+                Todavía no hay campañas abiertas. El portal las mostrará cuando
+                estén activas y dentro de su período de carga.
               </div>
             )}
           </section>

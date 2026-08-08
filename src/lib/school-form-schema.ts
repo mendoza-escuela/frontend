@@ -18,6 +18,11 @@ export const schoolFormSchema = z.object({
     .max(20)
     .regex(/^[A-Za-z0-9.-]+$/, "El CUE contiene caracteres inválidos."),
   name: z.string().trim().min(2, "Ingresá el nombre.").max(255),
+  directorName: z
+    .string()
+    .trim()
+    .min(2, "Ingresá el nombre del/de la director/a.")
+    .max(200),
   schoolNumber: optionalText(30),
   department: z.string().trim().min(2, "Ingresá el departamento.").max(120),
   locality: z.string().trim().min(2, "Ingresá la localidad.").max(120),
@@ -29,8 +34,8 @@ export const schoolFormSchema = z.object({
     .trim()
     .min(2, "Ingresá el tipo de gestión.")
     .max(120),
-  scope: optionalText(120),
-  shift: optionalText(120),
+  scope: z.string().trim().min(2, "Ingresá el ámbito.").max(120),
+  shift: z.string().trim().min(2, "Ingresá la jornada.").max(120),
   phone: optionalText(40),
   email: optionalEmail,
   referentFirstName: z
@@ -50,29 +55,54 @@ export const schoolFormSchema = z.object({
     .int("Debe ser un número entero.")
     .min(0)
     .max(1_000_000),
-  characteristicsText: z
-    .string()
-    .trim()
-    .refine((value) => {
-      try {
-        const parsed = JSON.parse(value || "{}");
-        return (
-          parsed &&
-          !Array.isArray(parsed) &&
-          typeof parsed === "object" &&
-          Object.keys(parsed).length <= 30 &&
-          Object.entries(parsed).every(
-            ([key, item]) =>
-              key.length <= 80 &&
-              !["__proto__", "prototype", "constructor"].includes(key) &&
-              (item === null ||
-                ["string", "number", "boolean"].includes(typeof item)),
-          )
-        );
-      } catch {
-        return false;
-      }
-    }, "Usá un objeto JSON de hasta 30 valores simples."),
   isActive: z.boolean(),
 });
 export type SchoolFormValues = z.infer<typeof schoolFormSchema>;
+
+export const schoolRectificationSchema = schoolFormSchema.pick({
+  name: true,
+  cue: true,
+  directorName: true,
+  address: true,
+  locality: true,
+  scope: true,
+}).extend({
+  hasKiosk: z.boolean().nullable(),
+  hasFoodService: z.boolean().nullable(),
+  isBoarding: z.boolean().nullable(),
+  shiftCatalogId: z.uuid().nullable(),
+  enrollment: z
+    .number()
+    .int("Debe ser un número entero.")
+    .min(0, "No puede ser negativa.")
+    .max(1_000_000)
+    .nullable(),
+  educationLevels: z
+    .array(
+      z.object({
+        levelId: z.uuid(),
+        enrollment: z
+          .number()
+          .int("Debe ser un número entero.")
+          .min(0, "No puede ser negativa.")
+          .max(1_000_000)
+          .nullable(),
+      }),
+    )
+    .superRefine((levels, context) => {
+      const seen = new Set<string>();
+      levels.forEach((level, index) => {
+        if (seen.has(level.levelId))
+          context.addIssue({
+            code: "custom",
+            message: "El nivel educativo está repetido.",
+            path: [index, "levelId"],
+          });
+        seen.add(level.levelId);
+      });
+    }),
+  expectedUpdatedAt: z.iso.datetime(),
+});
+export type SchoolRectificationValues = z.infer<
+  typeof schoolRectificationSchema
+>;

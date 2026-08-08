@@ -2,7 +2,7 @@
 
 import "@testing-library/jest-dom/vitest";
 import { cleanup, fireEvent, render, screen } from "@testing-library/react";
-import { afterEach, describe, expect, it } from "vitest";
+import { afterEach, describe, expect, it, vi } from "vitest";
 import type { PublishedSurvey } from "../../types/survey";
 import { QuestionnaireRenderer } from "./QuestionnaireRenderer";
 
@@ -77,8 +77,12 @@ describe("QuestionnaireRenderer", () => {
     render(<QuestionnaireRenderer survey={survey} />);
 
     fireEvent.click(screen.getByRole("button", { name: "Siguiente" }));
-    expect(await screen.findByText("Esta pregunta es obligatoria.")).toBeVisible();
-    expect(screen.getByRole("heading", { name: "Datos generales" })).toBeVisible();
+    expect(
+      await screen.findByText("Esta pregunta es obligatoria."),
+    ).toBeVisible();
+    expect(
+      screen.getByRole("heading", { name: "Datos generales" }),
+    ).toBeVisible();
 
     fireEvent.change(screen.getByLabelText(/Nombre del proyecto/), {
       target: { value: "Proyecto saludable" },
@@ -100,5 +104,109 @@ describe("QuestionnaireRenderer", () => {
       await screen.findByText("Fin de la vista del cuestionario"),
     ).toBeVisible();
     expect(screen.getByRole("radio", { name: "Sí" })).toBeDisabled();
+  });
+
+  it("permite avanzar incompleto y guardar un borrador cuando se configura el flujo escolar", async () => {
+    const saveDraft = vi.fn();
+    render(
+      <QuestionnaireRenderer
+        defaultValues={{ "question-1": "Respuesta recuperada" }}
+        onSaveDraft={saveDraft}
+        survey={survey}
+        validateOnSectionChange={false}
+      />,
+    );
+
+    expect(screen.getByLabelText(/Nombre del proyecto/)).toHaveValue(
+      "Respuesta recuperada",
+    );
+    fireEvent.change(screen.getByLabelText(/Nombre del proyecto/), {
+      target: { value: "" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Siguiente" }));
+    expect(
+      await screen.findByRole("heading", { name: "Acciones" }),
+    ).toBeVisible();
+
+    fireEvent.click(screen.getByRole("button", { name: "Guardar borrador" }));
+    expect(saveDraft).toHaveBeenCalledWith(
+      expect.objectContaining({ "question-1": "" }),
+    );
+  });
+
+  it("muestra puntajes únicamente cuando la vista administrativa lo solicita", () => {
+    const scoredSurvey: PublishedSurvey = {
+      ...survey,
+      version: {
+        ...survey.version,
+        dimensions: [
+          {
+            ...survey.version.dimensions[0],
+            sections: [
+              {
+                ...survey.version.dimensions[0].sections[0],
+                questions: [
+                  {
+                    id: "question-score",
+                    code: "p001",
+                    type: "single_choice",
+                    prompt: "¿Cuenta con compromiso?",
+                    helpText: null,
+                    required: true,
+                    order: 0,
+                    validation: {},
+                    options: [
+                      {
+                        id: "option-score",
+                        value: "si",
+                        label: "Sí",
+                        helpText: null,
+                        score: 100,
+                        order: 0,
+                      },
+                    ],
+                  },
+                ],
+              },
+            ],
+          },
+        ],
+      },
+    };
+
+    const { rerender } = render(
+      <QuestionnaireRenderer readOnly survey={scoredSurvey} />,
+    );
+    expect(screen.queryByText("100 puntos")).not.toBeInTheDocument();
+
+    rerender(
+      <QuestionnaireRenderer readOnly showScores survey={scoredSurvey} />,
+    );
+    expect(screen.getByText("100 puntos")).toBeVisible();
+  });
+
+  it("bloquea el envío cuando backend informa aplicabilidad incompleta", async () => {
+    const submit = vi.fn();
+    render(
+      <QuestionnaireRenderer
+        onSubmit={submit}
+        submitDisabled
+        submitDisabledReason="Completá la ficha escolar antes de enviar."
+        survey={survey}
+        validateOnSectionChange={false}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "Siguiente" }));
+
+    const submitButton = await screen.findByRole("button", {
+      name: "Finalizar",
+    });
+    expect(submitButton).toBeDisabled();
+    expect(
+      screen.getByText("Completá la ficha escolar antes de enviar."),
+    ).toBeVisible();
+    fireEvent.click(submitButton);
+    expect(submit).not.toHaveBeenCalled();
   });
 });

@@ -21,6 +21,7 @@ export type SurveyOption = {
   value: string;
   label: string;
   helpText: string | null;
+  score: number | null;
   order: number;
 };
 

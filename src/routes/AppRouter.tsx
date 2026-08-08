@@ -4,12 +4,36 @@ import { ProtectedRoute } from "../components/auth/ProtectedRoute";
 import { AdminLayout } from "../components/layout/AdminLayout";
 import { AppLayout } from "../components/layout/AppLayout";
 import { SchoolLayout } from "../components/layout/SchoolLayout";
-import { AccessDeniedPage } from "../pages/AccessDeniedPage";
-import { ChangePasswordPage } from "../pages/ChangePasswordPage";
-import { ForgotPasswordPage } from "../pages/ForgotPasswordPage";
-import { HomePage } from "../pages/HomePage";
-import { LoginPage } from "../pages/LoginPage";
-import { ResetPasswordPage } from "../pages/ResetPasswordPage";
+const AccessDeniedPage = lazy(() =>
+  import("../pages/AccessDeniedPage").then((module) => ({
+    default: module.AccessDeniedPage,
+  })),
+);
+const ChangePasswordPage = lazy(() =>
+  import("../pages/ChangePasswordPage").then((module) => ({
+    default: module.ChangePasswordPage,
+  })),
+);
+const ForgotPasswordPage = lazy(() =>
+  import("../pages/ForgotPasswordPage").then((module) => ({
+    default: module.ForgotPasswordPage,
+  })),
+);
+const HomePage = lazy(() =>
+  import("../pages/HomePage").then((module) => ({
+    default: module.HomePage,
+  })),
+);
+const LoginPage = lazy(() =>
+  import("../pages/LoginPage").then((module) => ({
+    default: module.LoginPage,
+  })),
+);
+const ResetPasswordPage = lazy(() =>
+  import("../pages/ResetPasswordPage").then((module) => ({
+    default: module.ResetPasswordPage,
+  })),
+);
 const AdminHomePage = lazy(() =>
   import("../pages/admin/AdminHomePage").then((module) => ({
     default: module.AdminHomePage,
@@ -80,6 +104,46 @@ const SurveyVersionComparePage = lazy(() =>
     default: module.SurveyVersionComparePage,
   })),
 );
+const SurveyImportPage = lazy(() =>
+  import("../pages/admin/SurveyImportPage").then((module) => ({
+    default: module.SurveyImportPage,
+  })),
+);
+const SurveyApplicabilityRulesPage = lazy(() =>
+  import("../pages/admin/SurveyApplicabilityRulesPage").then((module) => ({
+    default: module.SurveyApplicabilityRulesPage,
+  })),
+);
+const CampaignsAdminPage = lazy(() =>
+  import("../pages/admin/CampaignsAdminPage").then((module) => ({
+    default: module.CampaignsAdminPage,
+  })),
+);
+const CampaignFormPage = lazy(() =>
+  import("../pages/admin/CampaignFormPage").then((module) => ({
+    default: module.CampaignFormPage,
+  })),
+);
+const ParticipationDashboardPage = lazy(() =>
+  import("../pages/admin/ParticipationDashboardPage").then((module) => ({
+    default: module.ParticipationDashboardPage,
+  })),
+);
+const EvaluationConfigurationsPage = lazy(() =>
+  import("../pages/admin/EvaluationConfigurationsPage").then((module) => ({
+    default: module.EvaluationConfigurationsPage,
+  })),
+);
+const CampaignTrackingPage = lazy(() =>
+  import("../pages/admin/CampaignTrackingPage").then((module) => ({
+    default: module.CampaignTrackingPage,
+  })),
+);
+const AdminSchoolResultDetailPage = lazy(() =>
+  import("../pages/admin/AdminSchoolResultDetailPage").then((module) => ({
+    default: module.AdminSchoolResultDetailPage,
+  })),
+);
 const SchoolHomePage = lazy(() =>
   import("../pages/school/SchoolHomePage").then((module) => ({
     default: module.SchoolHomePage,
@@ -115,17 +179,20 @@ const router = createBrowserRouter([
   {
     element: <AppLayout />,
     children: [
-      { index: true, element: <HomePage /> },
-      { path: "login", element: <LoginPage /> },
-      { path: "recuperar-clave", element: <ForgotPasswordPage /> },
-      { path: "restablecer-clave", element: <ResetPasswordPage /> },
+      { index: true, element: lazyPage(<HomePage />) },
+      { path: "login", element: lazyPage(<LoginPage />) },
+      { path: "recuperar-clave", element: lazyPage(<ForgotPasswordPage />) },
+      {
+        path: "restablecer-clave",
+        element: lazyPage(<ResetPasswordPage />),
+      },
     ],
   },
   {
     element: <ProtectedRoute allowPasswordChange />,
     children: [
-      { path: "cambiar-clave", element: <ChangePasswordPage /> },
-      { path: "acceso-denegado", element: <AccessDeniedPage /> },
+      { path: "cambiar-clave", element: lazyPage(<ChangePasswordPage />) },
+      { path: "acceso-denegado", element: lazyPage(<AccessDeniedPage />) },
     ],
   },
   {
@@ -136,6 +203,14 @@ const router = createBrowserRouter([
         element: <AdminLayout />,
         children: [
           { index: true, element: lazyPage(<AdminHomePage />) },
+          {
+            path: "participacion",
+            element: lazyPage(<ParticipationDashboardPage />),
+          },
+          {
+            path: "configuracion-evaluacion",
+            element: lazyPage(<EvaluationConfigurationsPage />),
+          },
           { path: "usuarios", element: lazyPage(<UsersAdminPage />) },
           { path: "usuarios/nuevo", element: lazyPage(<UserFormPage />) },
           { path: "usuarios/:id/editar", element: lazyPage(<UserFormPage />) },
@@ -172,12 +247,40 @@ const router = createBrowserRouter([
             element: lazyPage(<SurveyVersionPreviewPage />),
           },
           {
+            path: "cuestionarios/:surveyId/versiones/:versionId/reglas",
+            element: lazyPage(<SurveyApplicabilityRulesPage />),
+          },
+          {
             path: "cuestionarios/:surveyId/comparar",
             element: lazyPage(<SurveyVersionComparePage />),
           },
           {
+            path: "cuestionarios/:surveyId/importar",
+            element: lazyPage(<SurveyImportPage />),
+          },
+          {
             path: "cuestionarios/:id",
             element: lazyPage(<SurveyDetailPage />),
+          },
+          {
+            path: "campanas",
+            element: lazyPage(<CampaignsAdminPage />),
+          },
+          {
+            path: "campanas/nueva",
+            element: lazyPage(<CampaignFormPage />),
+          },
+          {
+            path: "campanas/:id/editar",
+            element: lazyPage(<CampaignFormPage />),
+          },
+          {
+            path: "seguimiento",
+            element: lazyPage(<CampaignTrackingPage />),
+          },
+          {
+            path: "campanas/:campaignId/colegios/:schoolId/resultado",
+            element: lazyPage(<AdminSchoolResultDetailPage />),
           },
         ],
       },
@@ -201,6 +304,10 @@ const router = createBrowserRouter([
           },
           {
             path: "resultados",
+            element: lazyPage(<SchoolResultsPage />),
+          },
+          {
+            path: "resultados/:campaignId",
             element: lazyPage(<SchoolResultsPage />),
           },
         ],

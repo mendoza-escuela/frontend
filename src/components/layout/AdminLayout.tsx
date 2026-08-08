@@ -1,10 +1,13 @@
 import {
   Building2,
+  CalendarRange,
   ClipboardList,
   Home,
+  LayoutDashboard,
+  ListChecks,
   LogOut,
   School,
-  Upload,
+  Settings2,
   Users,
 } from "lucide-react";
 import { NavLink, Outlet, useNavigate } from "react-router-dom";
@@ -13,14 +16,32 @@ import { showError } from "../../lib/toast";
 
 const links = [
   { to: "/admin", label: "Inicio", icon: Home, end: true },
+  {
+    to: "/admin/participacion",
+    label: "Participación",
+    icon: LayoutDashboard,
+  },
+  {
+    to: "/admin/configuracion-evaluacion",
+    label: "Evaluación",
+    icon: Settings2,
+  },
   { to: "/admin/usuarios", label: "Usuarios", icon: Users, end: true },
-  { to: "/admin/usuarios/importar", label: "Importar usuarios", icon: Upload },
   { to: "/admin/colegios", label: "Colegios", icon: School, end: true },
-  { to: "/admin/colegios/importar", label: "Importar colegios", icon: Upload },
   {
     to: "/admin/cuestionarios",
     label: "Cuestionarios",
     icon: ClipboardList,
+  },
+  {
+    to: "/admin/campanas",
+    label: "Campañas",
+    icon: CalendarRange,
+  },
+  {
+    to: "/admin/seguimiento",
+    label: "Seguimiento",
+    icon: ListChecks,
   },
 ];
 
@@ -38,7 +59,7 @@ export function AdminLayout() {
 
   return (
     <div className="min-h-screen bg-mendoza-background lg:flex">
-      <aside className="bg-mendoza-blue p-4 text-white lg:min-h-screen lg:w-64 lg:p-6">
+      <aside className="bg-mendoza-blue p-4 text-white lg:sticky lg:top-0 lg:h-screen lg:w-64 lg:shrink-0 lg:self-start lg:overflow-y-auto lg:p-6">
         <div className="flex items-center gap-3 border-b border-white/20 pb-5">
           <Building2 aria-hidden="true" />
           <div>
@@ -68,7 +89,9 @@ export function AdminLayout() {
       <div className="min-w-0 flex-1">
         <header className="flex flex-wrap items-center justify-between gap-3 border-b border-mendoza-border bg-white px-4 py-4 sm:px-8">
           <div>
-            <p className="text-sm text-mendoza-muted">Sesión de administrador</p>
+            <p className="text-sm text-mendoza-muted">
+              Sesión de administrador
+            </p>
             <p className="font-semibold text-mendoza-text">
               {user?.firstName} {user?.lastName}
             </p>

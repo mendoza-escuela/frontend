@@ -87,7 +87,7 @@ export function SurveyVersionPreviewPage() {
           </p>
         </Card>
         <div className="mt-5">
-          <QuestionnaireRenderer readOnly survey={renderable} />
+          <QuestionnaireRenderer readOnly showScores survey={renderable} />
         </div>
       </div>
     </main>

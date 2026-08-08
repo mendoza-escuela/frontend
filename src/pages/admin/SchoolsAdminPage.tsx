@@ -9,9 +9,12 @@ import {
   ShieldOff,
   Upload,
 } from "lucide-react";
-import { useEffect, useState } from "react";
+import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { Button } from "../../components/ui/Button";
+import { PaginationControls } from "../../components/ui/PaginationControls";
+import { SearchableSelect } from "../../components/ui/SearchableSelect";
+import { inputClassName } from "../../components/ui/form-styles";
 import { getHttpErrorMessage } from "../../lib/http-error";
 import { showError, showSuccess } from "../../lib/toast";
 import {
@@ -19,8 +22,8 @@ import {
   type SchoolFilters,
 } from "../../services/admin-schools.service";
 import type {
-  School,
   SchoolFilterOptions,
+  SchoolListItem,
   SchoolListResponse,
 } from "../../types/admin-school";
 
@@ -47,14 +50,18 @@ export function SchoolsAdminPage() {
   const [schools, setSchools] = useState(emptyList);
   const [options, setOptions] = useState(emptyOptions);
   const [loading, setLoading] = useState(true);
+  const listRequest = useRef<AbortController | null>(null);
   const load = async (next = filters) => {
+    listRequest.current?.abort();
+    const controller = new AbortController();
+    listRequest.current = controller;
     setLoading(true);
     try {
-      setSchools(await adminSchoolsService.list(next));
+      setSchools(await adminSchoolsService.list(next, controller.signal));
     } catch (error) {
-      showError(getHttpErrorMessage(error));
+      if (!controller.signal.aborted) showError(getHttpErrorMessage(error));
     } finally {
-      setLoading(false);
+      if (listRequest.current === controller) setLoading(false);
     }
   };
   useEffect(() => {
@@ -65,6 +72,7 @@ export function SchoolsAdminPage() {
         .then(setOptions)
         .catch((error) => showError(getHttpErrorMessage(error))),
     ]);
+    return () => listRequest.current?.abort();
   }, []);
   const apply = (event: React.FormEvent) => {
     event.preventDefault();
@@ -77,7 +85,7 @@ export function SchoolsAdminPage() {
     setFilters(next);
     void load(next);
   };
-  const status = async (school: School) => {
+  const status = async (school: SchoolListItem) => {
     try {
       await adminSchoolsService.setStatus(school.id, !school.isActive);
       showSuccess(
@@ -131,7 +139,7 @@ export function SchoolsAdminPage() {
               to="/admin/colegios/importar"
             >
               <Upload size={17} />
-              Importar
+              Importar colegios
             </Link>
             <Link
               className="inline-flex min-h-11 items-center gap-2 rounded-lg bg-mendoza-blue px-4 text-sm font-semibold text-white"
@@ -148,7 +156,7 @@ export function SchoolsAdminPage() {
         >
           <Filter label="Buscar">
             <input
-              className="field"
+              className={inputClassName}
               onChange={(e) => setDraft({ ...draft, search: e.target.value })}
               placeholder="CUE, nombre o número"
               value={draft.search ?? ""}
@@ -194,23 +202,12 @@ export function SchoolsAdminPage() {
             setDraft={setDraft}
             draft={draft}
           />
-          <Filter label="Estado">
-            <select
-              className="field"
-              onChange={(e) =>
-                setDraft({
-                  ...draft,
-                  isActive:
-                    e.target.value === "" ? "" : e.target.value === "true",
-                })
-              }
-              value={String(draft.isActive ?? "")}
-            >
-              <option value="">Todos</option>
-              <option value="true">Activos</option>
-              <option value="false">Inactivos</option>
-            </select>
-          </Filter>
+          <SearchableSelect
+            label="Estado"
+            onChange={(value) => setDraft({ ...draft, isActive: value === "" ? "" : value === "true" })}
+            options={[{ value: "true", label: "Activos" }, { value: "false", label: "Inactivos" }]}
+            value={String(draft.isActive ?? "")}
+          />
           <Button
             className="self-end"
             icon={<Search size={17} />}
@@ -275,7 +272,9 @@ export function SchoolsAdminPage() {
                         </span>
                       </td>
                       <td className="px-4 py-3">
-                        {school.enrollment.toLocaleString("es-AR")}
+                        {school.enrollment === null
+                          ? "Sin informar"
+                          : school.enrollment.toLocaleString("es-AR")}
                       </td>
                       <td className="px-4 py-3">
                         <Status active={school.isActive} />
@@ -290,30 +289,11 @@ export function SchoolsAdminPage() {
             </div>
           </>
         )}
-        <div className="mt-4 flex items-center justify-between gap-3">
-          <p className="text-sm text-mendoza-muted">
-            Página {schools.pagination.page} de {schools.pagination.totalPages}
-          </p>
-          <div className="flex gap-2">
-            <Button
-              disabled={schools.pagination.page <= 1 || loading}
-              onClick={() => page(schools.pagination.page - 1)}
-              variant="outline"
-            >
-              Anterior
-            </Button>
-            <Button
-              disabled={
-                schools.pagination.page >= schools.pagination.totalPages ||
-                loading
-              }
-              onClick={() => page(schools.pagination.page + 1)}
-              variant="outline"
-            >
-              Siguiente
-            </Button>
-          </div>
-        </div>
+        <PaginationControls
+          loading={loading}
+          onPageChange={page}
+          pagination={schools.pagination}
+        />
       </div>
     </main>
   );
@@ -350,20 +330,7 @@ function SelectFilter({
   draft: SchoolFilters;
   setDraft: React.Dispatch<React.SetStateAction<SchoolFilters>>;
 }) {
-  return (
-    <Filter label={label}>
-      <select
-        className="field"
-        onChange={(e) => setDraft({ ...draft, [name]: e.target.value })}
-        value={value ?? ""}
-      >
-        <option value="">Todos</option>
-        {values.map((option) => (
-          <option key={option}>{option}</option>
-        ))}
-      </select>
-    </Filter>
-  );
+  return <SearchableSelect label={label} onChange={(nextValue) => setDraft({ ...draft, [name]: nextValue })} options={values.map((option) => ({ value: option, label: option }))} value={value} />;
 }
 function Status({ active }: { active: boolean }) {
   return (
@@ -378,8 +345,8 @@ function Actions({
   school,
   status,
 }: {
-  school: School;
-  status: (school: School) => Promise<void>;
+  school: SchoolListItem;
+  status: (school: SchoolListItem) => Promise<void>;
 }) {
   return (
     <div className="flex gap-1">
@@ -416,8 +383,8 @@ function SchoolCard({
   school,
   status,
 }: {
-  school: School;
-  status: (school: School) => Promise<void>;
+  school: SchoolListItem;
+  status: (school: SchoolListItem) => Promise<void>;
 }) {
   return (
     <article className="rounded-2xl border border-mendoza-border bg-white p-4 shadow-sm">

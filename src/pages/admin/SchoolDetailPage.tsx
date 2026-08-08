@@ -10,49 +10,86 @@ import {
   UserRound,
   Users,
 } from "lucide-react";
-import { useCallback, useEffect, useState } from "react";
+import { useCallback, useEffect, useRef, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { Button } from "../../components/ui/Button";
+import { PaginationControls } from "../../components/ui/PaginationControls";
 import { getHttpErrorMessage } from "../../lib/http-error";
 import { showError, showSuccess } from "../../lib/toast";
 import { adminSchoolsService } from "../../services/admin-schools.service";
-import { adminUsersService } from "../../services/admin-users.service";
 import type { SchoolDetail } from "../../types/admin-school";
 import type { SchoolUserSummary } from "../../types/admin-school";
+
+const emptyAssignableUsers = {
+  items: [] as SchoolUserSummary[],
+  pagination: { page: 1, limit: 20, total: 0, totalPages: 1 },
+};
 
 export function SchoolDetailPage() {
   const { id } = useParams();
   const [school, setSchool] = useState<SchoolDetail | null>(null);
-  const [eligibleUsers, setEligibleUsers] = useState<SchoolUserSummary[]>([]);
+  const [eligibleUsers, setEligibleUsers] = useState(emptyAssignableUsers);
   const [userSearch, setUserSearch] = useState("");
   const [appliedUserSearch, setAppliedUserSearch] = useState("");
-  const [selectedUserId, setSelectedUserId] = useState("");
+  const [selectedUser, setSelectedUser] =
+    useState<SchoolUserSummary | null>(null);
+  const [loadingUsers, setLoadingUsers] = useState(false);
   const [saving, setSaving] = useState(false);
-  const load = useCallback(async () => {
+  const detailRequest = useRef<AbortController | null>(null);
+  const usersRequest = useRef<AbortController | null>(null);
+
+  const loadSchool = useCallback(async () => {
     if (!id) return;
+    detailRequest.current?.abort();
+    const controller = new AbortController();
+    detailRequest.current = controller;
     try {
       const detail = await adminSchoolsService.findOne(id);
+      if (controller.signal.aborted) return;
       setSchool(detail);
-      setSelectedUserId(detail.users[0]?.id ?? "");
-      const users = await adminUsersService.list({
-        role: "school",
-        isActive: true,
-        search: appliedUserSearch,
-        page: 1,
-        limit: 100,
-      });
-      const candidates: SchoolUserSummary[] = users.items
-        .filter((user) => !user.school || user.school.id === id)
-        .map(({ id: userId, firstName, lastName, email }) => ({ id: userId, firstName, lastName, email }));
-      for (const current of detail.users) if (!candidates.some((candidate) => candidate.id === current.id)) candidates.unshift(current);
-      setEligibleUsers(candidates);
+      setSelectedUser(detail.users[0] ?? null);
     } catch (error) {
-      showError(getHttpErrorMessage(error));
+      if (!controller.signal.aborted) showError(getHttpErrorMessage(error));
     }
-  }, [appliedUserSearch, id]);
+  }, [id]);
+
+  const loadEligibleUsers = useCallback(
+    async (page = 1, search = appliedUserSearch) => {
+      if (!id) return;
+      usersRequest.current?.abort();
+      const controller = new AbortController();
+      usersRequest.current = controller;
+      setLoadingUsers(true);
+      try {
+        const response = await adminSchoolsService.assignableUsers(
+          id,
+          { search: search || undefined, page, limit: 20 },
+          controller.signal,
+        );
+        if (!controller.signal.aborted) setEligibleUsers(response);
+      } catch (error) {
+        if (!controller.signal.aborted) showError(getHttpErrorMessage(error));
+      } finally {
+        if (usersRequest.current === controller) setLoadingUsers(false);
+      }
+    },
+    [appliedUserSearch, id],
+  );
+
   useEffect(() => {
-    void load();
-  }, [load]);
+    void loadSchool();
+    return () => detailRequest.current?.abort();
+  }, [loadSchool]);
+  useEffect(() => {
+    void loadEligibleUsers(1);
+    return () => usersRequest.current?.abort();
+  }, [loadEligibleUsers]);
+
+  const selectableUsers =
+    selectedUser &&
+    !eligibleUsers.items.some((candidate) => candidate.id === selectedUser.id)
+      ? [selectedUser, ...eligibleUsers.items]
+      : eligibleUsers.items;
   const changeStatus = async () => {
     if (!school) return;
     try {
@@ -73,14 +110,18 @@ export function SchoolDetailPage() {
     setSaving(true);
     try {
       setSchool(
-        await adminSchoolsService.assignUser(school.id, selectedUserId || null),
+        await adminSchoolsService.assignUser(
+          school.id,
+          selectedUser?.id ?? null,
+        ),
       );
       showSuccess(
-        selectedUserId
+        selectedUser
           ? "Usuario asociado y cambio registrado."
           : "Usuario desvinculado y cambio registrado.",
       );
-      await load();
+      await loadSchool();
+      await loadEligibleUsers(eligibleUsers.pagination.page);
     } catch (error) {
       showError(getHttpErrorMessage(error));
     } finally {
@@ -114,6 +155,11 @@ export function SchoolDetailPage() {
             <p className="mt-2 text-mendoza-muted">
               CUE {school.cue}
               {school.schoolNumber ? ` · N.º ${school.schoolNumber}` : ""}
+            </p>
+            <p className="mt-2 text-sm font-semibold text-mendoza-blue">
+              {school.rectification.isRectified
+                ? `Ficha ${school.rectification.periodYear} rectificada el ${date(school.rectification.rectifiedAt!)}`
+                : `Ficha ${school.rectification.periodYear} pendiente de rectificación`}
             </p>
           </div>
           <div className="flex flex-wrap gap-2">
@@ -156,6 +202,15 @@ export function SchoolDetailPage() {
                 value={`${school.address}, ${school.locality}, ${school.department}`}
               />
               <Datum label="Nivel" value={school.educationLevel} />
+              <Datum
+                label="Niveles estructurados"
+                value={
+                  school.educationLevels
+                    .map(({ label }) => label)
+                    .join(", ") || "Sin informar"
+                }
+              />
+              <Datum label="Director/a" value={school.directorName} />
               <Datum label="Gestión" value={school.managementType} />
               <Datum
                 label="Ámbito / Jornada"
@@ -165,8 +220,28 @@ export function SchoolDetailPage() {
                 }
               />
               <Datum
+                label="Jornada estructurada"
+                value={school.shiftCatalog?.label ?? "Sin informar"}
+              />
+              <Datum
                 label="Matrícula"
-                value={school.enrollment.toLocaleString("es-AR")}
+                value={
+                  school.enrollment === null
+                    ? "Sin informar"
+                    : school.enrollment.toLocaleString("es-AR")
+                }
+              />
+              <Datum
+                label="Kiosco"
+                value={yesNoUnknown(school.hasKiosk)}
+              />
+              <Datum
+                label="Comedor o servicio alimentario"
+                value={yesNoUnknown(school.hasFoodService)}
+              />
+              <Datum
+                label="Albergue"
+                value={yesNoUnknown(school.isBoarding)}
               />
               <Datum
                 label="Contacto"
@@ -238,24 +313,45 @@ export function SchoolDetailPage() {
               Buscar usuario disponible
               <span className="mt-2 flex gap-2">
                 <input className="min-w-0 flex-1 rounded-lg border border-mendoza-border px-3 py-2.5 font-normal" onChange={(event) => setUserSearch(event.target.value)} placeholder="Nombre o correo" value={userSearch} />
-                <Button onClick={() => setAppliedUserSearch(userSearch.trim())} variant="outline">Buscar</Button>
+                <Button
+                  onClick={() => {
+                    const nextSearch = userSearch.trim();
+                    if (nextSearch === appliedUserSearch)
+                      void loadEligibleUsers(1, nextSearch);
+                    else setAppliedUserSearch(nextSearch);
+                  }}
+                  variant="outline"
+                >
+                  Buscar
+                </Button>
               </span>
             </label>
             <label className="mt-4 block text-sm font-semibold">
               Asociar o reemplazar
               <select
                 className="mt-2 w-full rounded-lg border border-mendoza-border px-3 py-2.5"
-                onChange={(event) => setSelectedUserId(event.target.value)}
-                value={selectedUserId}
+                onChange={(event) =>
+                  setSelectedUser(
+                    selectableUsers.find(
+                      (candidate) => candidate.id === event.target.value,
+                    ) ?? null,
+                  )
+                }
+                value={selectedUser?.id ?? ""}
               >
                 <option value="">Sin usuario</option>
-                {eligibleUsers.map((user) => (
+                {selectableUsers.map((user) => (
                   <option key={user.id} value={user.id}>
                     {user.lastName}, {user.firstName} · {user.email}
                   </option>
                 ))}
               </select>
             </label>
+            <PaginationControls
+              loading={loadingUsers}
+              onPageChange={(page) => void loadEligibleUsers(page)}
+              pagination={eligibleUsers.pagination}
+            />
             <Button
               className="mt-3 w-full"
               disabled={saving}
@@ -317,6 +413,20 @@ export function SchoolDetailPage() {
         </div>
         <Timeline
           className="mt-5"
+          title="Rectificaciones anuales"
+          icon={<CalendarDays />}
+          empty="Todavía no hay rectificaciones registradas."
+          entries={school.rectifications.map((entry) => ({
+            id: entry.id,
+            date: entry.rectifiedAt,
+            title: `Período ${entry.periodYear}`,
+            detail: entry.actorUser
+              ? `${entry.actorUser.firstName} ${entry.actorUser.lastName} · ${snapshotSummary(entry.snapshot)}`
+              : `Usuario eliminado · ${snapshotSummary(entry.snapshot)}`,
+          }))}
+        />
+        <Timeline
+          className="mt-5"
           title="Auditoría del colegio"
           icon={<ClipboardCheck />}
           empty="No hay acciones auditadas."
@@ -340,6 +450,19 @@ function Datum({ label, value }: { label: string; value: string }) {
       <dd className="mt-1 break-words text-sm text-mendoza-text">{value}</dd>
     </div>
   );
+}
+
+function yesNoUnknown(value: boolean | null) {
+  if (value === null) return "Sin informar";
+  return value ? "Sí" : "No";
+}
+
+function snapshotSummary(snapshot: SchoolDetail["rectifications"][number]["snapshot"]) {
+  const shift = snapshot.shiftCatalog?.label ?? snapshot.shift;
+  const levels =
+    snapshot.educationLevels?.map(({ label }) => label).join(", ") ||
+    snapshot.educationLevel;
+  return `Jornada: ${shift || "Sin informar"} · Niveles: ${levels || "Sin informar"} · Matrícula: ${snapshot.enrollmentTotal ?? "Sin informar"}`;
 }
 function Unavailable({
   icon,
@@ -411,4 +534,5 @@ const auditLabel = (action: string) =>
     SCHOOL_USER_ASSIGNED: "Usuario asociado",
     SCHOOL_USER_REPLACED: "Usuario reemplazado",
     SCHOOL_USER_UNASSIGNED: "Usuario desvinculado",
+    SCHOOL_RECTIFIED: "Ficha anual rectificada",
   })[action] ?? action;

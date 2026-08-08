@@ -1,5 +1,6 @@
 import { zodResolver } from '@hookform/resolvers/zod';
-import { KeyRound } from 'lucide-react';
+import { Eye, EyeOff, KeyRound } from 'lucide-react';
+import { useState } from 'react';
 import { useForm } from 'react-hook-form';
 import { useNavigate, useSearchParams } from 'react-router-dom';
 import { z } from 'zod';
@@ -28,5 +29,7 @@ export function ResetPasswordPage() {
 }
 
 function PasswordField({ label, error, registration }: { label: string; error?: string; registration: ReturnType<ReturnType<typeof useForm<z.infer<typeof schema>>>['register']> }) {
-  return <label className="block text-sm font-semibold">{label}<input {...registration} autoComplete="new-password" className="mt-2 w-full rounded-lg border border-mendoza-border px-3 py-2.5 outline-none focus:border-mendoza-sky focus:ring-2 focus:ring-mendoza-sky/25" type="password" />{error && <span className="mt-1 block text-sm text-mendoza-error">{error}</span>}</label>;
+  const [showPassword, setShowPassword] = useState(false);
+
+  return <label className="block text-sm font-semibold">{label}<span className="relative mt-2 block"><input {...registration} autoComplete="new-password" className="w-full rounded-lg border border-mendoza-border px-3 py-2.5 pr-11 outline-none focus:border-mendoza-sky focus:ring-2 focus:ring-mendoza-sky/25" type={showPassword ? 'text' : 'password'} /><button aria-label={showPassword ? 'Ocultar contraseña' : 'Mostrar contraseña'} aria-pressed={showPassword} className="absolute inset-y-0 right-0 rounded-r-lg px-3 text-mendoza-muted outline-none hover:text-mendoza-blue focus-visible:ring-2 focus-visible:ring-inset focus-visible:ring-mendoza-sky" onClick={() => setShowPassword((current) => !current)} type="button">{showPassword ? <EyeOff aria-hidden="true" size={18} /> : <Eye aria-hidden="true" size={18} />}</button></span>{error && <span className="mt-1 block text-sm text-mendoza-error">{error}</span>}</label>;
 }

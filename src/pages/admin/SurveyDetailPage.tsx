@@ -1,12 +1,15 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import {
   Activity,
+  Archive,
   ClipboardCopy,
   Eye,
   GitCompareArrows,
+  FileSpreadsheet,
   Pencil,
   Plus,
   Send,
+  Settings2,
   Trash2,
 } from "lucide-react";
 import { useCallback, useEffect, useState } from "react";
@@ -39,12 +42,13 @@ import type {
 const createVersionSchema = z.object({
   title: z.string().trim().min(1, "Ingresá un título.").max(255),
   instructions: z.string().max(10000),
-  sourceVersionId: z.string(),
+  origin: z.string(),
 });
 
 type CreateVersionForm = z.infer<typeof createVersionSchema>;
 type PendingAction =
   | { type: "publish"; version: SurveyVersionSummary }
+  | { type: "archive"; version: SurveyVersionSummary }
   | { type: "delete"; version: SurveyVersionSummary }
   | null;
 
@@ -66,7 +70,11 @@ export function SurveyDetailPage() {
     formState: { errors, isSubmitting },
   } = useForm<CreateVersionForm>({
     resolver: zodResolver(createVersionSchema),
-    defaultValues: { title: "", instructions: "", sourceVersionId: "" },
+    defaultValues: {
+      title: "",
+      instructions: "",
+      origin: "template:official_dimensions",
+    },
   });
 
   const load = useCallback(async () => {
@@ -90,7 +98,7 @@ export function SurveyDetailPage() {
     reset({
       title: source ? `Copia de ${source.title}` : "",
       instructions: "",
-      sourceVersionId: source?.id ?? "",
+      origin: source ? `version:${source.id}` : "template:official_dimensions",
     });
     setVersionModalOpen(true);
   };
@@ -98,15 +106,26 @@ export function SurveyDetailPage() {
   const createVersion = handleSubmit(async (values) => {
     if (!id) return;
     try {
+      const sourceVersionId = values.origin.startsWith("version:")
+        ? values.origin.slice("version:".length)
+        : undefined;
+      const template = sourceVersionId
+        ? undefined
+        : values.origin === "template:blank"
+          ? ("blank" as const)
+          : ("official_dimensions" as const);
       const created = await adminSurveysService.createVersion(id, {
         title: values.title,
         instructions: values.instructions || undefined,
-        sourceVersionId: values.sourceVersionId || undefined,
+        sourceVersionId,
+        template,
       });
       showSuccess(
-        values.sourceVersionId
+        sourceVersionId
           ? "Nueva versión creada a partir de la seleccionada."
-          : "Versión borrador creada.",
+          : template === "official_dimensions"
+            ? "Versión creada con las seis dimensiones oficiales."
+            : "Versión borrador vacía creada.",
       );
       setVersionModalOpen(false);
       await load();
@@ -122,7 +141,12 @@ export function SurveyDetailPage() {
     try {
       if (pendingAction.type === "publish") {
         await adminSurveysService.publishVersion(id, pendingAction.version.id);
-        showSuccess("La versión fue publicada y quedó protegida contra cambios.");
+        showSuccess(
+          "La versión fue publicada y quedó protegida contra cambios.",
+        );
+      } else if (pendingAction.type === "archive") {
+        await adminSurveysService.archiveVersion(id, pendingAction.version.id);
+        showSuccess("La versión fue archivada y queda disponible para consulta.");
       } else {
         await adminSurveysService.removeVersion(id, pendingAction.version.id);
         showSuccess("La versión borrador fue eliminada.");
@@ -187,6 +211,15 @@ export function SurveyDetailPage() {
                 </Button>
               )}
               <Button
+                icon={<FileSpreadsheet aria-hidden="true" size={18} />}
+                onClick={() =>
+                  navigate(`/admin/cuestionarios/${survey.id}/importar`)
+                }
+                variant="outline"
+              >
+                Importar planilla
+              </Button>
+              <Button
                 icon={<Plus aria-hidden="true" size={18} />}
                 onClick={() => openNewVersion()}
               >
@@ -229,7 +262,9 @@ export function SurveyDetailPage() {
             <div className="mt-5">
               <EmptyState
                 action={
-                  <Button onClick={() => openNewVersion()}>Crear versión</Button>
+                  <Button onClick={() => openNewVersion()}>
+                    Crear versión
+                  </Button>
                 }
                 description="La primera versión se crea como borrador y puede editarse antes de publicar."
                 title="El cuestionario todavía no tiene versiones"
@@ -258,12 +293,18 @@ export function SurveyDetailPage() {
                     </div>
                     {version.counts && (
                       <dl className="grid grid-cols-2 gap-x-6 gap-y-2 text-sm sm:grid-cols-4">
-                        {Object.entries(version.counts).map(([label, value]) => (
-                          <div key={label}>
-                            <dt className="capitalize text-mendoza-muted">{label}</dt>
-                            <dd className="font-bold text-mendoza-text">{value}</dd>
-                          </div>
-                        ))}
+                        {Object.entries(version.counts).map(
+                          ([label, value]) => (
+                            <div key={label}>
+                              <dt className="capitalize text-mendoza-muted">
+                                {label}
+                              </dt>
+                              <dd className="font-bold text-mendoza-text">
+                                {value}
+                              </dd>
+                            </div>
+                          ),
+                        )}
                       </dl>
                     )}
                   </div>
@@ -273,7 +314,8 @@ export function SurveyDetailPage() {
                         className="inline-flex min-h-10 items-center gap-2 rounded-lg bg-mendoza-blue px-3 text-sm font-semibold text-white hover:bg-mendoza-blue-dark"
                         to={`/admin/cuestionarios/${survey.id}/versiones/${version.id}/editar`}
                       >
-                        <Pencil aria-hidden="true" size={16} /> Editar estructura
+                        <Pencil aria-hidden="true" size={16} /> Editar
+                        estructura
                       </Link>
                     )}
                     <Link
@@ -281,6 +323,12 @@ export function SurveyDetailPage() {
                       to={`/admin/cuestionarios/${survey.id}/versiones/${version.id}/vista-previa`}
                     >
                       <Eye aria-hidden="true" size={16} /> Vista previa
+                    </Link>
+                    <Link
+                      className="inline-flex min-h-10 items-center gap-2 rounded-lg border border-mendoza-blue px-3 text-sm font-semibold text-mendoza-blue hover:bg-mendoza-blue-soft"
+                      to={`/admin/cuestionarios/${survey.id}/versiones/${version.id}/reglas`}
+                    >
+                      <Settings2 aria-hidden="true" size={16} /> Reglas
                     </Link>
                     <button
                       className="inline-flex min-h-10 items-center gap-2 rounded-lg px-3 text-sm font-semibold text-mendoza-blue hover:bg-mendoza-blue-soft"
@@ -310,6 +358,17 @@ export function SurveyDetailPage() {
                         </button>
                       </>
                     )}
+                    {version.status === "published" && (
+                      <button
+                        className="inline-flex min-h-10 items-center gap-2 rounded-lg px-3 text-sm font-semibold text-mendoza-muted hover:bg-mendoza-blue-soft"
+                        onClick={() =>
+                          setPendingAction({ type: "archive", version })
+                        }
+                        type="button"
+                      >
+                        <Archive aria-hidden="true" size={16} /> Archivar
+                      </button>
+                    )}
                   </div>
                 </Card>
               ))}
@@ -329,7 +388,10 @@ export function SurveyDetailPage() {
           ) : (
             <ol className="mt-5 space-y-4">
               {survey.audits.map((audit) => (
-                <li className="border-l-2 border-mendoza-sky pl-4" key={audit.id}>
+                <li
+                  className="border-l-2 border-mendoza-sky pl-4"
+                  key={audit.id}
+                >
                   <p className="font-semibold text-mendoza-text">
                     {auditLabel(audit.action)}
                   </p>
@@ -347,7 +409,7 @@ export function SurveyDetailPage() {
       </div>
 
       <Modal
-        description="Podés iniciar una versión vacía o copiar la estructura de una versión existente."
+        description="Podés iniciar con las seis dimensiones oficiales, crear una versión vacía o copiar una estructura existente."
         onClose={() => setVersionModalOpen(false)}
         open={versionModalOpen}
         title="Nueva versión borrador"
@@ -378,24 +440,31 @@ export function SurveyDetailPage() {
             />
           </FormField>
           <FormField
-            htmlFor="source-version"
-            label="Copiar estructura desde"
+            help="La plantilla oficial incorpora nombres, descripciones y orden; las secciones y preguntas se cargan después."
+            htmlFor="version-origin"
+            label="Estructura inicial"
           >
             <select
-              {...register("sourceVersionId")}
+              {...register("origin")}
               className={inputClassName}
-              id="source-version"
+              id="version-origin"
             >
-              <option value="">Versión vacía</option>
+              <option value="template:official_dimensions">
+                Plantilla oficial · 6 dimensiones
+              </option>
+              <option value="template:blank">Versión vacía</option>
               {survey.versions.map((version) => (
-                <option key={version.id} value={version.id}>
-                  Versión {version.versionNumber} · {version.title}
+                <option key={version.id} value={`version:${version.id}`}>
+                  Copiar versión {version.versionNumber} · {version.title}
                 </option>
               ))}
             </select>
           </FormField>
           <div className="flex justify-end gap-3 border-t border-mendoza-border pt-5">
-            <Button onClick={() => setVersionModalOpen(false)} variant="outline">
+            <Button
+              onClick={() => setVersionModalOpen(false)}
+              variant="outline"
+            >
               Cancelar
             </Button>
             <Button disabled={isSubmitting} type="submit">
@@ -407,12 +476,18 @@ export function SurveyDetailPage() {
 
       <ConfirmDialog
         confirmLabel={
-          pendingAction?.type === "publish" ? "Publicar versión" : "Eliminar"
+          pendingAction?.type === "publish"
+            ? "Publicar versión"
+            : pendingAction?.type === "archive"
+              ? "Archivar versión"
+              : "Eliminar"
         }
         description={
           pendingAction?.type === "publish"
             ? "La estructura será validada y quedará inmutable. Para realizar cambios posteriores deberás clonarla como una nueva versión."
-            : "Esta acción eliminará definitivamente el borrador y su estructura."
+            : pendingAction?.type === "archive"
+              ? "No podrá usarse para nuevas evaluaciones, pero seguirá disponible para consultas históricas y clonación."
+              : "Esta acción eliminará definitivamente el borrador y su estructura."
         }
         destructive={pendingAction?.type === "delete"}
         isProcessing={isProcessing}
@@ -422,7 +497,9 @@ export function SurveyDetailPage() {
         title={
           pendingAction?.type === "publish"
             ? "¿Publicar esta versión?"
-            : "¿Eliminar este borrador?"
+            : pendingAction?.type === "archive"
+              ? "¿Archivar esta versión?"
+              : "¿Eliminar este borrador?"
         }
       />
 
@@ -454,6 +531,7 @@ const auditLabels: Record<string, string> = {
   SURVEY_CREATED: "Cuestionario creado",
   SURVEY_UPDATED: "Definición actualizada",
   SURVEY_VERSION_CREATED: "Versión borrador creada",
+  SURVEY_VERSION_IMPORTED: "Versión importada desde planilla",
   SURVEY_VERSION_CLONED: "Versión clonada",
   SURVEY_VERSION_UPDATED: "Estructura de versión actualizada",
   SURVEY_VERSION_PUBLISHED: "Versión publicada",

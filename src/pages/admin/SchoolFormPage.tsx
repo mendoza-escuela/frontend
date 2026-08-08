@@ -15,6 +15,7 @@ import { adminSchoolsService } from "../../services/admin-schools.service";
 const defaults: SchoolFormValues = {
   cue: "",
   name: "",
+  directorName: "",
   schoolNumber: "",
   department: "",
   locality: "",
@@ -31,7 +32,6 @@ const defaults: SchoolFormValues = {
   referentEmail: "",
   referentPhone: "",
   enrollment: 0,
-  characteristicsText: "{}",
   isActive: true,
 };
 
@@ -57,6 +57,7 @@ export function SchoolFormPage() {
         reset({
           cue: school.cue,
           name: school.name,
+          directorName: school.directorName,
           schoolNumber: school.schoolNumber ?? "",
           department: school.department,
           locality: school.locality,
@@ -72,32 +73,39 @@ export function SchoolFormPage() {
           referentLastName: school.referentLastName,
           referentEmail: school.referentEmail ?? "",
           referentPhone: school.referentPhone ?? "",
-          enrollment: school.enrollment,
-          characteristicsText: JSON.stringify(school.characteristics, null, 2),
+          enrollment: school.enrollment ?? 0,
           isActive: school.isActive,
         }),
       )
       .catch((error) => showError(getHttpErrorMessage(error)))
       .finally(() => setLoading(false));
   }, [id, reset]);
-  const submit = handleSubmit(async ({ characteristicsText, ...values }) => {
+  const submit = handleSubmit(async (values) => {
     const input = {
       ...values,
       schoolNumber: values.schoolNumber || null,
       postalCode: values.postalCode || null,
-      scope: values.scope || null,
-      shift: values.shift || null,
+      scope: values.scope,
+      shift: values.shift,
       phone: values.phone || null,
       email: values.email || null,
       referentEmail: values.referentEmail || null,
       referentPhone: values.referentPhone || null,
-      characteristics: JSON.parse(characteristicsText || "{}") as Record<
-        string,
-        string | number | boolean | null
-      >,
     };
     try {
-      if (id) await adminSchoolsService.update(id, input);
+      if (id) {
+        await adminSchoolsService.update(id, input);
+        await adminSchoolsService.rectify(id, {
+          name: values.name,
+          cue: values.cue,
+          directorName: values.directorName,
+          address: values.address,
+          locality: values.locality,
+          scope: values.scope,
+          educationLevel: values.educationLevel,
+          shift: values.shift,
+        });
+      }
       else await adminSchoolsService.create(input);
       showSuccess(
         id
@@ -144,6 +152,13 @@ export function SchoolFormPage() {
             <Field wide label="Nombre *" error={errors.name?.message}>
               <input className="field" {...register("name")} />
             </Field>
+            <Field
+              wide
+              label="Director/a *"
+              error={errors.directorName?.message}
+            >
+              <input className="field" {...register("directorName")} />
+            </Field>
             <Section title="Ubicación" />
             <Field label="Departamento *" error={errors.department?.message}>
               <input className="field" {...register("department")} />
@@ -168,10 +183,10 @@ export function SchoolFormPage() {
             <Field label="Gestión *" error={errors.managementType?.message}>
               <input className="field" {...register("managementType")} />
             </Field>
-            <Field label="Ámbito">
+            <Field label="Ámbito *" error={errors.scope?.message}>
               <input className="field" {...register("scope")} />
             </Field>
-            <Field label="Jornada">
+            <Field label="Jornada *" error={errors.shift?.message}>
               <input className="field" {...register("shift")} />
             </Field>
             <Field label="Matrícula *" error={errors.enrollment?.message}>
@@ -181,19 +196,6 @@ export function SchoolFormPage() {
                 type="number"
                 {...register("enrollment", { valueAsNumber: true })}
               />
-            </Field>
-            <Field
-              wide
-              label="Características (JSON)"
-              error={errors.characteristicsText?.message}
-            >
-              <textarea
-                className="field min-h-28 font-mono text-sm"
-                {...register("characteristicsText")}
-              />
-              <span className="mt-1 block text-xs font-normal text-mendoza-muted">
-                Ejemplo: {`{"comedor": true, "turnos": 2}`}
-              </span>
             </Field>
             <Section title="Contacto y referente" />
             <Field label="Correo institucional" error={errors.email?.message}>
