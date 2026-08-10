@@ -28,10 +28,17 @@ describe("EvaluationConfigurationsPage", () => {
     expect(screen.queryByRole("button", { name: "Editar" })).not.toBeInTheDocument();
     expect(screen.queryByRole("button", { name: "Activar" })).not.toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Clonar" })).toBeVisible();
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
   });
-  it("renders five explicit editable ranges in a new draft", async () => {
+  it("opens the new configuration editor in a modal with five ranges", async () => {
     render(<EvaluationConfigurationsPage />);
     await screen.findByText(/v1.0.0 · Inicial/);
+    fireEvent.click(
+      screen.getByRole("button", { name: "Nueva configuración" }),
+    );
+    expect(
+      screen.getByRole("dialog", { name: "Nueva configuración" }),
+    ).toBeVisible();
     expect(screen.getAllByLabelText(/Límite inferior/i)).toHaveLength(5);
     expect(screen.getAllByLabelText(/Límite superior/i)).toHaveLength(5);
   });
@@ -40,6 +47,10 @@ describe("EvaluationConfigurationsPage", () => {
     render(<EvaluationConfigurationsPage />);
     expect(await screen.findByText("Versión activa")).toBeVisible();
     expect(screen.getByText("Borradores")).toBeVisible();
+    expect(screen.queryByLabelText("Código de versión")).not.toBeInTheDocument();
+    fireEvent.click(
+      screen.getByRole("button", { name: "Nueva configuración" }),
+    );
     expect(screen.getByLabelText("Código de versión")).toHaveClass("border");
     expect(screen.getByLabelText("Nombre")).toHaveAttribute(
       "placeholder",
@@ -51,6 +62,9 @@ describe("EvaluationConfigurationsPage", () => {
   it("rechaza límites decimales en los rangos de estrellas", async () => {
     render(<EvaluationConfigurationsPage />);
     await screen.findByText("Versión activa");
+    fireEvent.click(
+      screen.getByRole("button", { name: "Nueva configuración" }),
+    );
     const decimalInput = screen.getAllByLabelText(/Límite inferior/i)[1];
     fireEvent.change(decimalInput, {
       target: { value: "20.5" },
@@ -63,6 +77,9 @@ describe("EvaluationConfigurationsPage", () => {
   it("muestra las validaciones finales del formulario en español", async () => {
     render(<EvaluationConfigurationsPage />);
     await screen.findByText(/v1.0.0 · Inicial/);
+    fireEvent.click(
+      screen.getByRole("button", { name: "Nueva configuración" }),
+    );
     fireEvent.click(screen.getByRole("button", { name: "Guardar borrador" }));
     expect(
       await screen.findByText("Ingresá el código de versión."),
@@ -71,5 +88,23 @@ describe("EvaluationConfigurationsPage", () => {
       screen.getByText("Ingresá el nombre de la configuración."),
     ).toBeVisible();
     expect(screen.queryByText(/too small|expected string/i)).toBeNull();
+  });
+
+  it("confirma antes de cerrar el modal si hay cambios sin guardar", async () => {
+    render(<EvaluationConfigurationsPage />);
+    await screen.findByText(/v1.0.0 · Inicial/);
+    fireEvent.click(
+      screen.getByRole("button", { name: "Nueva configuración" }),
+    );
+    fireEvent.change(screen.getByLabelText("Nombre"), {
+      target: { value: "Configuración de prueba" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Cancelar" }));
+
+    expect(
+      screen.getByRole("dialog", { name: "Descartar cambios" }),
+    ).toBeVisible();
+    fireEvent.click(screen.getByRole("button", { name: "Descartar" }));
+    expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
   });
 });

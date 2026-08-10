@@ -1,4 +1,5 @@
 import { Link } from 'react-router-dom';
+import { InstitutionalBrand } from './InstitutionalBrand';
 
 const footerLinks = [
   { label: 'Ayuda', href: '#ayuda' },
@@ -10,9 +11,12 @@ export function PublicFooter() {
   return (
     <footer className="border-t border-mendoza-border bg-white">
       <div className="mx-auto flex max-w-7xl flex-col gap-4 px-4 py-8 sm:px-6 md:flex-row md:items-center md:justify-between lg:px-8">
-        <p className="text-sm font-medium text-mendoza-text">
-          Programa Escuelas Promotoras de Salud - Mendoza
-        </p>
+        <div>
+          <p className="text-sm font-medium text-mendoza-text">
+            Programa Escuelas Promotoras de Salud - Mendoza
+          </p>
+          <InstitutionalBrand className="mt-3" compact />
+        </div>
 
         <nav className="flex flex-wrap gap-x-6 gap-y-2" aria-label="Pie de página">
           {footerLinks.map((footerLink) =>

@@ -13,6 +13,7 @@ import {
 import { NavLink, Outlet, useNavigate } from "react-router-dom";
 import { useAuth } from "../../hooks/useAuth";
 import { showError } from "../../lib/toast";
+import { InstitutionalBrand } from "./InstitutionalBrand";
 
 const links = [
   { to: "/admin", label: "Inicio", icon: Home, end: true },
@@ -59,7 +60,7 @@ export function AdminLayout() {
 
   return (
     <div className="min-h-screen bg-mendoza-background lg:flex">
-      <aside className="bg-mendoza-blue p-4 text-white lg:sticky lg:top-0 lg:h-screen lg:w-64 lg:shrink-0 lg:self-start lg:overflow-y-auto lg:p-6">
+      <aside className="bg-mendoza-blue p-4 text-white lg:sticky lg:top-0 lg:h-screen lg:w-64 lg:shrink-0 lg:self-start lg:overflow-y-auto lg:p-6" data-print-hidden="true">
         <div className="flex items-center gap-3 border-b border-white/20 pb-5">
           <Building2 aria-hidden="true" />
           <div>
@@ -85,9 +86,14 @@ export function AdminLayout() {
             </NavLink>
           ))}
         </nav>
+        <InstitutionalBrand
+          className="mt-6 border-t border-white/20 pt-5"
+          compact
+          surface="blue"
+        />
       </aside>
       <div className="min-w-0 flex-1">
-        <header className="flex flex-wrap items-center justify-between gap-3 border-b border-mendoza-border bg-white px-4 py-4 sm:px-8">
+        <header className="flex flex-wrap items-center justify-between gap-3 border-b border-mendoza-border bg-white px-4 py-4 sm:px-8" data-print-hidden="true">
           <div>
             <p className="text-sm text-mendoza-muted">
               Sesión de administrador

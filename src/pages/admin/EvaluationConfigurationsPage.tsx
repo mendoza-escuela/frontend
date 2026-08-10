@@ -20,6 +20,7 @@ import { ConfirmDialog } from "../../components/ui/ConfirmDialog";
 import { EmptyState } from "../../components/ui/EmptyState";
 import { ErrorState } from "../../components/ui/ErrorState";
 import { LoadingState } from "../../components/ui/LoadingState";
+import { Modal } from "../../components/ui/Modal";
 import { PageHeader } from "../../components/ui/PageHeader";
 import { checkboxClassName, inputClassName } from "../../components/ui/form-styles";
 import { formatDateTime } from "../../lib/format";
@@ -123,6 +124,8 @@ export function EvaluationConfigurationsPage() {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [editing, setEditing] = useState<EvaluationConfiguration | null>(null);
+  const [editorOpen, setEditorOpen] = useState(false);
+  const [discardChanges, setDiscardChanges] = useState(false);
   const [activate, setActivate] = useState<EvaluationConfiguration | null>(
     null,
   );
@@ -134,6 +137,7 @@ export function EvaluationConfigurationsPage() {
     control: form.control,
     name: "starRanges",
   });
+  const isEditorDirty = form.formState.isDirty;
   const load = useCallback(async () => {
     setLoading(true);
     setError("");
@@ -148,7 +152,7 @@ export function EvaluationConfigurationsPage() {
   useEffect(() => {
     void load();
   }, [load]);
-  const edit = (configuration?: EvaluationConfiguration) => {
+  const openEditor = (configuration?: EvaluationConfiguration) => {
     setEditing(configuration ?? null);
     form.reset(
       configuration
@@ -168,6 +172,19 @@ export function EvaluationConfigurationsPage() {
           }
         : defaults,
     );
+    setEditorOpen(true);
+  };
+  const closeEditor = () => {
+    setEditorOpen(false);
+    setEditing(null);
+    form.reset(defaults);
+  };
+  const requestCloseEditor = () => {
+    if (isEditorDirty) {
+      setDiscardChanges(true);
+      return;
+    }
+    closeEditor();
   };
   const submit = form.handleSubmit(async (value) => {
     try {
@@ -177,7 +194,7 @@ export function EvaluationConfigurationsPage() {
       showSuccess(
         editing ? "Borrador actualizado." : "Configuración creada en borrador.",
       );
-      edit();
+      closeEditor();
       await load();
     } catch (reason) {
       showError(getHttpErrorMessage(reason));
@@ -192,6 +209,19 @@ export function EvaluationConfigurationsPage() {
       showError(getHttpErrorMessage(reason));
     }
   };
+  const cloneAndEdit = async (configuration: EvaluationConfiguration) => {
+    try {
+      const clone = await evaluationConfigurationsService.clone(
+        configuration.id,
+        `${configuration.versionCode}-copia-${Date.now()}`,
+      );
+      showSuccess("Nueva versión creada en borrador.");
+      await load();
+      openEditor(clone);
+    } catch (reason) {
+      showError(getHttpErrorMessage(reason));
+    }
+  };
   return (
     <main className="p-4 sm:p-8">
       <div className="mx-auto max-w-7xl">
@@ -199,9 +229,17 @@ export function EvaluationConfigurationsPage() {
           eyebrow="Motor de evaluación"
           title="Configuraciones de evaluación"
           description="Versiones inmutables de rangos, umbrales y límites de certificación."
+          actions={
+            <Button
+              icon={<Plus aria-hidden="true" size={18} />}
+              onClick={() => openEditor()}
+            >
+              Nueva configuración
+            </Button>
+          }
         />
         <ConfigurationOverview items={items} loading={loading} />
-        <div className="mt-6 grid items-start gap-6 xl:grid-cols-[minmax(0,1.1fr)_minmax(430px,0.9fr)]">
+        <div className="mt-6">
           <section aria-label="Historial de configuraciones">
             <div className="mb-4 flex flex-wrap items-end justify-between gap-3">
               <div><p className="text-xs font-bold uppercase tracking-wider text-mendoza-blue">Historial versionado</p><h2 className="mt-1 text-2xl font-bold text-mendoza-text">Versiones configuradas</h2><p className="mt-1 text-sm text-mendoza-muted">Consultá, validá o cloná las reglas sin alterar versiones ya utilizadas.</p></div>
@@ -216,6 +254,14 @@ export function EvaluationConfigurationsPage() {
                 icon={Settings2}
                 title="No hay configuraciones"
                 description="Creá la primera versión del algoritmo."
+                action={
+                  <Button
+                    icon={<Plus aria-hidden="true" size={18} />}
+                    onClick={() => openEditor()}
+                  >
+                    Crear configuración
+                  </Button>
+                }
               />
             ) : (
               <div className="space-y-4">
@@ -250,7 +296,7 @@ export function EvaluationConfigurationsPage() {
                             <Button
                               icon={<Pencil size={16} />}
                               variant="outline"
-                              onClick={() => edit(item)}
+                              onClick={() => openEditor(item)}
                             >
                               Editar
                             </Button>
@@ -295,16 +341,7 @@ export function EvaluationConfigurationsPage() {
                         <Button
                           icon={<Copy size={16} />}
                           variant="outline"
-                          onClick={() =>
-                            void action(
-                              () =>
-                                evaluationConfigurationsService.clone(
-                                  item.id,
-                                  `${item.versionCode}-copia-${Date.now()}`,
-                                ),
-                              "Nueva versión creada en borrador.",
-                            )
-                          }
+                          onClick={() => void cloneAndEdit(item)}
                         >
                           Clonar
                         </Button>
@@ -338,21 +375,20 @@ export function EvaluationConfigurationsPage() {
               </div>
             )}
           </section>
-          <Card as="section" className="border-t-4 border-t-mendoza-blue xl:sticky xl:top-6">
-            <div className="flex items-start gap-3 border-b border-mendoza-border pb-4">
-              <span className="grid size-11 shrink-0 place-items-center rounded-xl bg-mendoza-blue text-white">{editing ? <Pencil aria-hidden="true" size={20} /> : <Plus aria-hidden="true" size={21} />}</span>
-              <div><p className="text-xs font-bold uppercase tracking-wider text-mendoza-blue">Editor de reglas</p><h2 className="mt-1 text-xl font-bold text-mendoza-text">
-              {editing
-                ? `Editar ${editing.versionCode}`
-                : "Nueva configuración"}
-              </h2><p className="mt-1 text-sm leading-5 text-mendoza-muted">Definí una versión auditable. Se podrá modificar únicamente mientras sea borrador.</p></div>
-            </div>
-            {editing?.status !== "draft" && editing ? (
-              <p className="mt-2 text-sm text-mendoza-error">
-                Las versiones activas o archivadas son inmutables.
-              </p>
-            ) : (
-              <form className="mt-5 space-y-6" onSubmit={submit}>
+        </div>
+        <Modal
+          description="Definí una versión auditable. Se podrá modificar únicamente mientras sea borrador."
+          onClose={requestCloseEditor}
+          open={editorOpen}
+          size="lg"
+          title={editing ? `Editar ${editing.versionCode}` : "Nueva configuración"}
+        >
+          {editing?.status !== "draft" && editing ? (
+            <p className="text-sm text-mendoza-error">
+              Las versiones activas o archivadas son inmutables.
+            </p>
+          ) : (
+            <form className="space-y-6" onSubmit={submit}>
                 <section aria-labelledby="configuration-identity-title" className="space-y-4 rounded-2xl bg-mendoza-background/70 p-4">
                   <div className="flex items-center gap-2"><FileText aria-hidden="true" className="text-mendoza-blue" size={19} /><h3 className="font-bold text-mendoza-text" id="configuration-identity-title">Identificación de la versión</h3></div>
                 <Field
@@ -477,15 +513,14 @@ export function EvaluationConfigurationsPage() {
                   <Button
                     type="button"
                     variant="outline"
-                    onClick={() => edit()}
+                    onClick={requestCloseEditor}
                   >
-                    Limpiar
+                    Cancelar
                   </Button>
                 </div>
-              </form>
-            )}
-          </Card>
-        </div>
+            </form>
+          )}
+        </Modal>
       </div>
       <ConfirmDialog
         open={!!activate}
@@ -500,6 +535,18 @@ export function EvaluationConfigurationsPage() {
               "Configuración activada.",
             );
           setActivate(null);
+        }}
+      />
+      <ConfirmDialog
+        destructive
+        open={discardChanges}
+        title="Descartar cambios"
+        description="Hay cambios sin guardar en la configuración. Si cerrás el editor, se perderán."
+        confirmLabel="Descartar"
+        onCancel={() => setDiscardChanges(false)}
+        onConfirm={() => {
+          setDiscardChanges(false);
+          closeEditor();
         }}
       />
     </main>

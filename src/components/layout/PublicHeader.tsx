@@ -11,7 +11,7 @@ const navigationItems = [
 
 export function PublicHeader() {
   return (
-    <header className="sticky top-0 z-20 border-b border-mendoza-border bg-white/95 backdrop-blur">
+    <header className="sticky top-0 z-20 border-b border-mendoza-border bg-white/95 backdrop-blur" data-print-hidden="true">
       <div className="mx-auto flex max-w-7xl items-center justify-between gap-3 px-4 py-3 sm:px-6 sm:py-4 lg:px-8">
         <a className="flex min-w-0 items-center gap-3" href="#inicio">
           <img

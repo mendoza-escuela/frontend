@@ -8,12 +8,7 @@ import {
   Tooltip,
 } from "recharts";
 import type { PreliminaryResultDimension } from "../../types/school-result";
-
-const chartColors = {
-  primary: "#000F9F",
-  secondary: "#3CB4E5",
-  grid: "#E5E7EB",
-};
+import { INSTITUTIONAL_CHART_COLORS } from "../../theme/institutional-theme";
 
 type RadarAxisTickProps = {
   x?: string | number;
@@ -64,7 +59,7 @@ export function PreliminaryResultRadar({
               margin={{ bottom: 50, left: 65, right: 65, top: 50 }}
               outerRadius="68%"
             >
-              <PolarGrid stroke={chartColors.grid} />
+              <PolarGrid stroke={INSTITUTIONAL_CHART_COLORS.grid} />
               <PolarAngleAxis
                 dataKey="title"
                 tick={(properties) => <RadarAxisTick {...properties} />}
@@ -74,7 +69,10 @@ export function PreliminaryResultRadar({
                 axisLine={false}
                 domain={[0, 100]}
                 tickCount={6}
-                tick={{ fill: "#6B7280", fontSize: 11 }}
+                tick={{
+                  fill: INSTITUTIONAL_CHART_COLORS.axis,
+                  fontSize: 11,
+                }}
               />
               <Tooltip
                 formatter={(value) => [
@@ -85,10 +83,10 @@ export function PreliminaryResultRadar({
               />
               <Radar
                 dataKey="score"
-                fill={chartColors.secondary}
+                fill={INSTITUTIONAL_CHART_COLORS.secondary}
                 fillOpacity={0.3}
                 name="Puntaje"
-                stroke={chartColors.primary}
+                stroke={INSTITUTIONAL_CHART_COLORS.primary}
                 strokeWidth={2}
               />
             </RadarChart>
@@ -140,7 +138,7 @@ function RadarAxisTick({
   const lines = wrapLabel(String(payload?.value ?? ""), 23);
   return (
     <text
-      fill="#1F2937"
+      fill={INSTITUTIONAL_CHART_COLORS.label}
       fontSize={11}
       fontWeight={600}
       textAnchor={textAnchor}

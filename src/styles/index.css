@@ -29,6 +29,10 @@
   -moz-osx-font-smoothing: grayscale;
 }
 
+html:focus-within {
+  scroll-behavior: smooth;
+}
+
 body {
   min-width: 320px;
   min-height: 100vh;
@@ -40,6 +44,12 @@ input,
 textarea,
 select {
   font: inherit;
+}
+
+:where(a, button, input, textarea, select, summary, [tabindex]):focus-visible {
+  outline: 3px solid var(--color-mendoza-surface);
+  outline-offset: 2px;
+  box-shadow: 0 0 0 5px var(--color-mendoza-blue);
 }
 
 @keyframes panel-reveal {
@@ -85,9 +95,70 @@ select {
 }
 
 @media (prefers-reduced-motion: reduce) {
+  html:focus-within {
+    scroll-behavior: auto;
+  }
+
+  *,
+  *::before,
+  *::after {
+    scroll-behavior: auto !important;
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+
   .animate-dashboard-card,
   .animate-panel-reveal,
   .animate-metric-card {
     animation: none;
+  }
+}
+
+@media print {
+  @page {
+    margin: 14mm;
+    size: A4;
+  }
+
+  *,
+  *::before,
+  *::after {
+    animation: none !important;
+    box-shadow: none !important;
+    text-shadow: none !important;
+    transition: none !important;
+  }
+
+  html,
+  body,
+  #root {
+    min-width: 0;
+    background: var(--color-mendoza-surface) !important;
+    color: var(--color-mendoza-text) !important;
+    print-color-adjust: exact;
+    -webkit-print-color-adjust: exact;
+  }
+
+  button,
+  nav,
+  [data-print-hidden='true'],
+  [role='dialog'] {
+    display: none !important;
+  }
+
+  a {
+    color: inherit !important;
+    text-decoration: none !important;
+  }
+
+  table,
+  figure,
+  article {
+    break-inside: avoid;
+  }
+
+  thead {
+    display: table-header-group;
   }
 }

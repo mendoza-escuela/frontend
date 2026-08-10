@@ -28,7 +28,7 @@ El panel `/admin/cuestionarios` incorpora el ABM de cuestionarios y versiones. P
 
 El panel `/admin/campanas` permite crear campañas anuales o semestrales, asociarlas a una versión publicada, buscarlas y filtrarlas. Los borradores pueden editarse o eliminarse y luego recorren el ciclo irreversible Activa, Cerrada y Archivada. La interfaz informa que la fecha final cierra a las 23:59:59 de Mendoza.
 
-El dashboard `/admin/participacion` permite seguir por campaña el total de escuelas activas, las no iniciadas, los borradores, los envíos y el porcentaje de participación. Los filtros de campaña, ubicación y características institucionales se conservan en la URL; departamento y localidad actualizan las opciones dependientes. Las solicitudes anteriores se cancelan cuando el administrador cambia rápidamente los filtros.
+El dashboard `/admin/participacion` permite seguir por campaña el total de escuelas asignadas, las no iniciadas, los borradores, los envíos y el porcentaje de participación. Los filtros de campaña, ubicación y características institucionales se conservan en la URL; departamento y localidad actualizan las opciones dependientes. Las solicitudes anteriores se cancelan cuando el administrador cambia rápidamente los filtros.
 
 Desde el detalle de un cuestionario se accede a `/admin/cuestionarios/:surveyId/importar`. Allí se descargan plantillas CSV/Excel, se previsualizan errores por fila y se crea una versión borrador únicamente cuando la planilla completa es válida. El perfil institucional restringe el editor a selección simple y no ofrece “Otro”, “No aplica”, selección múltiple ni campos de observaciones.
 
@@ -36,7 +36,7 @@ Las pantallas administrativas reutilizan componentes comunes para encabezados, c
 
 Las páginas públicas, administrativas y del portal escolar se cargan bajo demanda mediante `React.lazy`, reduciendo el JavaScript inicial y evitando descargar módulos que el usuario todavía no visitó.
 
-La paleta institucional se centraliza mediante tokens `mendoza-*` en `src/styles/index.css`. La interfaz usa azul `#000F9F` como primario, celeste `#3CB4E5` como apoyo, dorado `#C8A977` como acento y la familia REM con fallbacks del sistema.
+La paleta institucional se centraliza mediante tokens `mendoza-*` en `src/styles/index.css` y constantes para gráficos en `src/theme/institutional-theme.ts`. La interfaz usa azul `#000F9F` como primario, celeste `#3CB4E5` como apoyo, dorado `#C8A977` como acento y la familia REM con fallbacks del sistema. La procedencia de logos, variantes, tipografía, contraste, impresión y movimiento reducido se documenta en [`docs/identity-visual.md`](docs/identity-visual.md).
 
 ## Verificación
 

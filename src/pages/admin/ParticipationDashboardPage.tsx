@@ -21,6 +21,7 @@ import { PageHeader } from "../../components/ui/PageHeader";
 import { SearchableSelect } from "../../components/ui/SearchableSelect";
 import { getHttpErrorMessage } from "../../lib/http-error";
 import { showError } from "../../lib/toast";
+import { INSTITUTIONAL_CHART_COLORS } from "../../theme/institutional-theme";
 import { adminDashboardService } from "../../services/admin-dashboard.service";
 import type {
   ParticipationDashboardResponse,
@@ -316,7 +317,7 @@ function ResultsMetrics({ dashboard, filters, returnTo }: { dashboard: ResultsDa
       </div>
       <div className="mt-4 grid gap-4 md:grid-cols-2 xl:grid-cols-3">{dashboard.metrics.dimensionAverages.map(dimension=><ResultCard key={dimension.code} label={dimension.title} value={dimension.average===null?"No disponible":`${dimension.average} / 100`} />)}</div>
       <Card className="mt-6"><h3 className="text-lg font-bold text-mendoza-text">Distribución de estrellas finales</h3><p className="mt-1 text-sm text-mendoza-muted">Denominador: {dashboard.denominators.starDistribution} resultados con estrellas. Excluidos sin estrellas: {dashboard.excludedResultsWithoutStars}.</p>
-        <div className="mt-4 h-72" aria-label="Distribución horizontal de estrellas"><ResponsiveContainer width="100%" height="100%"><BarChart data={dashboard.starDistribution} layout="vertical" margin={{left:12,right:24}}><CartesianGrid strokeDasharray="3 3"/><XAxis type="number" domain={[0,100]} unit="%"/><YAxis dataKey="label" type="category" width={85}/><Bar dataKey="percentage" fill="#000F9F" radius={[0,6,6,0]}/></BarChart></ResponsiveContainer></div>
+        <div className="mt-4 h-72" aria-label="Distribución horizontal de estrellas"><ResponsiveContainer width="100%" height="100%"><BarChart data={dashboard.starDistribution} layout="vertical" margin={{left:12,right:24}}><CartesianGrid stroke={INSTITUTIONAL_CHART_COLORS.grid} strokeDasharray="3 3"/><XAxis type="number" domain={[0,100]} unit="%"/><YAxis dataKey="label" type="category" width={85}/><Bar dataKey="percentage" fill={INSTITUTIONAL_CHART_COLORS.primary} radius={[0,6,6,0]}/></BarChart></ResponsiveContainer></div>
         <ul className="mt-4 grid gap-2 sm:grid-cols-5">{dashboard.starDistribution.map(item=><li className="rounded-lg bg-mendoza-background p-3 text-sm" key={item.stars}><span className="flex items-center gap-1 font-bold text-mendoza-gold"><Star aria-hidden="true" className="fill-current" size={16}/>{item.label}</span><span className="mt-1 block text-mendoza-text">{item.count} · {formatPercentage(item.percentage)}</span></li>)}</ul>
       </Card>
     </>}
