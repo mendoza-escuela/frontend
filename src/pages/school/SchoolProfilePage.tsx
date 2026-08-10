@@ -95,6 +95,7 @@ export function SchoolProfilePage() {
   }
 
   const selectedLevels = watch("educationLevels") ?? [];
+  const contacts = watch("contacts") ?? [];
   const removeLevel = (levelId: string) => {
     setValue(
       "educationLevels",
@@ -133,7 +134,15 @@ export function SchoolProfilePage() {
 
   const submit = handleSubmit(async (values) => {
     try {
-      const profile = await schoolPortalService.rectify(values);
+      const profile = await schoolPortalService.rectify({
+        ...values,
+        contacts: values.contacts.map((contact) => ({
+          ...contact,
+          position: contact.position || null,
+          phone: contact.phone || null,
+          email: contact.email || null,
+        })),
+      });
       setSchool(profile);
       reset(rectificationValues(profile));
       showSuccess(
@@ -281,6 +290,79 @@ export function SchoolProfilePage() {
             <RectificationField error={errors.scope?.message} label="Ámbito">
               <input className="field" {...register("scope")} />
             </RectificationField>
+
+            <div className="md:col-span-2">
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <div>
+                  <h3 className="font-bold text-mendoza-text">Referentes escolares</h3>
+                  <p className="mt-1 text-sm text-mendoza-muted">
+                    Estos datos quedarán congelados en la rectificación y en la presentación de la campaña.
+                  </p>
+                </div>
+                {!contacts.some(({ type }) => type === "HEALTH_PROMOTION") && (
+                  <Button
+                    onClick={() =>
+                      setValue(
+                        "contacts",
+                        [
+                          ...contacts,
+                          {
+                            type: "HEALTH_PROMOTION",
+                            firstName: "",
+                            lastName: "",
+                            position: "",
+                            phone: "",
+                            email: "",
+                          },
+                        ],
+                        { shouldDirty: true },
+                      )
+                    }
+                    variant="outline"
+                  >
+                    Agregar referente de promoción
+                  </Button>
+                )}
+              </div>
+              <div className="mt-4 grid gap-4 lg:grid-cols-2">
+                {contacts.map((contact, index) => (
+                  <fieldset className="rounded-xl border border-mendoza-border p-4" key={contact.type}>
+                    <legend className="px-2 font-bold text-mendoza-blue">
+                      {contact.type === "RESPONDENT"
+                        ? "Referente respondente"
+                        : "Promoción de la salud"}
+                    </legend>
+                    <input type="hidden" {...register(`contacts.${index}.type` as const)} />
+                    <div className="mt-2 grid gap-3 sm:grid-cols-2">
+                      <RectificationField error={errors.contacts?.[index]?.firstName?.message} label="Nombre">
+                        <input className="field" {...register(`contacts.${index}.firstName` as const)} />
+                      </RectificationField>
+                      <RectificationField error={errors.contacts?.[index]?.lastName?.message} label="Apellido">
+                        <input className="field" {...register(`contacts.${index}.lastName` as const)} />
+                      </RectificationField>
+                      <RectificationField error={errors.contacts?.[index]?.position?.message} label="Cargo">
+                        <input className="field" {...register(`contacts.${index}.position` as const)} />
+                      </RectificationField>
+                      <RectificationField error={errors.contacts?.[index]?.email?.message} label="Correo" required={false}>
+                        <input className="field" type="email" {...register(`contacts.${index}.email` as const)} />
+                      </RectificationField>
+                      <RectificationField label="Teléfono" required={false}>
+                        <input className="field" {...register(`contacts.${index}.phone` as const)} />
+                      </RectificationField>
+                    </div>
+                    {contact.type === "HEALTH_PROMOTION" && (
+                      <button
+                        className="mt-3 text-sm font-semibold text-mendoza-error"
+                        onClick={() => setValue("contacts", contacts.filter((_, contactIndex) => contactIndex !== index), { shouldDirty: true })}
+                        type="button"
+                      >
+                        Quitar este referente
+                      </button>
+                    )}
+                  </fieldset>
+                ))}
+              </div>
+            </div>
 
             <div className="md:col-span-2">
               <h3 className="font-bold text-mendoza-text">
@@ -683,6 +765,35 @@ function rectificationValues(
         enrollment,
       }),
     ),
+    contacts: (() => {
+      const saved = school.contacts ?? [];
+      const respondent = saved.find(({ type }) => type === "RESPONDENT");
+      const healthPromotion = saved.find(
+        ({ type }) => type === "HEALTH_PROMOTION",
+      );
+      return [
+        {
+          type: "RESPONDENT" as const,
+          firstName: respondent?.firstName ?? school.referentFirstName,
+          lastName: respondent?.lastName ?? school.referentLastName,
+          position: respondent?.position ?? "",
+          phone: respondent?.phone ?? school.referentPhone ?? "",
+          email: respondent?.email ?? school.referentEmail ?? "",
+        },
+        ...(healthPromotion
+          ? [
+              {
+                type: "HEALTH_PROMOTION" as const,
+                firstName: healthPromotion.firstName,
+                lastName: healthPromotion.lastName,
+                position: healthPromotion.position ?? "",
+                phone: healthPromotion.phone ?? "",
+                email: healthPromotion.email ?? "",
+              },
+            ]
+          : []),
+      ];
+    })(),
     expectedUpdatedAt: school.updatedAt,
   };
 }

@@ -5,6 +5,7 @@ import type {
   ParticipationFilters,
   ResultsDashboardResponse,
 } from "../types/admin-dashboard";
+import { downloadBlob } from "../lib/download";
 
 const cleanParams = (filters: ParticipationFilters) =>
   Object.fromEntries(
@@ -22,7 +23,7 @@ export const adminDashboardService = {
   },
 
   async filterOptions(
-    filters: Pick<ParticipationFilters, "department" | "locality">,
+    filters: Pick<ParticipationFilters, "campaignId" | "department" | "locality">,
     signal?: AbortSignal,
   ) {
     return (
@@ -34,5 +35,19 @@ export const adminDashboardService = {
   },
   async results(filters: ParticipationFilters, signal?: AbortSignal) {
     return (await api.get<ResultsDashboardResponse>("/admin/dashboard/results", { params: cleanParams(filters), signal })).data;
+  },
+  async export(
+    kind: "results" | "answers",
+    format: "csv" | "xlsx",
+    filters: ParticipationFilters,
+  ) {
+    const response = await api.get<Blob>(`/admin/exports/${kind}`, {
+      params: { ...cleanParams(filters), format },
+      responseType: "blob",
+    });
+    downloadBlob(
+      response.data,
+      `${kind === "results" ? "resultados" : "respuestas"}.${format}`,
+    );
   },
 };

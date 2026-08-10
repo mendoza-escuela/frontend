@@ -7,6 +7,8 @@ import {
   CheckCircle2,
   ClipboardCheck,
   FileClock,
+  FileDown,
+  ReceiptText,
   School,
   Star,
 } from "lucide-react";
@@ -14,17 +16,20 @@ import { useCallback, useEffect, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { PreliminaryResultRadar } from "../../components/results/PreliminaryResultRadar";
 import { Card } from "../../components/ui/Card";
+import { Button } from "../../components/ui/Button";
 import { EmptyState } from "../../components/ui/EmptyState";
 import { ErrorState } from "../../components/ui/ErrorState";
 import { LoadingState } from "../../components/ui/LoadingState";
 import { PageHeader } from "../../components/ui/PageHeader";
 import { formatDateTime } from "../../lib/format";
 import { getHttpErrorMessage } from "../../lib/http-error";
+import { showError } from "../../lib/toast";
 import { schoolResultsService } from "../../services/school-results.service";
 import type {
   PreliminaryResultAnswer,
   SchoolPreliminaryResult,
   SchoolPreliminaryResultList,
+  SchoolStarDistribution,
 } from "../../types/school-result";
 
 type ResultError = {
@@ -143,6 +148,9 @@ function PreliminaryResultDetail({ campaignId }: { campaignId: string }) {
     useState<SchoolPreliminaryResult | null>(null);
   const [error, setError] = useState<ResultError | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [distribution, setDistribution] =
+    useState<SchoolStarDistribution | null>(null);
+  const [isDownloading, setIsDownloading] = useState(false);
 
   const load = useCallback(async () => {
     setIsLoading(true);
@@ -161,6 +169,21 @@ function PreliminaryResultDetail({ campaignId }: { campaignId: string }) {
   useEffect(() => {
     void load();
   }, [load]);
+
+  useEffect(() => {
+    if (!preliminaryResult) return;
+    setDistribution(null);
+    schoolResultsService
+      .starDistribution(campaignId)
+      .then(setDistribution)
+      .catch((distributionError) => {
+        if (
+          !axios.isAxiosError(distributionError) ||
+          distributionError.response?.status !== 404
+        )
+          showError(getHttpErrorMessage(distributionError));
+      });
+  }, [campaignId, preliminaryResult]);
 
   if (isLoading) {
     return (
@@ -247,6 +270,36 @@ function PreliminaryResultDetail({ campaignId }: { campaignId: string }) {
           </div>
         </Card>
 
+        <div className="mt-4 flex flex-wrap gap-3">
+          <Button
+            disabled={isDownloading}
+            icon={<FileDown aria-hidden="true" size={18} />}
+            onClick={() => {
+              setIsDownloading(true);
+              schoolResultsService
+                .downloadReport(campaignId, preliminaryResult.school.cue)
+                .catch((downloadError) => showError(getHttpErrorMessage(downloadError)))
+                .finally(() => setIsDownloading(false));
+            }}
+          >
+            Descargar reporte PDF
+          </Button>
+          <Button
+            disabled={isDownloading}
+            icon={<ReceiptText aria-hidden="true" size={18} />}
+            onClick={() => {
+              setIsDownloading(true);
+              schoolResultsService
+                .downloadReceipt(campaignId, preliminaryResult.school.cue)
+                .catch((downloadError) => showError(getHttpErrorMessage(downloadError)))
+                .finally(() => setIsDownloading(false));
+            }}
+            variant="outline"
+          >
+            Descargar comprobante
+          </Button>
+        </div>
+
         {mentalHealth.isCritical && (
           <section
             aria-labelledby="mental-health-alert-title"
@@ -313,6 +366,8 @@ function PreliminaryResultDetail({ campaignId }: { campaignId: string }) {
             dimensions={preliminaryResult.result.dimensions}
           />
         </Card>
+
+        {distribution && <StarDistributionCard distribution={distribution} />}
 
         <section aria-labelledby="dimensions-title" className="mt-8">
           <h2
@@ -416,6 +471,59 @@ function PreliminaryResultDetail({ campaignId }: { campaignId: string }) {
         </p>
       </div>
     </main>
+  );
+}
+
+function StarDistributionCard({
+  distribution,
+}: {
+  distribution: SchoolStarDistribution;
+}) {
+  return (
+    <Card className="mt-6">
+      <h2 className="text-xl font-bold text-mendoza-text">
+        Distribución general de estrellas
+      </h2>
+      {!distribution.available ? (
+        <p className="mt-3 text-sm text-mendoza-muted">
+          La distribución se oculta porque todavía no alcanza la muestra mínima
+          de {distribution.minimumSample ?? 5} resultados.
+        </p>
+      ) : (
+        <>
+          <p className="mt-2 text-sm text-mendoza-muted">
+            {distribution.denominator} resultados · alcance {distribution.scope === "department" ? "departamental" : "provincial"}. No se identifican otras escuelas.
+          </p>
+          <table className="mt-5 w-full text-sm">
+            <caption className="sr-only">
+              Cantidad y porcentaje de escuelas por clasificación de estrellas
+            </caption>
+            <thead className="sr-only"><tr><th>Clasificación</th><th>Cantidad</th><th>Porcentaje</th></tr></thead>
+            <tbody>
+              {distribution.items.map((item) => (
+                <tr
+                  className={item.stars === distribution.ownStars ? "bg-amber-50" : ""}
+                  key={item.stars}
+                >
+                  <th className="w-28 p-2 text-left font-semibold" scope="row">
+                    {item.stars} estrella{item.stars === 1 ? "" : "s"}
+                    {item.stars === distribution.ownStars && <span className="ml-2 text-xs text-amber-800">Tu categoría</span>}
+                  </th>
+                  <td className="p-2">
+                    <div className="h-3 overflow-hidden rounded-full bg-mendoza-border" aria-hidden="true">
+                      <div className="h-full rounded-full bg-mendoza-blue" style={{ width: `${Math.min(100, item.percentage)}%` }} />
+                    </div>
+                  </td>
+                  <td className="w-40 p-2 text-right font-semibold">
+                    {item.count} ({item.percentage.toLocaleString("es-AR")} %)
+                  </td>
+                </tr>
+              ))}
+            </tbody>
+          </table>
+        </>
+      )}
+    </Card>
   );
 }
 

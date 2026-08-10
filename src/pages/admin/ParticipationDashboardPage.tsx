@@ -7,6 +7,7 @@ import {
   SlidersHorizontal,
   Star,
   X,
+  FileSpreadsheet,
 } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { Link, useSearchParams } from "react-router-dom";
@@ -19,6 +20,7 @@ import { LoadingState } from "../../components/ui/LoadingState";
 import { PageHeader } from "../../components/ui/PageHeader";
 import { SearchableSelect } from "../../components/ui/SearchableSelect";
 import { getHttpErrorMessage } from "../../lib/http-error";
+import { showError } from "../../lib/toast";
 import { adminDashboardService } from "../../services/admin-dashboard.service";
 import type {
   ParticipationDashboardResponse,
@@ -74,7 +76,11 @@ export function ParticipationDashboardPage() {
     setOptionsLoading(true);
     adminDashboardService
       .filterOptions(
-        { department: filters.department, locality: filters.locality },
+        {
+          campaignId: filters.campaignId,
+          department: filters.department,
+          locality: filters.locality,
+        },
         controller.signal,
       )
       .then((response) => {
@@ -98,7 +104,13 @@ export function ParticipationDashboardPage() {
         if (!controller.signal.aborted) setOptionsLoading(false);
       });
     return () => controller.abort();
-  }, [filters.department, filters.locality, retry, setSearchParams]);
+  }, [
+    filters.campaignId,
+    filters.department,
+    filters.locality,
+    retry,
+    setSearchParams,
+  ]);
 
   useEffect(() => {
     if (!filters.campaignId) {
@@ -274,9 +286,27 @@ export function ParticipationDashboardPage() {
 }
 
 function ResultsMetrics({ dashboard, filters, returnTo }: { dashboard: ResultsDashboardResponse; filters: ParticipationFilters; returnTo: string }) {
+  const [exporting, setExporting] = useState(false);
+  const exportFile = async (kind: "results" | "answers", format: "csv" | "xlsx") => {
+    setExporting(true);
+    try {
+      await adminDashboardService.export(kind, format, filters);
+    } catch (exportError) {
+      showError(getHttpErrorMessage(exportError));
+    } finally {
+      setExporting(false);
+    }
+  };
   return <section aria-labelledby="results-metrics-title" className="mt-10">
     <h2 className="text-2xl font-bold text-mendoza-text" id="results-metrics-title">Resultados de evaluación</h2>
     <div className="flex flex-wrap items-end justify-between gap-3"><p className="mt-1 text-sm text-mendoza-muted">Promedios sobre {dashboard.denominators.averages} resultados vigentes. Escala 0–100.</p>{filters.campaignId && <Link className="inline-flex min-h-11 items-center rounded-lg border border-mendoza-blue px-4 text-sm font-semibold text-mendoza-blue hover:bg-mendoza-blue/5" to={filters.schoolId ? `/admin/campanas/${filters.campaignId}/colegios/${filters.schoolId}/resultado?volver=${encodeURIComponent(returnTo)}` : `/admin/seguimiento?campania=${filters.campaignId}`}>{filters.schoolId ? "Ver detalle de la escuela" : "Ver resultados por escuela"}</Link>}</div>
+    <div className="mt-4 flex flex-wrap items-center gap-2 rounded-xl border border-mendoza-border bg-white p-3">
+      <span className="mr-2 inline-flex items-center gap-2 text-sm font-bold text-mendoza-text"><FileSpreadsheet size={17}/> Exportar filtros actuales</span>
+      <Button disabled={exporting} onClick={() => void exportFile("results", "csv")} variant="outline">Resultados CSV</Button>
+      <Button disabled={exporting} onClick={() => void exportFile("results", "xlsx")} variant="outline">Resultados XLSX</Button>
+      <Button disabled={exporting} onClick={() => void exportFile("answers", "csv")} variant="outline">Respuestas CSV</Button>
+      <Button disabled={exporting} onClick={() => void exportFile("answers", "xlsx")} variant="outline">Respuestas XLSX</Button>
+    </div>
     {dashboard.metrics.schoolsWithResult === 0 ? <div className="mt-4"><EmptyState title="No hay resultados para los filtros seleccionados" description="Las presentaciones enviadas con resultado aparecerán aquí." /></div> : <>
       <div className="mt-4 grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
         <ResultCard label="Escuelas del universo" value={String(dashboard.metrics.universeSchools)} />

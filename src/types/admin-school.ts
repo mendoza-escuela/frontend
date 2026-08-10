@@ -20,6 +20,7 @@ export type School = {
   referentLastName: string;
   referentEmail: string | null;
   referentPhone: string | null;
+  contacts?: SchoolContact[];
   enrollment: number | null;
   hasKiosk: boolean | null;
   hasFoodService: boolean | null;
@@ -29,6 +30,16 @@ export type School = {
   isActive: boolean;
   createdAt: string;
   updatedAt: string;
+};
+
+export type SchoolContact = {
+  id?: string;
+  type: "RESPONDENT" | "HEALTH_PROMOTION";
+  firstName: string;
+  lastName: string;
+  position: string | null;
+  phone: string | null;
+  email: string | null;
 };
 
 export type SchoolCatalogOption = {
@@ -67,6 +78,7 @@ export type SchoolRectificationInput = {
   }>;
   enrollment?: number | null;
   expectedUpdatedAt?: string;
+  contacts?: Array<Omit<SchoolContact, "id">>;
 };
 
 export type SchoolRectificationSnapshot = {
@@ -92,6 +104,7 @@ export type SchoolRectificationSnapshot = {
     enrollment: number | null;
   }>;
   enrollmentTotal?: number | null;
+  contacts?: Array<Omit<SchoolContact, "id">>;
 };
 
 export type SchoolRectificationCatalogs = {

@@ -103,7 +103,11 @@ describe("ParticipationDashboardPage", () => {
       ),
     );
     expect(adminDashboardService.filterOptions).toHaveBeenLastCalledWith(
-      { department: "Capital", locality: undefined },
+      {
+        campaignId: "campaign-1",
+        department: "Capital",
+        locality: undefined,
+      },
       expect.any(AbortSignal),
     );
   });

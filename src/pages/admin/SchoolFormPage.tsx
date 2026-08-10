@@ -31,6 +31,12 @@ const defaults: SchoolFormValues = {
   referentLastName: "",
   referentEmail: "",
   referentPhone: "",
+  respondentPosition: "",
+  healthReferentFirstName: "",
+  healthReferentLastName: "",
+  healthReferentPosition: "",
+  healthReferentEmail: "",
+  healthReferentPhone: "",
   enrollment: 0,
   isActive: true,
 };
@@ -73,6 +79,24 @@ export function SchoolFormPage() {
           referentLastName: school.referentLastName,
           referentEmail: school.referentEmail ?? "",
           referentPhone: school.referentPhone ?? "",
+          respondentPosition:
+            school.contacts?.find((contact) => contact.type === "RESPONDENT")
+              ?.position ?? "",
+          healthReferentFirstName:
+            school.contacts?.find((contact) => contact.type === "HEALTH_PROMOTION")
+              ?.firstName ?? "",
+          healthReferentLastName:
+            school.contacts?.find((contact) => contact.type === "HEALTH_PROMOTION")
+              ?.lastName ?? "",
+          healthReferentPosition:
+            school.contacts?.find((contact) => contact.type === "HEALTH_PROMOTION")
+              ?.position ?? "",
+          healthReferentEmail:
+            school.contacts?.find((contact) => contact.type === "HEALTH_PROMOTION")
+              ?.email ?? "",
+          healthReferentPhone:
+            school.contacts?.find((contact) => contact.type === "HEALTH_PROMOTION")
+              ?.phone ?? "",
           enrollment: school.enrollment ?? 0,
           isActive: school.isActive,
         }),
@@ -81,8 +105,43 @@ export function SchoolFormPage() {
       .finally(() => setLoading(false));
   }, [id, reset]);
   const submit = handleSubmit(async (values) => {
+    const {
+      respondentPosition: _respondentPosition,
+      healthReferentFirstName: _healthFirstName,
+      healthReferentLastName: _healthLastName,
+      healthReferentPosition: _healthPosition,
+      healthReferentEmail: _healthEmail,
+      healthReferentPhone: _healthPhone,
+      ...schoolValues
+    } = values;
+    void _respondentPosition;
+    void _healthFirstName;
+    void _healthLastName;
+    void _healthPosition;
+    void _healthEmail;
+    void _healthPhone;
+    const contacts = [
+      {
+        type: "RESPONDENT" as const,
+        firstName: values.referentFirstName,
+        lastName: values.referentLastName,
+        position: values.respondentPosition,
+        email: values.referentEmail || null,
+        phone: values.referentPhone || null,
+      },
+      ...(values.healthReferentFirstName
+        ? [{
+            type: "HEALTH_PROMOTION" as const,
+            firstName: values.healthReferentFirstName,
+            lastName: values.healthReferentLastName!,
+            position: values.healthReferentPosition!,
+            email: values.healthReferentEmail || null,
+            phone: values.healthReferentPhone || null,
+          }]
+        : []),
+    ];
     const input = {
-      ...values,
+      ...schoolValues,
       schoolNumber: values.schoolNumber || null,
       postalCode: values.postalCode || null,
       scope: values.scope,
@@ -91,6 +150,7 @@ export function SchoolFormPage() {
       email: values.email || null,
       referentEmail: values.referentEmail || null,
       referentPhone: values.referentPhone || null,
+      contacts,
     };
     try {
       if (id) {
@@ -104,6 +164,7 @@ export function SchoolFormPage() {
           scope: values.scope,
           educationLevel: values.educationLevel,
           shift: values.shift,
+          contacts,
         });
       }
       else await adminSchoolsService.create(input);
@@ -197,13 +258,14 @@ export function SchoolFormPage() {
                 {...register("enrollment", { valueAsNumber: true })}
               />
             </Field>
-            <Section title="Contacto y referente" />
+            <Section title="Contacto institucional" />
             <Field label="Correo institucional" error={errors.email?.message}>
               <input className="field" type="email" {...register("email")} />
             </Field>
             <Field label="Teléfono">
               <input className="field" {...register("phone")} />
             </Field>
+            <Section title="Referente respondente" />
             <Field
               label="Nombre del referente *"
               error={errors.referentFirstName?.message}
@@ -228,6 +290,29 @@ export function SchoolFormPage() {
             </Field>
             <Field label="Teléfono del referente">
               <input className="field" {...register("referentPhone")} />
+            </Field>
+            <Field
+              wide
+              label="Cargo del referente respondente *"
+              error={errors.respondentPosition?.message}
+            >
+              <input className="field" {...register("respondentPosition")} />
+            </Field>
+            <Section title="Referente de promoción de la salud" />
+            <Field label="Nombre" error={errors.healthReferentFirstName?.message}>
+              <input className="field" {...register("healthReferentFirstName")} />
+            </Field>
+            <Field label="Apellido" error={errors.healthReferentLastName?.message}>
+              <input className="field" {...register("healthReferentLastName")} />
+            </Field>
+            <Field wide label="Cargo" error={errors.healthReferentPosition?.message}>
+              <input className="field" {...register("healthReferentPosition")} />
+            </Field>
+            <Field label="Correo" error={errors.healthReferentEmail?.message}>
+              <input className="field" type="email" {...register("healthReferentEmail")} />
+            </Field>
+            <Field label="Teléfono">
+              <input className="field" {...register("healthReferentPhone")} />
             </Field>
             <label className="flex items-center gap-3 text-sm font-semibold md:col-span-2">
               <input

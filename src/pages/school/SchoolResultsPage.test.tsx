@@ -12,6 +12,12 @@ vi.mock("../../services/school-results.service", () => ({
   schoolResultsService: {
     list: vi.fn(),
     getByCampaign: vi.fn(),
+    starDistribution: vi.fn().mockRejectedValue({
+      isAxiosError: true,
+      response: { status: 404 },
+    }),
+    downloadReport: vi.fn(),
+    downloadReceipt: vi.fn(),
   },
 }));
 

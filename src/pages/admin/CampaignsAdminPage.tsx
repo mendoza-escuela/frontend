@@ -8,6 +8,7 @@ import {
   Plus,
   Search,
   Trash2,
+  Users,
 } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Link, useNavigate } from "react-router-dom";
@@ -306,6 +307,12 @@ function CampaignCard({
       </dl>
 
       <div className="mt-5 flex flex-wrap gap-2">
+        <Link
+          className="inline-flex min-h-10 items-center gap-2 rounded-lg border border-mendoza-blue px-3 text-sm font-semibold text-mendoza-blue hover:bg-mendoza-blue-soft"
+          to={`/admin/campanas/${campaign.id}/escuelas`}
+        >
+          <Users aria-hidden="true" size={16} /> Escuelas
+        </Link>
         <Link
           className="inline-flex min-h-10 items-center gap-2 rounded-lg border border-mendoza-blue px-3 text-sm font-semibold text-mendoza-blue hover:bg-mendoza-blue-soft"
           to={`/admin/seguimiento?campania=${campaign.id}`}

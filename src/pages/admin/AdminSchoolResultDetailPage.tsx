@@ -1,4 +1,4 @@
-import { AlertTriangle, Archive, ClipboardList, History, School, UserRound } from "lucide-react";
+import { AlertTriangle, Archive, ClipboardList, FileDown, History, School, UserRound } from "lucide-react";
 import { useEffect, useMemo, useState } from "react";
 import { useParams, useSearchParams } from "react-router-dom";
 import { PreliminaryResultRadar } from "../../components/results/PreliminaryResultRadar";
@@ -8,8 +8,10 @@ import { EmptyState } from "../../components/ui/EmptyState";
 import { ErrorState } from "../../components/ui/ErrorState";
 import { LoadingState } from "../../components/ui/LoadingState";
 import { PageHeader } from "../../components/ui/PageHeader";
+import { Button } from "../../components/ui/Button";
 import { formatDateTime } from "../../lib/format";
 import { getHttpErrorMessage } from "../../lib/http-error";
+import { showError } from "../../lib/toast";
 import { adminSchoolResultDetailService } from "../../services/admin-school-result-detail.service";
 import type { AdminHistoricalAnswer, AdminSchoolResultDetail } from "../../types/admin-school-result-detail";
 
@@ -27,6 +29,7 @@ export function AdminSchoolResultDetailPage() {
   const [error, setError] = useState("");
   const [loading, setLoading] = useState(true);
   const [tab, setTab] = useState<Tab>("summary");
+  const [downloading, setDownloading] = useState(false);
   const backTo = useMemo(() => safeBack(params.get("volver")), [params]);
 
   useEffect(() => {
@@ -44,7 +47,7 @@ export function AdminSchoolResultDetailPage() {
   if (error || !detail) return <main className="p-4 sm:p-8"><ErrorState message={error || "No se pudo cargar el detalle."} /></main>;
 
   return <main className="p-4 sm:p-8"><div className="mx-auto max-w-7xl">
-    <PageHeader backLabel="Volver a la consulta" backTo={backTo} eyebrow="Detalle administrativo por escuela" title={detail.school.name}
+    <PageHeader actions={detail.result ? <Button disabled={downloading} icon={<FileDown size={18} />} onClick={() => { if (!campaignId || !schoolId) return; setDownloading(true); adminSchoolResultDetailService.downloadReport(campaignId, schoolId, detail.school.cue).catch((downloadError) => showError(getHttpErrorMessage(downloadError))).finally(() => setDownloading(false)); }}>Descargar reporte PDF</Button> : undefined} backLabel="Volver a la consulta" backTo={backTo} eyebrow="Detalle administrativo por escuela" title={detail.school.name}
       description={`CUE ${detail.school.cue} · ${detail.school.department}, ${detail.school.locality}`} />
     <div className="mt-4 flex flex-wrap items-center gap-3">
       <ActiveStatusBadge isActive={detail.school.isActive} />

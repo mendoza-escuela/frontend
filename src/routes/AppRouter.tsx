@@ -124,6 +124,11 @@ const CampaignFormPage = lazy(() =>
     default: module.CampaignFormPage,
   })),
 );
+const CampaignSchoolsPage = lazy(() =>
+  import("../pages/admin/CampaignSchoolsPage").then((module) => ({
+    default: module.CampaignSchoolsPage,
+  })),
+);
 const ParticipationDashboardPage = lazy(() =>
   import("../pages/admin/ParticipationDashboardPage").then((module) => ({
     default: module.ParticipationDashboardPage,
@@ -273,6 +278,10 @@ const router = createBrowserRouter([
           {
             path: "campanas/:id/editar",
             element: lazyPage(<CampaignFormPage />),
+          },
+          {
+            path: "campanas/:id/escuelas",
+            element: lazyPage(<CampaignSchoolsPage />),
           },
           {
             path: "seguimiento",

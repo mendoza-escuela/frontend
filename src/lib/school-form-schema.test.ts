@@ -4,7 +4,7 @@ import {
   schoolRectificationSchema,
 } from './school-form-schema';
 
-const valid = { cue: '500012300', name: 'Escuela Uno', directorName: 'María González', schoolNumber: '1-001', department: 'Capital', locality: 'Mendoza', address: 'San Martín 1', postalCode: '5500', educationLevel: 'Primario', managementType: 'Estatal', scope: 'Urbano', shift: 'Completa', phone: '', email: 'escuela@ejemplo.edu.ar', referentFirstName: 'Ana', referentLastName: 'Pérez', referentEmail: 'ana@ejemplo.edu.ar', referentPhone: '', enrollment: 350, isActive: true };
+const valid = { cue: '500012300', name: 'Escuela Uno', directorName: 'María González', schoolNumber: '1-001', department: 'Capital', locality: 'Mendoza', address: 'San Martín 1', postalCode: '5500', educationLevel: 'Primario', managementType: 'Estatal', scope: 'Urbano', shift: 'Completa', phone: '', email: 'escuela@ejemplo.edu.ar', referentFirstName: 'Ana', referentLastName: 'Pérez', referentEmail: 'ana@ejemplo.edu.ar', referentPhone: '', respondentPosition: 'Secretaria', healthReferentFirstName: '', healthReferentLastName: '', healthReferentPosition: '', healthReferentEmail: '', healthReferentPhone: '', enrollment: 350, isActive: true };
 
 describe('schoolFormSchema', () => {
   it('accepts a complete valid school', () => { expect(schoolFormSchema.safeParse(valid).success).toBe(true); });
@@ -49,6 +49,7 @@ describe('schoolRectificationSchema', () => {
       },
     ],
     expectedUpdatedAt: '2026-07-29T12:00:00.000Z',
+    contacts: [],
   };
 
   it('distingue null, false y cero', () => {
