@@ -40,6 +40,8 @@ Las pantallas administrativas reutilizan componentes comunes para encabezados, c
 
 Las páginas públicas, administrativas y del portal escolar se cargan bajo demanda mediante `React.lazy`, reduciendo el JavaScript inicial y evitando descargar módulos que el usuario todavía no visitó.
 
+Los errores de navegación, permisos, sesión y disponibilidad usan páginas institucionales reutilizables para 401, 403, 404, 500, 503 y un estado genérico. React Router, el boundary raíz y Axios están integrados sin reemplazar las validaciones, toasts ni errores recuperables propios de formularios. El contrato y los criterios de seguridad se documentan en [`docs/error-pages.md`](docs/error-pages.md).
+
 La paleta institucional se centraliza mediante tokens `mendoza-*` en `src/styles/index.css` y constantes para gráficos en `src/theme/institutional-theme.ts`. La interfaz usa azul `#000F9F` como primario, celeste `#3CB4E5` como apoyo, dorado `#C8A977` como acento y la familia REM con fallbacks del sistema. La procedencia de logos, variantes, tipografía, contraste, impresión y movimiento reducido se documenta en [`docs/identity-visual.md`](docs/identity-visual.md).
 
 ## Verificación

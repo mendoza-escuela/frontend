@@ -2,12 +2,18 @@ import {
   createBrowserRouter,
   Navigate,
   RouterProvider,
+  type RouteObject,
 } from "react-router-dom";
 import { lazy, Suspense, type ReactNode } from "react";
 import { ProtectedRoute } from "../components/auth/ProtectedRoute";
+import { GlobalHttpErrorHandler } from "../components/errors/GlobalHttpErrorHandler";
 import { AdminLayout } from "../components/layout/AdminLayout";
 import { AppLayout } from "../components/layout/AppLayout";
 import { SchoolLayout } from "../components/layout/SchoolLayout";
+import {
+  ErrorRoutePage,
+  RouteErrorBoundaryPage,
+} from "../pages/ErrorRoutePage";
 const AccessDeniedPage = lazy(() =>
   import("../pages/AccessDeniedPage").then((module) => ({
     default: module.AccessDeniedPage,
@@ -174,7 +180,7 @@ function lazyPage(page: ReactNode) {
   );
 }
 
-const router = createBrowserRouter([
+const applicationRoutes: RouteObject[] = [
   {
     element: <AppLayout />,
     children: [
@@ -191,7 +197,6 @@ const router = createBrowserRouter([
     element: <ProtectedRoute allowPasswordChange />,
     children: [
       { path: "cambiar-clave", element: lazyPage(<ChangePasswordPage />) },
-      { path: "acceso-denegado", element: lazyPage(<AccessDeniedPage />) },
     ],
   },
   {
@@ -317,7 +322,22 @@ const router = createBrowserRouter([
       },
     ],
   },
-]);
+  { path: "acceso-denegado", element: lazyPage(<AccessDeniedPage />) },
+  { path: "error", element: <ErrorRoutePage statusCode="generic" /> },
+  { path: "error/:statusCode", element: <ErrorRoutePage /> },
+  { path: "*", element: <ErrorRoutePage statusCode={404} /> },
+];
+
+// oxlint-disable-next-line react/only-export-components -- Reutilizado por pruebas de integración con MemoryRouter.
+export const appRoutes: RouteObject[] = [
+  {
+    element: <GlobalHttpErrorHandler />,
+    errorElement: <RouteErrorBoundaryPage />,
+    children: applicationRoutes,
+  },
+];
+
+const router = createBrowserRouter(appRoutes);
 
 export function AppRouter() {
   return <RouterProvider router={router} />;
