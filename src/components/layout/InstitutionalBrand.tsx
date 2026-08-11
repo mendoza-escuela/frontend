@@ -131,7 +131,7 @@ export function InstitutionalBrand({
         const showImage = Boolean(source) && !failedAssets.has(assetKey);
         return showImage ? (
           <span
-            className={`inline-flex shrink-0 items-center justify-center ${
+            className={`inline-flex max-w-full shrink-0 items-center justify-center ${
               surface === "blue"
                 ? "rounded-md bg-white px-2 py-1 shadow-sm ring-1 ring-white/25"
                 : ""
@@ -143,11 +143,11 @@ export function InstitutionalBrand({
               className={
                 organization.key === "ops"
                   ? compact
-                    ? "h-14 w-44 object-contain"
-                    : "h-20 w-56 object-contain"
+                    ? "h-14 w-44 max-w-full object-contain"
+                    : "h-20 w-56 max-w-full object-contain"
                   : compact
-                    ? "max-h-7 max-w-28 object-contain"
-                    : "max-h-10 max-w-40 object-contain"
+                    ? "h-auto max-h-7 max-w-full object-contain sm:max-w-28"
+                    : "h-auto max-h-10 max-w-full object-contain sm:max-w-40"
               }
               onError={() => {
                 if (sourceIndex + 1 < sources.length) {

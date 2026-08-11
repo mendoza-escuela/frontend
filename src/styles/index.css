@@ -52,48 +52,6 @@ select {
   box-shadow: 0 0 0 5px var(--color-mendoza-blue);
 }
 
-@keyframes panel-reveal {
-  0% {
-    opacity: 0;
-    transform: translateY(14px);
-  }
-  100% {
-    opacity: 1;
-    transform: translateY(0);
-  }
-}
-
-@keyframes metric-card {
-  0% {
-    opacity: 0;
-    transform: translateY(12px) scale(0.98);
-  }
-  100% {
-    opacity: 1;
-    transform: translateY(0) scale(1);
-  }
-}
-
-.animate-dashboard-card {
-  animation: panel-reveal 700ms ease-out both;
-}
-
-.animate-panel-reveal {
-  animation: panel-reveal 700ms ease-out both;
-}
-
-.animate-metric-card {
-  animation: metric-card 650ms ease-out both;
-}
-
-.animation-delay-150 {
-  animation-delay: 150ms;
-}
-
-.animation-delay-300 {
-  animation-delay: 300ms;
-}
-
 @media (prefers-reduced-motion: reduce) {
   html:focus-within {
     scroll-behavior: auto;
@@ -106,12 +64,6 @@ select {
     animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
-  }
-
-  .animate-dashboard-card,
-  .animate-panel-reveal,
-  .animate-metric-card {
-    animation: none;
   }
 }
 

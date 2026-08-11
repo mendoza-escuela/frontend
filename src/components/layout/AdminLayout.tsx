@@ -2,7 +2,6 @@ import {
   Building2,
   CalendarRange,
   ClipboardList,
-  Home,
   LayoutDashboard,
   ListChecks,
   LogOut,
@@ -16,7 +15,6 @@ import { showError } from "../../lib/toast";
 import { InstitutionalBrand } from "./InstitutionalBrand";
 
 const links = [
-  { to: "/admin", label: "Inicio", icon: Home, end: true },
   {
     to: "/admin/participacion",
     label: "Participación",
@@ -47,7 +45,7 @@ const links = [
 ];
 
 export function AdminLayout() {
-  const { user, logout } = useAuth();
+  const { logout } = useAuth();
   const navigate = useNavigate();
   const closeSession = async () => {
     try {
@@ -86,30 +84,27 @@ export function AdminLayout() {
             </NavLink>
           ))}
         </nav>
-        <InstitutionalBrand
-          className="mt-6 border-t border-white/20 pt-5"
-          compact
-          surface="blue"
-        />
       </aside>
       <div className="min-w-0 flex-1">
-        <header className="flex flex-wrap items-center justify-between gap-3 border-b border-mendoza-border bg-white px-4 py-4 sm:px-8" data-print-hidden="true">
-          <div>
-            <p className="text-sm text-mendoza-muted">
-              Sesión de administrador
-            </p>
-            <p className="font-semibold text-mendoza-text">
-              {user?.firstName} {user?.lastName}
-            </p>
+        <header
+          className="border-b border-mendoza-border bg-white px-4 py-4 sm:px-8"
+          data-print-hidden="true"
+        >
+          <div className="flex w-full flex-col gap-4 sm:flex-row sm:items-center">
+            <InstitutionalBrand
+              className="min-w-0 max-w-full flex-1"
+              compact
+              organizationKeys={["mendoza", "ops"]}
+            />
+            <button
+              className="inline-flex min-h-10 shrink-0 items-center gap-2 self-start rounded-lg border border-mendoza-blue px-4 text-sm font-semibold text-mendoza-blue hover:bg-mendoza-blue-soft sm:self-center"
+              onClick={closeSession}
+              type="button"
+            >
+              <LogOut size={17} />
+              Cerrar sesión
+            </button>
           </div>
-          <button
-            className="inline-flex min-h-10 items-center gap-2 rounded-lg border border-mendoza-blue px-4 text-sm font-semibold text-mendoza-blue hover:bg-mendoza-blue-soft"
-            onClick={closeSession}
-            type="button"
-          >
-            <LogOut size={17} />
-            Cerrar sesión
-          </button>
         </header>
         <Outlet />
       </div>

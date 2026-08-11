@@ -1,5 +1,6 @@
 import {
   CheckCircle2,
+  ChevronDown,
   ClipboardClock,
   Gauge,
   RotateCcw,
@@ -133,6 +134,7 @@ export function ParticipationDashboardPage() {
   const [criticalPage, setCriticalPage] = useState(1);
   const [optionsLoading, setOptionsLoading] = useState(true);
   const [metricsLoading, setMetricsLoading] = useState(false);
+  const [filtersExpanded, setFiltersExpanded] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [retry, setRetry] = useState(0);
 
@@ -264,15 +266,51 @@ export function ParticipationDashboardPage() {
           title="Participación por campaña"
           description="Seguimiento de escuelas que iniciaron, guardaron o enviaron su presentación."
         />
-        <Card className="relative mt-6 border-t-4 border-t-mendoza-sky">
-          <div className="mb-6 flex flex-wrap items-center justify-between gap-3 border-b border-mendoza-border pb-4">
-            <div className="flex items-center gap-3">
-              <span className="grid size-10 place-items-center rounded-xl bg-mendoza-blue text-white"><SlidersHorizontal aria-hidden="true" size={20} /></span>
-              <div><h2 className="font-bold text-mendoza-text">Filtros de consulta</h2><p className="text-sm text-mendoza-muted">Buscá y combiná opciones para acotar los indicadores.</p></div>
-            </div>
-            <span className="rounded-full bg-mendoza-blue/5 px-3 py-1.5 text-xs font-bold text-mendoza-blue">{activeFilters.length} {activeFilters.length === 1 ? "filtro activo" : "filtros activos"}</span>
-          </div>
-          <div className="grid gap-x-5 gap-y-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
+        <Card
+          aria-labelledby="participation-filters-heading"
+          className="relative mt-6 border-t-4 border-t-mendoza-sky"
+        >
+          <button
+            aria-controls="participation-filters-content"
+            aria-expanded={filtersExpanded}
+            aria-label={`${filtersExpanded ? "Cerrar" : "Abrir"} filtros de consulta`}
+            className={`flex w-full flex-wrap items-center justify-between gap-3 rounded-lg text-left outline-none transition focus-visible:ring-4 focus-visible:ring-mendoza-sky/20 ${filtersExpanded ? "mb-6 border-b border-mendoza-border pb-4" : ""}`}
+            onClick={() => setFiltersExpanded((expanded) => !expanded)}
+            type="button"
+          >
+            <span className="flex items-center gap-3">
+              <span className="grid size-10 shrink-0 place-items-center rounded-xl bg-mendoza-blue text-white">
+                <SlidersHorizontal aria-hidden="true" size={20} />
+              </span>
+              <span>
+                <span
+                  className="block font-bold text-mendoza-text"
+                  id="participation-filters-heading"
+                >
+                  Filtros de consulta
+                </span>
+                <span className="block text-sm text-mendoza-muted">
+                  Buscá y combiná opciones para acotar los indicadores.
+                </span>
+              </span>
+            </span>
+            <span className="flex items-center gap-2">
+              <span className="rounded-full bg-mendoza-blue/5 px-3 py-1.5 text-xs font-bold text-mendoza-blue">
+                {activeFilters.length}{" "}
+                {activeFilters.length === 1
+                  ? "filtro activo"
+                  : "filtros activos"}
+              </span>
+              <ChevronDown
+                aria-hidden="true"
+                className={`text-mendoza-blue transition-transform motion-reduce:transition-none ${filtersExpanded ? "rotate-180" : ""}`}
+                size={20}
+              />
+            </span>
+          </button>
+          {filtersExpanded && (
+            <div id="participation-filters-content">
+              <div className="grid gap-x-5 gap-y-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
             <SearchableSelect
               label="Campaña"
               value={filters.campaignId}
@@ -358,24 +396,26 @@ export function ParticipationDashboardPage() {
                 Restringe el universo de todos los indicadores y exportaciones.
               </p>
             </div>
-          </div>
-          <div className="mt-6 flex flex-wrap items-center justify-between gap-3 border-t border-mendoza-border pt-4">
-            <div className="flex flex-wrap gap-2">
-              {activeFilters.length ? activeFilters.map((filter) => (
-                <button className="inline-flex min-h-9 items-center gap-2 rounded-full bg-mendoza-sky/15 px-3 text-xs font-semibold text-mendoza-blue transition hover:bg-mendoza-sky/25 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-mendoza-blue" key={`${filter.key}-${filter.value}`} onClick={() => updateMultiple(filter.key, selectedFilterValues(filters, filter.key).filter((value) => value !== filter.value))} title={`Quitar filtro ${filter.label}: ${filter.displayValue}`} type="button">
-                  <span>{filter.label}: {filter.displayValue}</span><X aria-hidden="true" size={14} />
-                </button>
-              )) : <p className="text-sm text-mendoza-muted">Mostrando todos los datos de la campaña.</p>}
+              </div>
+              <div className="mt-6 flex flex-wrap items-center justify-between gap-3 border-t border-mendoza-border pt-4">
+                <div className="flex flex-wrap gap-2">
+                  {activeFilters.length ? activeFilters.map((filter) => (
+                    <button className="inline-flex min-h-9 items-center gap-2 rounded-full bg-mendoza-sky/15 px-3 text-xs font-semibold text-mendoza-blue transition hover:bg-mendoza-sky/25 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-mendoza-blue" key={`${filter.key}-${filter.value}`} onClick={() => updateMultiple(filter.key, selectedFilterValues(filters, filter.key).filter((value) => value !== filter.value))} title={`Quitar filtro ${filter.label}: ${filter.displayValue}`} type="button">
+                      <span>{filter.label}: {filter.displayValue}</span><X aria-hidden="true" size={14} />
+                    </button>
+                  )) : <p className="text-sm text-mendoza-muted">Mostrando todos los datos de la campaña.</p>}
+                </div>
+                <Button
+                  icon={<RotateCcw aria-hidden="true" size={17} />}
+                  disabled={activeFilters.length === 0}
+                  onClick={reset}
+                  variant="outline"
+                >
+                  Limpiar filtros
+                </Button>
+              </div>
             </div>
-            <Button
-              icon={<RotateCcw aria-hidden="true" size={17} />}
-              disabled={activeFilters.length === 0}
-              onClick={reset}
-              variant="outline"
-            >
-              Limpiar filtros
-            </Button>
-          </div>
+          )}
         </Card>
         {optionsLoading && !filters.campaignId ? (
           <State>

@@ -1,4 +1,8 @@
-import { createBrowserRouter, RouterProvider } from "react-router-dom";
+import {
+  createBrowserRouter,
+  Navigate,
+  RouterProvider,
+} from "react-router-dom";
 import { lazy, Suspense, type ReactNode } from "react";
 import { ProtectedRoute } from "../components/auth/ProtectedRoute";
 import { AdminLayout } from "../components/layout/AdminLayout";
@@ -19,11 +23,6 @@ const ForgotPasswordPage = lazy(() =>
     default: module.ForgotPasswordPage,
   })),
 );
-const HomePage = lazy(() =>
-  import("../pages/HomePage").then((module) => ({
-    default: module.HomePage,
-  })),
-);
 const LoginPage = lazy(() =>
   import("../pages/LoginPage").then((module) => ({
     default: module.LoginPage,
@@ -32,11 +31,6 @@ const LoginPage = lazy(() =>
 const ResetPasswordPage = lazy(() =>
   import("../pages/ResetPasswordPage").then((module) => ({
     default: module.ResetPasswordPage,
-  })),
-);
-const AdminHomePage = lazy(() =>
-  import("../pages/admin/AdminHomePage").then((module) => ({
-    default: module.AdminHomePage,
   })),
 );
 const BulkUserImportPage = lazy(() =>
@@ -184,7 +178,7 @@ const router = createBrowserRouter([
   {
     element: <AppLayout />,
     children: [
-      { index: true, element: lazyPage(<HomePage />) },
+      { index: true, element: lazyPage(<LoginPage />) },
       { path: "login", element: lazyPage(<LoginPage />) },
       { path: "recuperar-clave", element: lazyPage(<ForgotPasswordPage />) },
       {
@@ -207,7 +201,7 @@ const router = createBrowserRouter([
         path: "admin",
         element: <AdminLayout />,
         children: [
-          { index: true, element: lazyPage(<AdminHomePage />) },
+          { index: true, element: <Navigate replace to="participacion" /> },
           {
             path: "participacion",
             element: lazyPage(<ParticipationDashboardPage />),

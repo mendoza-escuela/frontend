@@ -154,9 +154,36 @@ describe("ParticipationDashboardPage", () => {
     );
   });
 
+  it("inicia los filtros cerrados y permite expandirlos y colapsarlos", async () => {
+    renderPage();
+    await screen.findByText("Total de escuelas");
+
+    const openFiltersButton = screen.getByRole("button", {
+      name: "Abrir filtros de consulta",
+    });
+    expect(openFiltersButton).toHaveAttribute("aria-expanded", "false");
+    expect(
+      screen.queryByRole("button", { name: "Campaña" }),
+    ).not.toBeInTheDocument();
+
+    fireEvent.click(openFiltersButton);
+    expect(
+      screen.getByRole("button", { name: "Cerrar filtros de consulta" }),
+    ).toHaveAttribute("aria-expanded", "true");
+    expect(screen.getByRole("button", { name: "Campaña" })).toBeVisible();
+
+    fireEvent.click(
+      screen.getByRole("button", { name: "Cerrar filtros de consulta" }),
+    );
+    expect(
+      screen.queryByRole("button", { name: "Campaña" }),
+    ).not.toBeInTheDocument();
+  });
+
   it("updates metrics and dependent options when a department changes", async () => {
     renderPage();
     await screen.findByText("Total de escuelas");
+    expandFilters();
     fireEvent.click(screen.getByRole("button", { name: "Departamento" }));
     fireEvent.change(screen.getByRole("combobox", { name: "Buscar en Departamento" }), { target: { value: "Cap" } });
     fireEvent.click(screen.getByRole("option", { name: "Capital" }));
@@ -182,6 +209,7 @@ describe("ParticipationDashboardPage", () => {
   it("combina valores, conserva claves repetidas y elimina un solo chip", async () => {
     renderPage(["/admin/participacion?campaignId=campaign-1"]);
     await screen.findByText("Total de escuelas");
+    expandFilters();
 
     fireEvent.click(screen.getByRole("button", { name: "Departamento" }));
     fireEvent.click(screen.getByRole("option", { name: "Capital" }));
@@ -218,6 +246,7 @@ describe("ParticipationDashboardPage", () => {
       "/admin/participacion?campaignId=campaign-1&departments=Capital&localities=Ciudad&schoolIds=school-1",
     ]);
     await screen.findByText("Total de escuelas");
+    expandFilters();
 
     fireEvent.click(screen.getByRole("button", { name: "Departamento" }));
     fireEvent.click(screen.getByRole("option", { name: "Godoy Cruz" }));
@@ -272,6 +301,7 @@ describe("ParticipationDashboardPage", () => {
       "/admin/participacion?campaignId=campaign-1&comparisonCampaignIds=campaign-2",
     ]);
     await screen.findByText("Total de escuelas");
+    expandFilters();
 
     selectMultiple("Estado de carga", ["No iniciada", "Enviada"]);
     selectMultiple("Nivel", ["Primario"]);
@@ -311,6 +341,7 @@ describe("ParticipationDashboardPage", () => {
   it("reinicia el refinamiento local al cambiar el área crítica global", async () => {
     renderPage(["/admin/participacion?campaignId=campaign-1"]);
     await screen.findByText("Alertas críticas consolidadas");
+    expandFilters();
 
     fireEvent.change(
       screen.getByRole("combobox", { name: /Dimensión crítica/ }),
@@ -341,6 +372,7 @@ describe("ParticipationDashboardPage", () => {
       "/admin/participacion?campaignId=campaign-2&departments=Capital&submissionStatuses=submitted&stars=5",
     ]);
     await screen.findByText("Total de escuelas");
+    expandFilters();
 
     fireEvent.click(screen.getByRole("button", { name: "Limpiar filtros" }));
 
@@ -445,6 +477,12 @@ function LocationProbe() {
 function currentLocationParams() {
   return new URLSearchParams(
     screen.getByTestId("location-search").textContent ?? "",
+  );
+}
+
+function expandFilters() {
+  fireEvent.click(
+    screen.getByRole("button", { name: "Abrir filtros de consulta" }),
   );
 }
 
