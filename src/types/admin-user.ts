@@ -1,10 +1,21 @@
-import type { UserRole } from './auth';
+import type { UserRole } from "./auth";
 
-export type SchoolOption = { id: string; cue: string; code?: string; name: string; isActive?: boolean };
+export type SchoolOption = {
+  id: string;
+  cue: string;
+  code?: string;
+  name: string;
+  isActive?: boolean;
+};
 
 export type SchoolOptionListResponse = {
   items: SchoolOption[];
-  pagination: { page: number; limit: number; total: number; totalPages: number };
+  pagination: {
+    page: number;
+    limit: number;
+    total: number;
+    totalPages: number;
+  };
 };
 
 export type ManagedUser = {
@@ -21,9 +32,18 @@ export type ManagedUser = {
   school: SchoolOption | null;
 };
 
+export type CreatedUser = ManagedUser & {
+  invitationEmailSent: boolean;
+};
+
 export type UserListResponse = {
   items: ManagedUser[];
-  pagination: { page: number; limit: number; total: number; totalPages: number };
+  pagination: {
+    page: number;
+    limit: number;
+    total: number;
+    totalPages: number;
+  };
 };
 
 export type UserWriteInput = {
@@ -57,6 +77,13 @@ export type ImportResult = {
   totalRows: number;
   importedCount: number;
   errorCount: number;
-  imported: Array<{ line: number; id: string; email: string }>;
+  invitationEmailSentCount: number;
+  invitationEmailPendingCount: number;
+  imported: Array<{
+    line: number;
+    id: string;
+    email: string;
+    invitationEmailSent: boolean;
+  }>;
   errors: Array<{ line: number; email: string; errors: string[] }>;
 };

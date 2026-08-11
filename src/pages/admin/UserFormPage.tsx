@@ -6,7 +6,7 @@ import { Link, useNavigate, useParams } from "react-router-dom";
 import { Button } from "../../components/ui/Button";
 import { SchoolCombobox } from "../../components/users/SchoolCombobox";
 import { getHttpErrorDetails, getHttpErrorMessage } from "../../lib/http-error";
-import { showError, showSuccess } from "../../lib/toast";
+import { showError, showSuccess, showWarning } from "../../lib/toast";
 import {
   createUserFormSchema,
   type UserFormValues,
@@ -86,17 +86,28 @@ export function UserFormPage() {
         await adminUsersService.update(id, input);
         showSuccess("Usuario actualizado y cambios auditados.");
       } else {
-        await adminUsersService.create({
+        const createdUser = await adminUsersService.create({
           ...input,
           schoolId: input.schoolId ?? undefined,
           temporaryPassword: values.temporaryPassword!,
         });
-        showSuccess("Usuario creado con cambio de contraseña obligatorio.");
+        if (createdUser.invitationEmailSent) {
+          showSuccess(
+            "Usuario creado. Enviamos sus datos e instrucciones de acceso por correo.",
+          );
+        } else {
+          showWarning(
+            "Usuario creado, pero el correo no pudo enviarse. Verificá SMTP y entregá las credenciales por un canal seguro.",
+          );
+        }
       }
       navigate("/admin/usuarios");
     } catch (error) {
       const details = getHttpErrorDetails(error);
-      if (details?.code === "USER_EMAIL_CONFLICT" && details.field === "email") {
+      if (
+        details?.code === "USER_EMAIL_CONFLICT" &&
+        details.field === "email"
+      ) {
         setError("email", { type: "server", message: details.message });
         setFocus("email");
         showError(details.message);
@@ -126,7 +137,7 @@ export function UserFormPage() {
           <p className="mt-2 text-sm text-mendoza-muted">
             {editing
               ? "Los cambios de datos, rol, estado y asociación quedarán auditados."
-              : "La cuenta deberá cambiar la contraseña temporal durante su primer acceso."}
+              : "La cuenta recibirá por correo sus datos de acceso y deberá cambiar la contraseña temporal durante el primer ingreso."}
           </p>
           <form
             className="mt-7 grid gap-5 sm:grid-cols-2"

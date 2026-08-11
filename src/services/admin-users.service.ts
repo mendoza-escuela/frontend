@@ -3,6 +3,7 @@ import { downloadBlob } from "../lib/download";
 import type {
   ImportPreview,
   ImportResult,
+  CreatedUser,
   ManagedUser,
   SchoolOptionListResponse,
   UserListResponse,
@@ -26,9 +27,8 @@ export const adminUsersService = {
         ([, value]) => value !== "" && value !== undefined,
       ),
     );
-    return (
-      await api.get<UserListResponse>("/admin/users", { params, signal })
-    ).data;
+    return (await api.get<UserListResponse>("/admin/users", { params, signal }))
+      .data;
   },
   async findOne(id: string) {
     return (await api.get<ManagedUser>(`/admin/users/${id}`)).data;
@@ -45,7 +45,7 @@ export const adminUsersService = {
     ).data;
   },
   async create(input: UserWriteInput & { temporaryPassword: string }) {
-    return (await api.post<ManagedUser>("/admin/users", input)).data;
+    return (await api.post<CreatedUser>("/admin/users", input)).data;
   },
   async update(id: string, input: UserWriteInput) {
     return (await api.patch<ManagedUser>(`/admin/users/${id}`, input)).data;
