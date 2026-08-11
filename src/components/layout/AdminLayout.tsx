@@ -4,14 +4,12 @@ import {
   ClipboardList,
   LayoutDashboard,
   ListChecks,
-  LogOut,
   School,
   Settings2,
   Users,
 } from "lucide-react";
-import { NavLink, Outlet, useNavigate } from "react-router-dom";
-import { useAuth } from "../../hooks/useAuth";
-import { showError } from "../../lib/toast";
+import { NavLink, Outlet } from "react-router-dom";
+import { LogoutButton } from "../auth/LogoutButton";
 import { InstitutionalBrand } from "./InstitutionalBrand";
 
 const links = [
@@ -45,17 +43,6 @@ const links = [
 ];
 
 export function AdminLayout() {
-  const { logout } = useAuth();
-  const navigate = useNavigate();
-  const closeSession = async () => {
-    try {
-      await logout();
-      navigate("/login", { replace: true });
-    } catch {
-      showError("No se pudo cerrar la sesión correctamente.");
-    }
-  };
-
   return (
     <div className="min-h-screen bg-mendoza-background lg:flex">
       <aside className="bg-mendoza-blue p-4 text-white lg:sticky lg:top-0 lg:h-screen lg:w-64 lg:shrink-0 lg:self-start lg:overflow-y-auto lg:p-6" data-print-hidden="true">
@@ -96,14 +83,7 @@ export function AdminLayout() {
               compact
               organizationKeys={["mendoza", "ops"]}
             />
-            <button
-              className="inline-flex min-h-10 shrink-0 items-center gap-2 self-start rounded-lg border border-mendoza-blue px-4 text-sm font-semibold text-mendoza-blue hover:bg-mendoza-blue-soft sm:self-center"
-              onClick={closeSession}
-              type="button"
-            >
-              <LogOut size={17} />
-              Cerrar sesión
-            </button>
+            <LogoutButton />
           </div>
         </header>
         <Outlet />
