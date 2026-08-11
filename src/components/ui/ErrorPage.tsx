@@ -10,7 +10,7 @@ import {
   type LucideIcon,
 } from "lucide-react";
 import { useEffect, useRef } from "react";
-import epsLogoHorizontal from "../../assets/eps-logo-horizontal.svg";
+import { AuthBrandMarks } from "../auth/AuthBrandMarks";
 import { Button } from "./Button";
 import { getButtonClassName } from "./button-styles";
 
@@ -128,126 +128,125 @@ export function ErrorPage({
   };
 
   return (
-    <main className="relative isolate flex min-h-screen items-center overflow-hidden bg-mendoza-background px-4 py-8 sm:px-6 sm:py-12 lg:px-8">
+    <main className="relative isolate min-h-screen overflow-hidden bg-mendoza-background">
       <div
         aria-hidden="true"
-        className="absolute -left-28 top-16 -z-10 h-72 w-72 rounded-full bg-mendoza-sky/10 blur-3xl"
-      />
-      <div
-        aria-hidden="true"
-        className="absolute -bottom-32 -right-20 -z-10 h-80 w-80 rounded-full bg-mendoza-gold/15 blur-3xl"
-      />
+        className="absolute inset-x-0 top-0 -z-10 h-[36vh] min-h-64 overflow-hidden bg-mendoza-blue"
+      >
+        <div className="absolute -left-20 -top-24 h-64 w-64 rounded-full border border-white/10" />
+        <div className="absolute -right-24 top-10 h-80 w-80 rounded-full bg-mendoza-sky/10 blur-2xl" />
+        <div className="absolute inset-x-0 bottom-0 h-1 bg-mendoza-gold" />
+      </div>
 
-      <div className="mx-auto w-full max-w-4xl">
-        <section
-          aria-describedby="error-page-message"
-          aria-labelledby="error-page-title"
-          className="animate-panel-reveal overflow-hidden rounded-2xl border border-mendoza-border bg-white shadow-sm"
-        >
-          <div aria-hidden="true" className="h-1.5 bg-mendoza-gold" />
-
-          <div className="border-b border-mendoza-border px-6 py-4 sm:px-8">
-            <img
-              alt="Escuelas Promotoras de Salud"
-              className="h-12 w-auto max-w-full sm:h-14"
-              src={epsLogoHorizontal}
-            />
-          </div>
-
-          <div className="grid gap-7 px-6 py-8 sm:px-8 sm:py-10 md:grid-cols-[9rem_minmax(0,1fr)] md:items-center md:gap-10 lg:px-12 lg:py-12">
-            <div
-              aria-hidden="true"
-              className={`mx-auto flex h-28 w-28 items-center justify-center rounded-full ring-8 sm:h-32 sm:w-32 md:mx-0 ${presentation.iconContainerClassName}`}
-            >
-              <Icon
-                className={presentation.iconClassName}
-                size={58}
-                strokeWidth={1.7}
-              />
+      <div className="relative flex min-h-screen items-center justify-center px-4 py-8 sm:px-6 sm:py-12 lg:px-8">
+        <div className="mx-auto w-full max-w-4xl">
+          <section
+            aria-describedby="error-page-message"
+            aria-labelledby="error-page-title"
+            className="animate-panel-reveal overflow-hidden rounded-3xl border border-mendoza-border bg-white shadow-xl shadow-black/10"
+          >
+            <div className="border-b border-mendoza-border bg-white px-5 py-5 sm:px-8">
+              <div className="max-w-md">
+                <AuthBrandMarks />
+              </div>
             </div>
 
-            <div className="min-w-0 text-center md:text-left">
-              <p className="text-sm font-bold uppercase tracking-[0.16em] text-mendoza-blue">
-                {statusLabel}
-              </p>
-              <h1
-                className="mt-2 text-3xl font-bold leading-tight text-mendoza-text sm:text-4xl"
-                id="error-page-title"
-                ref={headingRef}
-                tabIndex={-1}
+            <div className="grid gap-8 px-6 py-8 sm:px-8 sm:py-10 md:grid-cols-[11rem_minmax(0,1fr)] md:items-center md:gap-10 lg:px-12 lg:py-12">
+              <div
+                aria-hidden="true"
+                className={`relative mx-auto flex h-36 w-36 items-center justify-center rounded-3xl ring-1 sm:h-40 sm:w-40 md:mx-0 ${presentation.iconContainerClassName}`}
               >
-                {title}
-              </h1>
-              <p
-                className="mx-auto mt-4 max-w-2xl text-base leading-7 text-mendoza-muted md:mx-0"
-                id="error-page-message"
-              >
-                {message}
-              </p>
+                <div className="absolute inset-3 rounded-2xl border border-white/70 bg-white/35" />
+                <Icon
+                  className={`relative ${presentation.iconClassName}`}
+                  size={62}
+                  strokeWidth={1.65}
+                />
+              </div>
 
-              {safeCorrelationId && (
-                <div className="mt-5 rounded-lg border border-mendoza-border bg-mendoza-background px-4 py-3 text-left">
-                  <p className="text-xs font-semibold uppercase tracking-wide text-mendoza-muted">
-                    Identificador del error
-                  </p>
-                  <code className="mt-1 block break-all text-sm font-semibold text-mendoza-text">
-                    {safeCorrelationId}
-                  </code>
-                  <p className="mt-1 text-xs leading-5 text-mendoza-muted">
-                    Compartilo con soporte si necesitás ayuda.
-                  </p>
-                </div>
-              )}
-
-              {hasActions && (
-                <div
-                  aria-label="Acciones para resolver el error"
-                  className="mt-7 flex flex-col gap-3 sm:flex-row sm:flex-wrap"
-                  role="group"
+              <div className="min-w-0 text-center md:text-left">
+                <p className="inline-flex rounded-full bg-mendoza-blue-soft px-3 py-1 text-xs font-bold uppercase tracking-[0.16em] text-mendoza-blue ring-1 ring-mendoza-blue/10">
+                  {statusLabel}
+                </p>
+                <h1
+                  className="mt-4 text-3xl font-bold leading-tight text-mendoza-blue focus:outline-none focus:shadow-none sm:text-4xl"
+                  id="error-page-title"
+                  ref={headingRef}
+                  tabIndex={-1}
                 >
-                  {showBackButton && (
-                    <Button
-                      className="w-full sm:w-auto"
-                      icon={<ArrowLeft aria-hidden="true" size={18} />}
-                      onClick={handleBack}
-                      variant="outline"
-                    >
-                      Volver
-                    </Button>
-                  )}
-                  {showHomeButton && (
-                    <a
-                      className={getButtonClassName(
-                        showLoginButton ? "outline" : "primary",
-                        "w-full sm:w-auto",
-                      )}
-                      href={homePath}
-                    >
-                      <House aria-hidden="true" size={18} />
-                      Ir al inicio
-                    </a>
-                  )}
-                  {showLoginButton && (
-                    <a
-                      className={getButtonClassName(
-                        "primary",
-                        "w-full sm:w-auto",
-                      )}
-                      href={loginPath}
-                    >
-                      <LogIn aria-hidden="true" size={18} />
-                      Iniciar sesión nuevamente
-                    </a>
-                  )}
-                </div>
-              )}
-            </div>
-          </div>
-        </section>
+                  {title}
+                </h1>
+                <p
+                  className="mx-auto mt-4 max-w-2xl text-base leading-7 text-mendoza-muted md:mx-0"
+                  id="error-page-message"
+                >
+                  {message}
+                </p>
 
-        <p className="mt-5 text-center text-xs font-medium text-mendoza-muted sm:text-sm">
-          Programa Escuelas Promotoras de Salud · Gobierno de Mendoza
-        </p>
+                {safeCorrelationId && (
+                  <div className="mt-5 rounded-xl border border-mendoza-border bg-mendoza-background px-4 py-3 text-left">
+                    <p className="text-xs font-semibold uppercase tracking-wide text-mendoza-muted">
+                      Identificador del error
+                    </p>
+                    <code className="mt-1 block break-all text-sm font-semibold text-mendoza-text">
+                      {safeCorrelationId}
+                    </code>
+                    <p className="mt-1 text-xs leading-5 text-mendoza-muted">
+                      Compartilo con soporte si necesitás ayuda.
+                    </p>
+                  </div>
+                )}
+
+                {hasActions && (
+                  <div
+                    aria-label="Acciones para resolver el error"
+                    className="mt-7 flex flex-col gap-3 sm:flex-row sm:flex-wrap"
+                    role="group"
+                  >
+                    {showBackButton && (
+                      <Button
+                        className="w-full sm:w-auto"
+                        icon={<ArrowLeft aria-hidden="true" size={18} />}
+                        onClick={handleBack}
+                        variant="outline"
+                      >
+                        Volver
+                      </Button>
+                    )}
+                    {showHomeButton && (
+                      <a
+                        className={getButtonClassName(
+                          showLoginButton ? "outline" : "primary",
+                          "w-full sm:w-auto",
+                        )}
+                        href={homePath}
+                      >
+                        <House aria-hidden="true" size={18} />
+                        Ir al inicio
+                      </a>
+                    )}
+                    {showLoginButton && (
+                      <a
+                        className={getButtonClassName(
+                          "primary",
+                          "w-full sm:w-auto",
+                        )}
+                        href={loginPath}
+                      >
+                        <LogIn aria-hidden="true" size={18} />
+                        Iniciar sesión nuevamente
+                      </a>
+                    )}
+                  </div>
+                )}
+              </div>
+            </div>
+          </section>
+
+          <p className="mt-5 text-center text-xs font-medium text-mendoza-muted sm:text-sm">
+            Programa Escuelas Promotoras de Salud · Gobierno de Mendoza
+          </p>
+        </div>
       </div>
     </main>
   );

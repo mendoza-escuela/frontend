@@ -46,6 +46,22 @@ select {
   font: inherit;
 }
 
+@keyframes panel-reveal {
+  from {
+    opacity: 0;
+    transform: translateY(12px);
+  }
+
+  to {
+    opacity: 1;
+    transform: translateY(0);
+  }
+}
+
+.animate-panel-reveal {
+  animation: panel-reveal 450ms cubic-bezier(0.22, 1, 0.36, 1) both;
+}
+
 :where(a, button, input, textarea, select, summary, [tabindex]):focus-visible {
   outline: 3px solid var(--color-mendoza-surface);
   outline-offset: 2px;

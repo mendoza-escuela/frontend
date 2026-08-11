@@ -67,6 +67,10 @@ describe("ErrorPage", () => {
       "href",
       "/inicio",
     );
+    expect(
+      screen.getByAltText("Escuelas Promotoras de Salud"),
+    ).toBeInTheDocument();
+    expect(screen.getByAltText("Gobierno de Mendoza")).toBeInTheDocument();
   });
 
   it("permite dirigir una sesión inválida al login", () => {
