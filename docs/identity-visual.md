@@ -36,9 +36,17 @@ clasificación y certificación. El rojo sólo representa alertas críticas.
 ## Marcas y assets
 
 `InstitutionalBrand` admite una variante por organismo para fondo claro y otra
-para fondo azul. Las rutas se configuran mediante `VITE_BRAND_*`. Un archivo
-ausente o con error se reemplaza individualmente por el nombre textual del
-organismo.
+para fondo azul. Gobierno de Mendoza y OPS/OMS utilizan por defecto los assets
+provisorios versionados bajo `public/brand/official/`. OPS/OMS prioriza AVIF y
+usa el JPG entregado como respaldo. El símbolo de Mendoza se utiliza como
+favicon.
+
+Las rutas pueden reemplazarse sin modificar código mediante las variables
+`VITE_BRAND_MENDOZA_ON_LIGHT`, `VITE_BRAND_MENDOZA_ON_BLUE`,
+`VITE_BRAND_OPS_ON_LIGHT` y `VITE_BRAND_OPS_ON_BLUE`. También están previstas
+las variables equivalentes de Salud y DGE para cuando se reciban esos assets.
+Si una imagen configurada falla, se intenta el asset provisorio disponible y,
+en última instancia, se muestra el nombre textual del organismo.
 
 Los assets oficiales deben ubicarse bajo `public/brand/official/` y contar con
 un manifiesto que registre fuente, responsable, fecha, licencia, aprobación y
@@ -50,14 +58,18 @@ SHA-256. No se admite:
 - deformar variantes para adaptarlas a otro fondo;
 - presentar la marca propia de la aplicación como logo de un organismo.
 
-Actualmente no hay logos oficiales aprobados de Gobierno de Mendoza, Salud,
-DGE u OPS dentro de esa carpeta. Por lo tanto, la aplicación utiliza el
-fallback textual.
+Los archivos de Gobierno de Mendoza y OPS/OMS fueron entregados por el cliente
+para uso provisorio y están documentados en `public/brand/assets-manifest.json`.
+Todavía no se recibieron logos específicos de Salud ni DGE, que conservan su
+fallback textual. Tampoco se recibieron variantes autorizadas para fondos
+azules: en esas superficies las imágenes disponibles se muestran dentro de un
+contenedor blanco, sin recolorearlas ni deformarlas.
 
 ## Tipografía REM
 
-No se versionó ningún archivo de fuente. REM se usa si el sistema del usuario
-la tiene disponible y, de lo contrario, se aplican los fallbacks declarados.
+No se recibió ni versionó ningún archivo de fuente REM. REM se usa si el
+sistema del usuario la tiene disponible y, de lo contrario, se aplican los
+fallbacks declarados.
 
 Para autocontener REM se necesitan los archivos oficiales web (`woff2`), la
 licencia que autorice redistribución, procedencia, hash y aprobación. Sólo

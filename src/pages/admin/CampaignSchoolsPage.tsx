@@ -1,4 +1,11 @@
-import { CheckSquare, Filter, Search, Trash2, Users } from "lucide-react";
+import {
+  CheckSquare,
+  CircleCheckBig,
+  Filter,
+  Search,
+  Trash2,
+  Users,
+} from "lucide-react";
 import { useCallback, useEffect, useMemo, useState } from "react";
 import { useParams } from "react-router-dom";
 import { Button } from "../../components/ui/Button";
@@ -10,6 +17,7 @@ import { PageHeader } from "../../components/ui/PageHeader";
 import { PaginationControls } from "../../components/ui/PaginationControls";
 import { inputClassName } from "../../components/ui/form-styles";
 import { getHttpErrorMessage } from "../../lib/http-error";
+import { formatDateTime } from "../../lib/format";
 import { showError, showSuccess } from "../../lib/toast";
 import { adminCampaignsService } from "../../services/admin-campaigns.service";
 import { adminSchoolsService } from "../../services/admin-schools.service";
@@ -115,8 +123,11 @@ export function CampaignSchoolsPage() {
     if (!pending) return;
     setProcessing(true);
     try {
-      await adminCampaignsService.assignSchools(id, pending.selection);
-      showSuccess(`Se asignaron ${pending.preview.willAssign} escuelas.`);
+      const result = await adminCampaignsService.assignSchools(
+        id,
+        pending.selection,
+      );
+      showSuccess(assignmentSuccessMessage(result.assigned, campaign?.status));
       setPending(null);
       setSelected(new Set());
       setAssignedPage(1);
@@ -152,7 +163,9 @@ export function CampaignSchoolsPage() {
   if (error && !campaign)
     return <main className="p-8"><ErrorState message={error} onRetry={() => void load()} /></main>;
   if (!campaign) return null;
-  const editable = campaign.status === "draft";
+  const canAssign = campaign.status === "draft" || campaign.status === "active";
+  const canRemove = campaign.status === "draft";
+  const isActiveCampaign = campaign.status === "active";
 
   return (
     <main className="p-4 sm:p-8">
@@ -160,7 +173,7 @@ export function CampaignSchoolsPage() {
         <PageHeader
           backLabel="Volver a campañas"
           backTo="/admin/campanas"
-          description="Seleccioná el universo explícito de establecimientos. La campaña no podrá activarse sin escuelas asignadas."
+          description={campaignDescription(campaign.status)}
           eyebrow="Campañas"
           title={`Escuelas · ${campaign.name}`}
         />
@@ -169,10 +182,31 @@ export function CampaignSchoolsPage() {
           <Metric label="Asignadas" value={assigned.pagination.total} />
           <Metric label="No asignadas (filtro actual)" value={options.summary.unassigned} />
           <Metric label="Seleccionadas ahora" value={selected.size} />
-          <Metric label="Estado" value={editable ? "Borrador editable" : "Sólo lectura"} />
+          <Metric label="Estado" value={assignmentStatusLabel(campaign.status)} />
         </div>
 
-        {editable && (
+        {isActiveCampaign && (
+          <div
+            className="mt-6 flex gap-3 rounded-xl border border-mendoza-sky bg-mendoza-blue-soft p-4 text-sm leading-6 text-mendoza-text"
+            role="status"
+          >
+            <CircleCheckBig
+              aria-hidden="true"
+              className="mt-0.5 shrink-0 text-mendoza-blue"
+              size={20}
+            />
+            <p>
+              <strong>Incorporación durante campaña activa.</strong> Al
+              confirmar, las escuelas seleccionadas se integrarán de inmediato
+              al universo de la campaña. Quedarán habilitadas para iniciar el
+              diagnóstico cuando cumplan los demás requisitos vigentes. La fecha,
+              el origen y el administrador responsable quedarán registrados para
+              auditoría.
+            </p>
+          </div>
+        )}
+
+        {canAssign && (
           <Card className="mt-6">
             <form
               className="grid gap-3 md:grid-cols-4"
@@ -224,7 +258,7 @@ export function CampaignSchoolsPage() {
               <div className="flex flex-wrap items-end gap-2 md:col-span-4">
                 <Button icon={<Search size={17} />} type="submit">Aplicar filtros</Button>
                 <Button
-                  disabled={processing}
+                  disabled={processing || selected.size === 0}
                   icon={<CheckSquare size={17} />}
                   onClick={() => void preview({ source: "manual", schoolIds: [...selected] })}
                   variant="outline"
@@ -232,7 +266,7 @@ export function CampaignSchoolsPage() {
                   Asignar selección ({selected.size})
                 </Button>
                 <Button
-                  disabled={processing}
+                  disabled={processing || options.summary.unassigned === 0}
                   icon={<Filter size={17} />}
                   onClick={() => void preview({ ...selectionFilters, source: "filter" })}
                   variant="outline"
@@ -255,7 +289,7 @@ export function CampaignSchoolsPage() {
                           aria-label={`Seleccionar ${school.name}`}
                           checked={selected.has(school.id) || school.assigned}
                           className="h-5 w-5 accent-mendoza-blue"
-                          disabled={school.assigned}
+                          disabled={school.assigned || !school.isActive}
                           onChange={(event) => setSelected((current) => {
                             const next = new Set(current);
                             if (event.target.checked) next.add(school.id); else next.delete(school.id);
@@ -289,8 +323,18 @@ export function CampaignSchoolsPage() {
           <div className="mt-4 divide-y divide-mendoza-border">
             {assigned.items.map((assignment) => (
               <div className="flex items-center justify-between gap-4 py-3" key={assignment.id}>
-                <div><p className="font-semibold">{assignment.school.name}</p><p className="text-sm text-mendoza-muted">CUE {assignment.school.cue} · {assignment.school.department}</p></div>
-                {editable && <button aria-label={`Quitar ${assignment.school.name}`} className="rounded-lg p-2 text-mendoza-error hover:bg-red-50" onClick={() => setRemovePending(assignment)} type="button"><Trash2 size={18} /></button>}
+                <div>
+                  <p className="font-semibold">{assignment.school.name}</p>
+                  <p className="text-sm text-mendoza-muted">CUE {assignment.school.cue} · {assignment.school.department}</p>
+                  <p className="mt-1 text-xs text-mendoza-muted">
+                    Incorporada {" "}
+                    <time dateTime={assignment.assignedAt}>
+                      {formatDateTime(assignment.assignedAt)}
+                    </time>{" "}
+                    · {assignmentSourceLabel(assignment.assignmentSource)}
+                  </p>
+                </div>
+                {canRemove && <button aria-label={`Quitar ${assignment.school.name}`} className="rounded-lg p-2 text-mendoza-error hover:bg-red-50" onClick={() => setRemovePending(assignment)} type="button"><Trash2 size={18} /></button>}
               </div>
             ))}
             {!assigned.items.length && <p className="py-6 text-center text-sm text-mendoza-muted">Todavía no hay escuelas asignadas.</p>}
@@ -305,7 +349,7 @@ export function CampaignSchoolsPage() {
 
       <ConfirmDialog
         confirmLabel="Confirmar asignación"
-        description={pending ? `${pending.preview.message} ${pending.preview.alreadyAssigned} ya estaban asignadas y no se duplicarán.` : ""}
+        description={pending ? assignmentConfirmationDescription(pending.preview, isActiveCampaign) : ""}
         isProcessing={processing}
         onCancel={() => setPending(null)}
         onConfirm={confirmAssignment}
@@ -332,4 +376,54 @@ function Metric({ label, value }: { label: string; value: number | string }) {
 
 function FilterSelect({ label, options, value, onChange }: { label: string; options: string[]; value: string; onChange: (value: string) => void }) {
   return <label className="text-sm font-semibold">{label}<select className={`${inputClassName} mt-1`} onChange={(event) => onChange(event.target.value)} value={value}><option value="">Todos</option>{options.map((option) => <option key={option} value={option}>{option}</option>)}</select></label>;
+}
+
+const assignmentSourceLabels: Record<
+  CampaignSchoolAssignment["assignmentSource"],
+  string
+> = {
+  manual: "Incorporación manual",
+  filter: "Incorporación por filtros",
+  bulk: "Incorporación masiva",
+};
+
+function assignmentSourceLabel(
+  source: CampaignSchoolAssignment["assignmentSource"],
+) {
+  return assignmentSourceLabels[source];
+}
+
+function campaignDescription(status: AdminCampaign["status"]) {
+  if (status === "active")
+    return "Incorporá establecimientos habilitados aunque la campaña ya haya comenzado. La asignación queda registrada y el período original se mantiene.";
+  if (status === "draft")
+    return "Seleccioná el universo inicial de establecimientos. La campaña no podrá activarse sin escuelas asignadas.";
+  return "Consultá el universo histórico de establecimientos. Las campañas cerradas o archivadas no admiten nuevas incorporaciones.";
+}
+
+function assignmentStatusLabel(status: AdminCampaign["status"]) {
+  if (status === "active") return "Activa · admite incorporaciones";
+  if (status === "draft") return "Borrador editable";
+  return "Sólo lectura";
+}
+
+function assignmentConfirmationDescription(
+  preview: CampaignSchoolPreview,
+  isActiveCampaign: boolean,
+) {
+  const alreadyAssigned = `${preview.alreadyAssigned} ya ${preview.alreadyAssigned === 1 ? "estaba asignada" : "estaban asignadas"} y no se duplicará${preview.alreadyAssigned === 1 ? "" : "n"}.`;
+  const effect = isActiveCampaign
+    ? "Las nuevas escuelas se incorporarán inmediatamente a la campaña activa y podrán iniciar cuando cumplan los demás requisitos vigentes."
+    : "Las nuevas escuelas quedarán incorporadas al universo inicial de la campaña.";
+  return `${preview.message} ${alreadyAssigned} ${effect} La operación quedará registrada para auditoría.`;
+}
+
+function assignmentSuccessMessage(
+  assigned: number,
+  status: AdminCampaign["status"] | undefined,
+) {
+  if (assigned === 0) return "No se incorporaron escuelas nuevas.";
+  const schools = assigned === 1 ? "escuela" : "escuelas";
+  const suffix = status === "active" ? " a la campaña activa" : "";
+  return `Se ${assigned === 1 ? "incorporó" : "incorporaron"} ${assigned} ${schools}${suffix}.`;
 }

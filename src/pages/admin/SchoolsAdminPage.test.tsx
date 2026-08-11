@@ -32,4 +32,53 @@ describe("SchoolsAdminPage", () => {
     fireEvent.click(screen.getByRole("button", { name: "Aplicar filtros" }));
     await waitFor(() => expect(adminSchoolsService.list).toHaveBeenLastCalledWith(expect.objectContaining({ isActive: false }), expect.any(AbortSignal)));
   });
+
+  it("confirma el bloqueo de acceso y la preservación del historial antes de la baja", async () => {
+    vi.mocked(adminSchoolsService.list).mockResolvedValue({
+      items: [
+        {
+          id: "school-id",
+          cue: "500000001",
+          name: "Escuela Activa",
+          schoolNumber: null,
+          department: "Capital",
+          locality: "Centro",
+          educationLevel: "Primario",
+          managementType: "Estatal",
+          enrollment: 100,
+          isActive: true,
+        },
+      ],
+      pagination: { page: 1, limit: 20, total: 1, totalPages: 1 },
+    });
+
+    render(
+      <MemoryRouter>
+        <SchoolsAdminPage />
+      </MemoryRouter>,
+    );
+    fireEvent.click(
+      (
+        await screen.findAllByRole("button", {
+          name: "Desactivar Escuela Activa",
+        })
+      )[0],
+    );
+
+    expect(adminSchoolsService.setStatus).not.toHaveBeenCalled();
+    expect(
+      screen.getByText(/se cerrarán todas las sesiones vigentes/i),
+    ).toBeInTheDocument();
+    expect(
+      screen.getByText(/todo el historial se conservará/i),
+    ).toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("button", { name: "Desactivar colegio" }));
+    await waitFor(() =>
+      expect(adminSchoolsService.setStatus).toHaveBeenCalledWith(
+        "school-id",
+        false,
+      ),
+    );
+  });
 });

@@ -1,6 +1,7 @@
 import { Link } from 'react-router-dom';
 import epsIcon from '../../assets/eps-icon.svg';
 import epsLogoHorizontal from '../../assets/eps-logo-horizontal.svg';
+import { InstitutionalBrand } from './InstitutionalBrand';
 
 const navigationItems = [
   { label: 'Inicio', href: '#inicio' },
@@ -13,27 +14,40 @@ export function PublicHeader() {
   return (
     <header className="sticky top-0 z-20 border-b border-mendoza-border bg-white/95 backdrop-blur" data-print-hidden="true">
       <div className="mx-auto flex max-w-7xl items-center justify-between gap-3 px-4 py-3 sm:px-6 sm:py-4 lg:px-8">
-        <a className="flex min-w-0 items-center gap-3" href="#inicio">
-          <img
-            alt="Escuelas Promotoras de Salud"
-            className="hidden h-14 w-auto max-w-[280px] md:block"
-            src={epsLogoHorizontal}
-          />
-          <img
-            alt=""
-            aria-hidden="true"
-            className="h-11 w-11 shrink-0 md:hidden"
-            src={epsIcon}
-          />
-          <span className="min-w-0 md:hidden">
-            <span className="block truncate text-sm font-bold leading-tight text-mendoza-blue">
-              Escuelas Promotoras
+        <div className="flex min-w-0 items-center gap-4">
+          <a className="flex min-w-0 items-center gap-3" href="#inicio">
+            <img
+              alt="Escuelas Promotoras de Salud"
+              className="hidden h-14 w-auto max-w-[280px] md:block"
+              src={epsLogoHorizontal}
+            />
+            <img
+              alt=""
+              aria-hidden="true"
+              className="h-11 w-11 shrink-0 md:hidden"
+              src={epsIcon}
+            />
+            <span className="min-w-0 md:hidden">
+              <span className="block truncate text-sm font-bold leading-tight text-mendoza-blue">
+                Escuelas Promotoras
+              </span>
+              <span className="block truncate text-sm font-bold leading-tight text-mendoza-sky">
+                de Salud
+              </span>
             </span>
-            <span className="block truncate text-sm font-bold leading-tight text-mendoza-sky">
-              de Salud
-            </span>
-          </span>
-        </a>
+          </a>
+
+          <div className="hidden items-center gap-4 xl:flex">
+            <span
+              aria-hidden="true"
+              className="h-8 w-px bg-mendoza-border"
+            />
+            <InstitutionalBrand
+              compact
+              organizationKeys={['mendoza']}
+            />
+          </div>
+        </div>
 
         <nav className="hidden items-center gap-7 lg:flex" aria-label="Principal">
           {navigationItems.map((navigationItem) => (

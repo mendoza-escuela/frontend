@@ -8,6 +8,7 @@ import {
   ClipboardCheck,
   FileClock,
   FileDown,
+  FileSpreadsheet,
   ReceiptText,
   School,
   Star,
@@ -42,6 +43,8 @@ type ResultError = {
     | "server";
   message: string;
 };
+
+type ResultDownloadKind = "report-pdf" | "report-xlsx" | "receipt-pdf";
 
 export function SchoolResultsPage() {
   const { campaignId } = useParams<{ campaignId: string }>();
@@ -150,7 +153,8 @@ function PreliminaryResultDetail({ campaignId }: { campaignId: string }) {
   const [isLoading, setIsLoading] = useState(true);
   const [distribution, setDistribution] =
     useState<SchoolStarDistribution | null>(null);
-  const [isDownloading, setIsDownloading] = useState(false);
+  const [downloadInProgress, setDownloadInProgress] =
+    useState<ResultDownloadKind | null>(null);
 
   const load = useCallback(async () => {
     setIsLoading(true);
@@ -184,6 +188,24 @@ function PreliminaryResultDetail({ campaignId }: { campaignId: string }) {
           showError(getHttpErrorMessage(distributionError));
       });
   }, [campaignId, preliminaryResult]);
+
+  const downloadResultFile = async (
+    kind: ResultDownloadKind,
+    cue: string,
+  ) => {
+    setDownloadInProgress(kind);
+    try {
+      if (kind === "report-pdf")
+        await schoolResultsService.downloadReport(campaignId, cue);
+      else if (kind === "report-xlsx")
+        await schoolResultsService.downloadExcel(campaignId, cue);
+      else await schoolResultsService.downloadReceipt(campaignId, cue);
+    } catch (downloadError) {
+      showError(getHttpErrorMessage(downloadError));
+    } finally {
+      setDownloadInProgress(null);
+    }
+  };
 
   if (isLoading) {
     return (
@@ -272,33 +294,61 @@ function PreliminaryResultDetail({ campaignId }: { campaignId: string }) {
 
         <div className="mt-4 flex flex-wrap gap-3">
           <Button
-            disabled={isDownloading}
+            aria-busy={downloadInProgress === "report-pdf"}
+            disabled={downloadInProgress !== null}
             icon={<FileDown aria-hidden="true" size={18} />}
-            onClick={() => {
-              setIsDownloading(true);
-              schoolResultsService
-                .downloadReport(campaignId, preliminaryResult.school.cue)
-                .catch((downloadError) => showError(getHttpErrorMessage(downloadError)))
-                .finally(() => setIsDownloading(false));
-            }}
+            onClick={() =>
+              void downloadResultFile(
+                "report-pdf",
+                preliminaryResult.school.cue,
+              )
+            }
           >
-            Descargar reporte PDF
+            {downloadInProgress === "report-pdf"
+              ? "Descargando PDF…"
+              : "Descargar reporte PDF"}
           </Button>
           <Button
-            disabled={isDownloading}
-            icon={<ReceiptText aria-hidden="true" size={18} />}
-            onClick={() => {
-              setIsDownloading(true);
-              schoolResultsService
-                .downloadReceipt(campaignId, preliminaryResult.school.cue)
-                .catch((downloadError) => showError(getHttpErrorMessage(downloadError)))
-                .finally(() => setIsDownloading(false));
-            }}
+            aria-busy={downloadInProgress === "report-xlsx"}
+            aria-describedby="excel-report-download-help"
+            disabled={downloadInProgress !== null}
+            icon={<FileSpreadsheet aria-hidden="true" size={18} />}
+            onClick={() =>
+              void downloadResultFile(
+                "report-xlsx",
+                preliminaryResult.school.cue,
+              )
+            }
             variant="outline"
           >
-            Descargar comprobante
+            {downloadInProgress === "report-xlsx"
+              ? "Descargando Excel…"
+              : "Descargar reporte Excel"}
+          </Button>
+          <Button
+            aria-busy={downloadInProgress === "receipt-pdf"}
+            disabled={downloadInProgress !== null}
+            icon={<ReceiptText aria-hidden="true" size={18} />}
+            onClick={() =>
+              void downloadResultFile(
+                "receipt-pdf",
+                preliminaryResult.school.cue,
+              )
+            }
+            variant="outline"
+          >
+            {downloadInProgress === "receipt-pdf"
+              ? "Descargando comprobante…"
+              : "Descargar comprobante"}
           </Button>
         </div>
+        <p
+          className="mt-2 text-xs text-mendoza-muted"
+          id="excel-report-download-help"
+        >
+          El Excel incluye el resumen, los resultados por dimensión y las
+          respuestas enviadas en esta campaña.
+        </p>
 
         {mentalHealth.isCritical && (
           <section

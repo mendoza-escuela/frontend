@@ -116,3 +116,12 @@ export type CampaignSchoolPreview = {
   willAssign: number;
   message: string;
 };
+
+export type CampaignSchoolAssignmentResult = {
+  matched: number;
+  assigned: number;
+  summary: {
+    assigned: number;
+    removed: number;
+  };
+};

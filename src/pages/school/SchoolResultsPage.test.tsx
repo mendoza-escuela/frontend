@@ -1,10 +1,18 @@
 // @vitest-environment jsdom
 
 import "@testing-library/jest-dom/vitest";
-import { cleanup, render, screen, waitFor } from "@testing-library/react";
+import {
+  act,
+  cleanup,
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+} from "@testing-library/react";
 import { MemoryRouter, Route, Routes } from "react-router-dom";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { schoolResultsService } from "../../services/school-results.service";
+import { showError } from "../../lib/toast";
 import type { SchoolPreliminaryResult } from "../../types/school-result";
 import { SchoolResultsPage } from "./SchoolResultsPage";
 
@@ -18,8 +26,11 @@ vi.mock("../../services/school-results.service", () => ({
     }),
     downloadReport: vi.fn(),
     downloadReceipt: vi.fn(),
+    downloadExcel: vi.fn(),
   },
 }));
+
+vi.mock("../../lib/toast", () => ({ showError: vi.fn() }));
 
 class TestResizeObserver {
   observe() {}
@@ -209,6 +220,78 @@ describe("SchoolResultsPage", () => {
         "campaign-1",
       ),
     );
+  });
+
+  it("descarga el Excel accesible con resultado y respuestas del envío", async () => {
+    vi.mocked(schoolResultsService.getByCampaign).mockResolvedValue(
+      preliminaryResultFixture(33, false),
+    );
+    let finishDownload!: () => void;
+    vi.mocked(schoolResultsService.downloadExcel).mockReturnValue(
+      new Promise<void>((resolve) => {
+        finishDownload = resolve;
+      }),
+    );
+    renderResultRoute();
+
+    const excelButton = await screen.findByRole("button", {
+      name: "Descargar reporte Excel",
+    });
+    expect(excelButton).toHaveAttribute(
+      "aria-describedby",
+      "excel-report-download-help",
+    );
+    expect(
+      screen.getByText(/incluye el resumen, los resultados por dimensión/i),
+    ).toBeVisible();
+
+    fireEvent.click(excelButton);
+    const busyButton = screen.getByRole("button", {
+      name: "Descargando Excel…",
+    });
+    expect(busyButton).toBeDisabled();
+    expect(busyButton).toHaveAttribute("aria-busy", "true");
+    expect(schoolResultsService.downloadExcel).toHaveBeenCalledWith(
+      "campaign-1",
+      "500012300",
+    );
+    expect(
+      screen.getByRole("button", { name: "Descargar reporte PDF" }),
+    ).toBeDisabled();
+
+    await act(async () => finishDownload());
+    await waitFor(() =>
+      expect(
+        screen.getByRole("button", { name: "Descargar reporte Excel" }),
+      ).toBeEnabled(),
+    );
+  });
+
+  it("informa un error comprensible si falla la descarga Excel", async () => {
+    vi.mocked(schoolResultsService.getByCampaign).mockResolvedValue(
+      preliminaryResultFixture(33, false),
+    );
+    vi.mocked(schoolResultsService.downloadExcel).mockRejectedValue({
+      isAxiosError: true,
+      response: {
+        status: 404,
+        data: { message: "La presentación enviada no está disponible." },
+      },
+    });
+    renderResultRoute();
+
+    fireEvent.click(
+      await screen.findByRole("button", { name: "Descargar reporte Excel" }),
+    );
+
+    await waitFor(() =>
+      expect(showError).toHaveBeenCalledWith(
+        "La presentación enviada no está disponible.",
+      ),
+    );
+    expect(
+      screen.getByRole("button", { name: "Descargar reporte Excel" }),
+    ).toBeEnabled();
   });
 });
 

@@ -13,6 +13,7 @@ import {
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Link, useParams } from "react-router-dom";
 import { Button } from "../../components/ui/Button";
+import { ConfirmDialog } from "../../components/ui/ConfirmDialog";
 import { PaginationControls } from "../../components/ui/PaginationControls";
 import { getHttpErrorMessage } from "../../lib/http-error";
 import { showError, showSuccess } from "../../lib/toast";
@@ -35,6 +36,8 @@ export function SchoolDetailPage() {
     useState<SchoolUserSummary | null>(null);
   const [loadingUsers, setLoadingUsers] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [statusDialogOpen, setStatusDialogOpen] = useState(false);
+  const [changingStatus, setChangingStatus] = useState(false);
   const detailRequest = useRef<AbortController | null>(null);
   const usersRequest = useRef<AbortController | null>(null);
 
@@ -92,17 +95,20 @@ export function SchoolDetailPage() {
       : eligibleUsers.items;
   const changeStatus = async () => {
     if (!school) return;
+    const wasActive = school.isActive;
+    setChangingStatus(true);
     try {
-      setSchool(
-        await adminSchoolsService.setStatus(school.id, !school.isActive),
-      );
+      setSchool(await adminSchoolsService.setStatus(school.id, !wasActive));
       showSuccess(
-        school.isActive
-          ? "Colegio desactivado; se bloquearon nuevas evaluaciones."
-          : "Colegio activado.",
+        wasActive
+          ? "Colegio desactivado: acceso bloqueado, sesiones cerradas e historial conservado."
+          : "Colegio activado. El usuario debe iniciar una sesión nueva.",
       );
+      setStatusDialogOpen(false);
     } catch (error) {
       showError(getHttpErrorMessage(error));
+    } finally {
+      setChangingStatus(false);
     }
   };
   const assign = async () => {
@@ -178,7 +184,7 @@ export function SchoolDetailPage() {
                   <ShieldCheck size={17} />
                 )
               }
-              onClick={() => void changeStatus()}
+              onClick={() => setStatusDialogOpen(true)}
               variant={school.isActive ? "outline" : "primary"}
             >
               {school.isActive ? "Desactivar" : "Activar"}
@@ -187,8 +193,9 @@ export function SchoolDetailPage() {
         </div>
         {!school.isActive && (
           <div className="mt-5 rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-800">
-            El colegio conserva todo su historial, pero no puede iniciar nuevas
-            evaluaciones mientras esté inactivo.
+            El colegio conserva todo su historial, pero su usuario no puede
+            iniciar sesión ni realizar nuevas cargas mientras esté inactivo. Las
+            sesiones anteriores permanecen revocadas aunque se reactive.
           </div>
         )}
         <div className="mt-6 grid gap-5 xl:grid-cols-3">
@@ -438,6 +445,22 @@ export function SchoolDetailPage() {
           }))}
         />
       </div>
+      <ConfirmDialog
+        confirmLabel={
+          school.isActive ? "Desactivar colegio" : "Activar colegio"
+        }
+        description={
+          school.isActive
+            ? "Se impedirá el inicio de sesión, se cerrarán todas las sesiones vigentes y se bloquearán nuevas cargas. La escuela, sus asociaciones y todo el historial se conservarán."
+            : "La escuela volverá a estar habilitada, pero las sesiones anteriores no se recuperarán: el usuario deberá iniciar sesión nuevamente."
+        }
+        destructive={school.isActive}
+        isProcessing={changingStatus}
+        onCancel={() => setStatusDialogOpen(false)}
+        onConfirm={changeStatus}
+        open={statusDialogOpen}
+        title={school.isActive ? "¿Desactivar colegio?" : "¿Activar colegio?"}
+      />
     </main>
   );
 }
@@ -531,6 +554,7 @@ const auditLabel = (action: string) =>
     SCHOOL_UPDATED: "Datos modificados",
     SCHOOL_ACTIVATED: "Colegio activado",
     SCHOOL_DEACTIVATED: "Colegio desactivado",
+    SCHOOL_SESSIONS_REVOKED: "Sesiones del colegio revocadas",
     SCHOOL_USER_ASSIGNED: "Usuario asociado",
     SCHOOL_USER_REPLACED: "Usuario reemplazado",
     SCHOOL_USER_UNASSIGNED: "Usuario desvinculado",

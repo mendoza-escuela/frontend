@@ -1,6 +1,7 @@
 import axios from 'axios';
 
 export const AUTH_UNAUTHORIZED_EVENT = 'auth:unauthorized';
+export const CSRF_PROTECTION_HEADER = 'X-CSRF-Protection';
 
 const apiUrl = import.meta.env.VITE_API_URL;
 
@@ -16,6 +17,14 @@ const apiBaseUrl = /\/api$/i.test(normalizedApiUrl)
 export const api = axios.create({
   baseURL: apiBaseUrl,
   withCredentials: true,
+});
+
+api.interceptors.request.use((config) => {
+  const method = config.method?.toUpperCase();
+  if (method && !['GET', 'HEAD', 'OPTIONS'].includes(method)) {
+    config.headers.set(CSRF_PROTECTION_HEADER, '1');
+  }
+  return config;
 });
 
 api.interceptors.response.use(

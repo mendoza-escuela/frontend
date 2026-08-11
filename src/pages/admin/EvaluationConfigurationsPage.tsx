@@ -24,7 +24,7 @@ import { Modal } from "../../components/ui/Modal";
 import { PageHeader } from "../../components/ui/PageHeader";
 import { checkboxClassName, inputClassName } from "../../components/ui/form-styles";
 import { formatDateTime } from "../../lib/format";
-import { getHttpErrorMessage } from "../../lib/http-error";
+import { getHttpErrorDetails, getHttpErrorMessage } from "../../lib/http-error";
 import { showError, showSuccess } from "../../lib/toast";
 import { evaluationConfigurationsService } from "../../services/evaluation-configurations.service";
 import type {
@@ -197,6 +197,19 @@ export function EvaluationConfigurationsPage() {
       closeEditor();
       await load();
     } catch (reason) {
+      const details = getHttpErrorDetails(reason);
+      if (
+        details?.code === "EVALUATION_VERSION_CODE_CONFLICT" &&
+        details.field === "versionCode"
+      ) {
+        form.setError("versionCode", {
+          type: "server",
+          message: details.message,
+        });
+        form.setFocus("versionCode");
+        showError(details.message);
+        return;
+      }
       showError(getHttpErrorMessage(reason));
     }
   });

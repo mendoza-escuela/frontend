@@ -4,7 +4,7 @@ import type {
   SchoolPreliminaryResultList,
   SchoolStarDistribution,
 } from "../types/school-result";
-import { downloadBlob } from "../lib/download";
+import { downloadBlob, downloadFilename } from "../lib/download";
 
 export const schoolResultsService = {
   async list() {
@@ -41,5 +41,18 @@ export const schoolResultsService = {
       { responseType: "blob" },
     );
     downloadBlob(response.data, `comprobante-${cue}.pdf`);
+  },
+
+  async downloadExcel(campaignId: string, cue: string) {
+    const response = await api.get<Blob>(
+      `/school/campaigns/${campaignId}/submission/report.xlsx`,
+      { responseType: "blob" },
+    );
+    const headerValue = response.headers["content-disposition"];
+    const filename = downloadFilename(
+      typeof headerValue === "string" ? headerValue : null,
+      `reporte-${cue}.xlsx`,
+    );
+    downloadBlob(response.data, filename);
   },
 };

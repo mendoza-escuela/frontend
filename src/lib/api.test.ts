@@ -33,6 +33,7 @@ describe('api', () => {
 
     expect(request?.data).toBe(body);
     expect(request?.headers.get('Content-Type')).not.toBe('application/json');
+    expect(request?.headers.get('X-CSRF-Protection')).toBe('1');
   });
 
   it('mantiene application/json para los objetos comunes', async () => {
@@ -54,5 +55,25 @@ describe('api', () => {
 
     expect(request?.data).toBe(JSON.stringify(body));
     expect(request?.headers.get('Content-Type')).toBe('application/json');
+    expect(request?.headers.get('X-CSRF-Protection')).toBe('1');
+  });
+
+  it('no agrega la cabecera CSRF a solicitudes de sólo lectura', async () => {
+    let request: InternalAxiosRequestConfig | undefined;
+
+    await api.get('/test', {
+      adapter: async (config) => {
+        request = config;
+        return {
+          config,
+          data: {},
+          headers: {},
+          status: 200,
+          statusText: 'OK',
+        };
+      },
+    });
+
+    expect(request?.headers.get('X-CSRF-Protection')).toBeUndefined();
   });
 });

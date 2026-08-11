@@ -7,8 +7,14 @@ import {
   ResponsiveContainer,
   Tooltip,
 } from "recharts";
-import type { PreliminaryResultDimension } from "../../types/school-result";
 import { INSTITUTIONAL_CHART_COLORS } from "../../theme/institutional-theme";
+
+export type DimensionRadarValue = {
+  code: string;
+  title: string;
+  order: number;
+  score: number | null;
+};
 
 type RadarAxisTickProps = {
   x?: string | number;
@@ -20,7 +26,19 @@ type RadarAxisTickProps = {
 export function PreliminaryResultRadar({
   dimensions,
 }: {
-  dimensions: PreliminaryResultDimension[];
+  dimensions: DimensionRadarValue[];
+}) {
+  return <DimensionRadar dimensions={dimensions} />;
+}
+
+export function DimensionRadar({
+  dimensions,
+  description = "Comparación de los seis resultados sobre una escala de 0 a 100.",
+  title = "Perfil por dimensiones",
+}: {
+  dimensions: DimensionRadarValue[];
+  description?: string;
+  title?: string;
 }) {
   const orderedDimensions = [...dimensions].sort(
     (left, right) => left.order - right.order,
@@ -41,23 +59,23 @@ export function PreliminaryResultRadar({
         className="text-xl font-bold text-mendoza-text"
         id="dimension-radar-title"
       >
-        Perfil por dimensiones
+        {title}
       </h2>
       <p className="mt-1 text-sm text-mendoza-muted">
-        Comparación de los seis resultados sobre una escala de 0 a 100.
+        {description}
       </p>
 
       {canRenderRadar ? (
         <div
           aria-label="Gráfico radar con los resultados de las seis dimensiones"
-          className="mt-4 h-[390px] w-full sm:h-[460px]"
+          className="mt-4 h-[430px] w-full sm:h-[500px]"
           role="img"
         >
           <ResponsiveContainer height="100%" width="100%">
             <RadarChart
               data={orderedDimensions}
-              margin={{ bottom: 50, left: 65, right: 65, top: 50 }}
-              outerRadius="68%"
+              margin={{ bottom: 70, left: 80, right: 80, top: 70 }}
+              outerRadius="62%"
             >
               <PolarGrid stroke={INSTITUTIONAL_CHART_COLORS.grid} />
               <PolarAngleAxis
@@ -88,6 +106,7 @@ export function PreliminaryResultRadar({
                 name="Puntaje"
                 stroke={INSTITUTIONAL_CHART_COLORS.primary}
                 strokeWidth={2}
+                isAnimationActive={false}
               />
             </RadarChart>
           </ResponsiveContainer>
@@ -169,8 +188,7 @@ function wrapLabel(label: string, maximumLength: number) {
       lines[lines.length - 1] = `${lastLine} ${word}`;
     }
   }
-  if (lines.length <= 3) return lines;
-  return [...lines.slice(0, 2), `${lines.slice(2).join(" ")}…`];
+  return lines;
 }
 
 function formatScore(score: number) {

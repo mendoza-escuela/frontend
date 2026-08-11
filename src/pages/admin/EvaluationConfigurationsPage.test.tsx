@@ -1,6 +1,6 @@
 // @vitest-environment jsdom
 import "@testing-library/jest-dom/vitest";
-import { cleanup, fireEvent, render, screen } from "@testing-library/react";
+import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { evaluationConfigurationsService } from "../../services/evaluation-configurations.service";
 import { EvaluationConfigurationsPage } from "./EvaluationConfigurationsPage";
@@ -106,5 +106,38 @@ describe("EvaluationConfigurationsPage", () => {
     ).toBeVisible();
     fireEvent.click(screen.getByRole("button", { name: "Descartar" }));
     expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+  });
+
+  it("muestra y enfoca el código cuando ya existe otra configuración", async () => {
+    vi.mocked(evaluationConfigurationsService.create).mockRejectedValue({
+      isAxiosError: true,
+      response: {
+        data: {
+          code: "EVALUATION_VERSION_CODE_CONFLICT",
+          field: "versionCode",
+          message: "Ya existe una configuración con ese código de versión.",
+        },
+      },
+    });
+    render(<EvaluationConfigurationsPage />);
+    await screen.findByText("Versión activa");
+    fireEvent.click(
+      screen.getByRole("button", { name: "Nueva configuración" }),
+    );
+    const versionCode = screen.getByLabelText("Código de versión");
+    fireEvent.change(versionCode, { target: { value: "v1.0.0" } });
+    fireEvent.change(screen.getByLabelText("Nombre"), {
+      target: { value: "Duplicada" },
+    });
+    fireEvent.click(screen.getByRole("button", { name: "Guardar borrador" }));
+
+    expect(
+      await screen.findByText(
+        "Ya existe una configuración con ese código de versión.",
+      ),
+    ).toBeVisible();
+    await waitFor(() => expect(versionCode).toHaveFocus());
+    expect(versionCode).toHaveValue("v1.0.0");
+    expect(screen.getByRole("dialog")).toBeVisible();
   });
 });

@@ -16,7 +16,7 @@ describe('createUserFormSchema', () => {
     expect(createUserFormSchema(false).safeParse(base).success).toBe(true);
   });
 
-  it('requires an associated school for the Colegio role', () => {
+  it('requires an associated school for the Escuela role', () => {
     expect(
       createUserFormSchema(false).safeParse({ ...base, role: 'school' }).success,
     ).toBe(false);

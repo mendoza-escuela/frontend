@@ -7,6 +7,7 @@ import type {
   CampaignWriteInput,
   PublishedSurveyVersionOption,
   CampaignSchoolAssignment,
+  CampaignSchoolAssignmentResult,
   CampaignSchoolFilters,
   CampaignSchoolOptionsResponse,
   CampaignSchoolPreview,
@@ -95,7 +96,10 @@ export const adminCampaignsService = {
 
   async assignSchools(id: string, selection: CampaignSchoolSelection) {
     return (
-      await api.post(`/admin/campaigns/${id}/schools/assign`, selection)
+      await api.post<CampaignSchoolAssignmentResult>(
+        `/admin/campaigns/${id}/schools/assign`,
+        selection,
+      )
     ).data;
   },
 

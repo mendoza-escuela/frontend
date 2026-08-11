@@ -184,8 +184,8 @@ export function UsersAdminPage() {
               value={filters.role}
             >
               <option value="">Todos</option>
-              <option value="admin">Administrador</option>
-              <option value="school">Colegio</option>
+              <option value="admin">Administrador Central</option>
+              <option value="school">Escuela</option>
             </select>
           </label>
           <label className="text-sm font-semibold">
@@ -277,7 +277,9 @@ export function UsersAdminPage() {
                       )}
                     </td>
                     <td className="px-4 py-3">
-                      {user.role === "admin" ? "Administrador" : "Colegio"}
+                      {user.role === "admin"
+                        ? "Administrador Central"
+                        : "Escuela"}
                     </td>
                     <td className="px-4 py-3">
                       {user.school

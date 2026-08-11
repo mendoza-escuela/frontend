@@ -5,7 +5,7 @@ import { Controller, useForm } from "react-hook-form";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { Button } from "../../components/ui/Button";
 import { SchoolCombobox } from "../../components/users/SchoolCombobox";
-import { getHttpErrorMessage } from "../../lib/http-error";
+import { getHttpErrorDetails, getHttpErrorMessage } from "../../lib/http-error";
 import { showError, showSuccess } from "../../lib/toast";
 import {
   createUserFormSchema,
@@ -28,6 +28,8 @@ export function UserFormPage() {
     register,
     handleSubmit,
     reset,
+    setError,
+    setFocus,
     watch,
     control,
     formState: { errors, isSubmitting },
@@ -93,6 +95,13 @@ export function UserFormPage() {
       }
       navigate("/admin/usuarios");
     } catch (error) {
+      const details = getHttpErrorDetails(error);
+      if (details?.code === "USER_EMAIL_CONFLICT" && details.field === "email") {
+        setError("email", { type: "server", message: details.message });
+        setFocus("email");
+        showError(details.message);
+        return;
+      }
       showError(getHttpErrorMessage(error));
     }
   });
@@ -148,8 +157,8 @@ export function UserFormPage() {
             </Field>
             <Field label="Rol" error={errors.role?.message}>
               <select {...register("role")} className="field">
-                <option value="school">Colegio</option>
-                <option value="admin">Administrador</option>
+                <option value="school">Escuela</option>
+                <option value="admin">Administrador Central</option>
               </select>
             </Field>
             <Controller
