@@ -13,7 +13,7 @@ import { AuthCard } from '../components/auth/AuthCard';
 import { Button } from '../components/ui/Button';
 import { useAuth } from '../hooks/useAuth';
 import { getHttpErrorMessage } from '../lib/http-error';
-import { getSafeInternalPath } from '../lib/safe-navigation';
+import { getSafeReturnPathForRole } from '../lib/safe-navigation';
 import { showError } from '../lib/toast';
 
 const schema = z.object({
@@ -35,7 +35,10 @@ export function LoginPage() {
       const user = await login(email, password);
       const stateFrom = (location.state as { from?: unknown } | null)?.from;
       const requestedReturnPath = searchParameters.get('returnTo') ?? stateFrom;
-      const safeReturnPath = getSafeInternalPath(requestedReturnPath);
+      const safeReturnPath = getSafeReturnPathForRole(
+        requestedReturnPath,
+        user.role,
+      );
       navigate(
         user.mustChangePassword
           ? '/cambiar-clave'

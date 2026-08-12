@@ -129,6 +129,34 @@ describe('AuthProvider', () => {
       );
     });
   });
+
+  it('ignora un /auth/me anterior que termina después del login', async () => {
+    let rejectInitialRefresh!: (error: unknown) => void;
+    vi.mocked(authService.me).mockReturnValue(
+      new Promise((_, reject) => {
+        rejectInitialRefresh = reject;
+      }),
+    );
+    vi.mocked(authService.login).mockResolvedValue(authenticatedUser);
+
+    renderProvider();
+    fireEvent.click(screen.getByRole('button', { name: 'Iniciar login' }));
+
+    await waitFor(() => {
+      expect(screen.getByTestId('user')).toHaveTextContent(
+        authenticatedUser.email,
+      );
+    });
+
+    rejectInitialRefresh(axiosReadError(401));
+
+    await waitFor(() => {
+      expect(screen.getByTestId('user')).toHaveTextContent(
+        authenticatedUser.email,
+      );
+      expect(screen.getByTestId('session-expired')).toHaveTextContent('false');
+    });
+  });
 });
 
 function AuthStateProbe() {

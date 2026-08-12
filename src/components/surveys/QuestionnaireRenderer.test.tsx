@@ -71,7 +71,36 @@ const survey: PublishedSurvey = {
 };
 
 describe("QuestionnaireRenderer", () => {
-  afterEach(cleanup);
+  afterEach(() => {
+    cleanup();
+    vi.unstubAllGlobals();
+  });
+
+  it("lleva la vista al inicio de las preguntas al cambiar de secciÃ³n", async () => {
+    const scrollIntoView = vi.fn();
+    Element.prototype.scrollIntoView = scrollIntoView;
+    vi.stubGlobal(
+      "matchMedia",
+      vi.fn().mockReturnValue({ matches: false } as MediaQueryList),
+    );
+    render(
+      <QuestionnaireRenderer
+        survey={survey}
+        validateOnSectionChange={false}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "Siguiente" }));
+
+    const questions = await screen.findByRole("group", {
+      name: "Preguntas de Acciones",
+    });
+    expect(scrollIntoView).toHaveBeenCalledWith({
+      behavior: "smooth",
+      block: "start",
+    });
+    expect(questions).toHaveFocus();
+  });
 
   it("valida preguntas obligatorias antes de avanzar", async () => {
     render(<QuestionnaireRenderer survey={survey} />);
