@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Controller, useForm } from "react-hook-form";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { Button } from "../../components/ui/Button";
+import { LoadingState } from "../../components/ui/LoadingState";
 import { SchoolCombobox } from "../../components/users/SchoolCombobox";
 import { getHttpErrorDetails, getHttpErrorMessage } from "../../lib/http-error";
 import { showError, showSuccess, showWarning } from "../../lib/toast";
@@ -118,7 +119,7 @@ export function UserFormPage() {
   });
 
   if (loading)
-    return <main className="p-8 text-mendoza-blue">Cargando usuario…</main>;
+    return <main className="p-4 sm:p-8"><LoadingState label="Cargando usuario…" /></main>;
   return (
     <main className="p-4 sm:p-8">
       <div className="mx-auto max-w-3xl">

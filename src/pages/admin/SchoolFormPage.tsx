@@ -11,6 +11,9 @@ import {
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { Button } from "../../components/ui/Button";
 import { ErrorState } from "../../components/ui/ErrorState";
+import { LoadingState } from "../../components/ui/LoadingState";
+import { SearchableSelect } from "../../components/ui/SearchableSelect";
+import { checkboxClassName } from "../../components/ui/form-styles";
 import { getHttpErrorMessage } from "../../lib/http-error";
 import {
   schoolFormSchema,
@@ -261,7 +264,7 @@ export function SchoolFormPage() {
   });
 
   if (loading)
-    return <main className="p-8 text-mendoza-blue">Cargando colegio…</main>;
+    return <main className="p-4 sm:p-8"><LoadingState label="Cargando colegio…" /></main>;
   if (loadError) return <ErrorState message={loadError} />;
   if (!catalogs) return null;
 
@@ -324,64 +327,55 @@ export function SchoolFormPage() {
 
             <Section title="Perfil educativo" />
             <CatalogField
+              control={control}
               error={errors.managementType?.message}
               label="Sector / gestión *"
               name="managementType"
               options={catalogs.managementTypes}
-              register={register}
             />
             <CatalogField
+              control={control}
               error={errors.scope?.message}
               label="Ámbito *"
               name="scope"
               options={catalogs.scopes}
-              register={register}
             />
             <CatalogField
+              control={control}
               error={errors.educationLevel?.message}
               label="Tipo de educación *"
               name="educationLevel"
               options={catalogs.educationTypes}
-              register={register}
             />
-            <Field label="Jornada *" error={errors.shiftCatalogId?.message}>
-              <Controller
-                control={control}
-                name="shiftCatalogId"
-                render={({ field }) => (
-                  <select
-                    className="field"
-                    disabled={!catalogs.shifts.available}
-                    onBlur={field.onBlur}
-                    onChange={(event) => {
-                      const shiftId = event.target.value || null;
-                      field.onChange(shiftId);
-                      const selected = catalogs.shifts.items.find(
-                        ({ id: optionId }) => optionId === shiftId,
-                      );
-                      setValue("shift", selected?.label ?? "", {
-                        shouldDirty: true,
-                        shouldValidate: true,
-                      });
-                    }}
-                    ref={field.ref}
-                    value={field.value ?? ""}
-                  >
-                    <option value="">Seleccioná una jornada</option>
-                    {catalogs.shifts.items.map((shift) => (
-                      <option
-                        disabled={!shift.isActive}
-                        key={shift.id}
-                        value={shift.id}
-                      >
-                        {shift.label}
-                      </option>
-                    ))}
-                  </select>
-                )}
-              />
-              <input type="hidden" {...register("shift")} />
-            </Field>
+            <Controller
+              control={control}
+              name="shiftCatalogId"
+              render={({ field }) => (
+                <SearchableSelect
+                  allLabel="Seleccioná una jornada"
+                  disabled={!catalogs.shifts.available}
+                  error={errors.shiftCatalogId?.message}
+                  label="Jornada *"
+                  onBlur={field.onBlur}
+                  onChange={(value) => {
+                    const shiftId = value || null;
+                    field.onChange(shiftId);
+                    const selected = catalogs.shifts.items.find(
+                      ({ id: optionId }) => optionId === shiftId,
+                    );
+                    setValue("shift", selected?.label ?? "", {
+                      shouldDirty: true,
+                      shouldValidate: true,
+                    });
+                  }}
+                  options={catalogs.shifts.items
+                    .filter((shift) => shift.isActive || shift.id === field.value)
+                    .map((shift) => ({ value: shift.id, label: shift.label }))}
+                  value={field.value ?? ""}
+                />
+              )}
+            />
+            <input type="hidden" {...register("shift")} />
 
             <EducationLevelsField
               catalogs={catalogs}
@@ -510,9 +504,9 @@ export function SchoolFormPage() {
             </Field>
 
             {!editing && (
-              <label className="flex items-center gap-3 text-sm font-semibold md:col-span-2">
+              <label className="flex cursor-pointer items-center gap-3 rounded-xl border border-mendoza-border bg-white p-4 text-sm font-semibold transition hover:border-mendoza-sky md:col-span-2">
                 <input
-                  className="h-5 w-5 accent-mendoza-blue"
+                  className={checkboxClassName}
                   type="checkbox"
                   {...register("isActive")}
                 />
@@ -542,31 +536,38 @@ export function SchoolFormPage() {
 }
 
 function CatalogField({
+  control,
   error,
   label,
   name,
   options,
-  register,
 }: {
+  control: Control<SchoolFormValues>;
   error?: string;
   label: string;
   name: "managementType" | "scope" | "educationLevel";
-  options: SchoolNamedCatalogOption[];
-  register: UseFormRegister<SchoolFormValues>;
+  options: { code: string; label: string }[];
 }) {
   return (
-    <Field error={error} label={label}>
-      <select className="field" disabled={!options.length} {...register(name)}>
-        <option value="">
-          {options.length ? "Seleccioná una opción" : "Catálogo no disponible"}
-        </option>
-        {options.map((option) => (
-          <option key={option.code} value={option.label}>
-            {option.label}
-          </option>
-        ))}
-      </select>
-    </Field>
+    <Controller
+      control={control}
+      name={name}
+      render={({ field }) => (
+        <SearchableSelect
+          allLabel={options.length ? "Seleccioná una opción" : "Catálogo no disponible"}
+          disabled={!options.length}
+          error={error}
+          label={label}
+          onBlur={field.onBlur}
+          onChange={field.onChange}
+          options={options.map((option) => ({
+            value: option.label,
+            label: option.label,
+          }))}
+          value={field.value}
+        />
+      )}
+    />
   );
 }
 
@@ -601,10 +602,11 @@ function EducationLevelsField({
             );
             return (
               <label
-                className="flex items-center gap-3 rounded-xl border border-mendoza-border p-3 text-sm"
+                className={`flex min-h-14 items-center gap-3 rounded-xl border p-3 text-sm transition focus-within:ring-4 focus-within:ring-mendoza-sky/15 ${selected ? "border-mendoza-blue bg-mendoza-blue-soft font-semibold text-mendoza-blue shadow-sm" : "border-mendoza-border bg-white text-mendoza-text hover:border-mendoza-sky"} ${!level.isActive && !selected ? "cursor-not-allowed opacity-60" : "cursor-pointer"}`}
                 key={level.id}
               >
                 <input
+                  className={checkboxClassName}
                   checked={selected}
                   disabled={!level.isActive && !selected}
                   onChange={(event) => toggleLevel(level, event.target.checked)}

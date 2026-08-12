@@ -10,6 +10,7 @@ import { GlobalHttpErrorHandler } from "../components/errors/GlobalHttpErrorHand
 import { AdminLayout } from "../components/layout/AdminLayout";
 import { AppLayout } from "../components/layout/AppLayout";
 import { SchoolLayout } from "../components/layout/SchoolLayout";
+import { LoadingState } from "../components/ui/LoadingState";
 import {
   ErrorRoutePage,
   RouteErrorBoundaryPage,
@@ -172,9 +173,7 @@ const SchoolResultsPage = lazy(() =>
 
 function lazyPage(page: ReactNode) {
   return (
-    <Suspense
-      fallback={<div className="p-8 text-mendoza-blue">Cargando módulo…</div>}
-    >
+    <Suspense fallback={<LoadingState page label="Cargando…" />}>
       {page}
     </Suspense>
   );

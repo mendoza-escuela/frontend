@@ -1,6 +1,7 @@
 import { Navigate, Outlet, useLocation } from 'react-router-dom';
 import { useAuth } from '../../hooks/useAuth';
 import type { UserRole } from '../../types/auth';
+import { LoadingState } from '../ui/LoadingState';
 
 type ProtectedRouteProps = {
   roles?: UserRole[];
@@ -20,11 +21,7 @@ export function ProtectedRoute({
   const location = useLocation();
   const from = `${location.pathname}${location.search}${location.hash}`;
   if (isLoading) {
-    return (
-      <div className="grid min-h-screen place-items-center text-mendoza-blue">
-        Verificando sesión…
-      </div>
-    );
+    return <LoadingState fullScreen label="Verificando sesión…" />;
   }
   if (authenticationErrorStatus) {
     return (

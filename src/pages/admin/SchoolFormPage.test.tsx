@@ -181,15 +181,13 @@ describe("SchoolFormPage", () => {
   it("usa catálogos oficiales y no ofrece estado desconocido en aplicabilidad", async () => {
     renderPage();
 
-    expect(
-      await screen.findByLabelText("Sector / gestión *"),
-    ).toHaveTextContent("Estatal");
-    expect(screen.getByLabelText("Ámbito *")).toHaveTextContent("Urbano");
-    expect(screen.getByLabelText("Tipo de educación *")).toHaveTextContent(
-      "Común",
-    );
-    expect(screen.getByLabelText("Jornada *")).toHaveTextContent(
-      "Jornada completa",
+    await screen.findByLabelText("Sector / gestión *");
+    selectOption("Sector / gestión *", "Estatal");
+    selectOption("Ámbito *", "Urbano");
+    selectOption("Tipo de educación *", "Común");
+    selectOption("Jornada *", "Jornada completa");
+    expect(screen.getByLabelText("Sector / gestión *")).toHaveTextContent(
+      "Estatal",
     );
     const kiosk = screen.getByRole("group", { name: "¿Tiene kiosco? *" });
     expect(
@@ -306,18 +304,10 @@ describe("SchoolFormPage", () => {
     fireEvent.change(screen.getByLabelText("Dirección *"), {
       target: { value: "San Martín 20" },
     });
-    fireEvent.change(screen.getByLabelText("Sector / gestión *"), {
-      target: { value: "Estatal" },
-    });
-    fireEvent.change(screen.getByLabelText("Ámbito *"), {
-      target: { value: "Urbano" },
-    });
-    fireEvent.change(screen.getByLabelText("Tipo de educación *"), {
-      target: { value: "Común" },
-    });
-    fireEvent.change(screen.getByLabelText("Jornada *"), {
-      target: { value: shiftId },
-    });
+    selectOption("Sector / gestión *", "Estatal");
+    selectOption("Ámbito *", "Urbano");
+    selectOption("Tipo de educación *", "Común");
+    selectOption("Jornada *", "Jornada completa");
     fireEvent.click(screen.getByRole("checkbox", { name: "Primario" }));
     fireEvent.click(
       within(screen.getByRole("group", { name: "¿Tiene kiosco? *" })).getByRole(
@@ -351,3 +341,8 @@ describe("SchoolFormPage", () => {
     expect(adminSchoolsService.update).not.toHaveBeenCalled();
   });
 });
+
+function selectOption(label: string, option: string) {
+  fireEvent.click(screen.getByRole("button", { name: label }));
+  fireEvent.click(screen.getByRole("option", { name: option }));
+}

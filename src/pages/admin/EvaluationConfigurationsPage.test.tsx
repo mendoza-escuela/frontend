@@ -18,6 +18,15 @@ const activeConfiguration = {
   starRanges: [1,2,3,4,5].map((stars,index)=>({ id:`range-${stars}`, stars, lowerBound:index*20, upperBound:stars*20, lowerInclusive:stars===1, upperInclusive:true, order:stars })),
 };
 
+const archivedConfiguration = {
+  ...activeConfiguration,
+  id: "configuration-archived",
+  versionCode: "v0.9.0",
+  name: "Anterior",
+  status: "archived" as const,
+  archivedAt: "2026-07-30T12:00:00Z",
+};
+
 describe("EvaluationConfigurationsPage", () => {
   afterEach(cleanup);
   beforeEach(() => { vi.clearAllMocks(); vi.mocked(evaluationConfigurationsService.list).mockResolvedValue([activeConfiguration]); });
@@ -29,6 +38,27 @@ describe("EvaluationConfigurationsPage", () => {
     expect(screen.queryByRole("button", { name: "Activar" })).not.toBeInTheDocument();
     expect(screen.getByRole("button", { name: "Clonar" })).toBeVisible();
     expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+  });
+
+  it("oculta las archivadas por defecto y permite incluirlas con el switch", async () => {
+    vi.mocked(evaluationConfigurationsService.list).mockResolvedValue([
+      activeConfiguration,
+      archivedConfiguration,
+    ]);
+
+    render(<EvaluationConfigurationsPage />);
+
+    expect(await screen.findByText(/v1.0.0 · Inicial/)).toBeVisible();
+    expect(screen.queryByText(/v0.9.0 · Anterior/)).not.toBeInTheDocument();
+    const filter = screen.getByRole("switch", {
+      name: "Mostrar solo configuraciones activas y borradores",
+    });
+    expect(filter).toHaveAttribute("aria-checked", "true");
+
+    fireEvent.click(filter);
+
+    expect(screen.getByText(/v0.9.0 · Anterior/)).toBeVisible();
+    expect(filter).toHaveAttribute("aria-checked", "false");
   });
   it("opens the new configuration editor in a modal with five ranges", async () => {
     render(<EvaluationConfigurationsPage />);

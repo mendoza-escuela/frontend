@@ -13,6 +13,7 @@ import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { Button } from "../../components/ui/Button";
 import { PaginationControls } from "../../components/ui/PaginationControls";
+import { LoadingState } from "../../components/ui/LoadingState";
 import { SchoolCombobox } from "../../components/users/SchoolCombobox";
 import { getHttpErrorMessage } from "../../lib/http-error";
 import { showError, showSuccess } from "../../lib/toast";
@@ -250,7 +251,7 @@ export function UsersAdminPage() {
                     className="px-4 py-8 text-center text-mendoza-muted"
                     colSpan={6}
                   >
-                    Cargando usuarios…
+                    <LoadingState compact label="Cargando usuarios…" />
                   </td>
                 </tr>
               ) : users.items.length === 0 ? (

@@ -121,6 +121,7 @@ const defaults: EvaluationConfigurationInput = {
 
 export function EvaluationConfigurationsPage() {
   const [items, setItems] = useState<EvaluationConfiguration[]>([]);
+  const [showOnlyCurrent, setShowOnlyCurrent] = useState(true);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState("");
   const [editing, setEditing] = useState<EvaluationConfiguration | null>(null);
@@ -235,6 +236,9 @@ export function EvaluationConfigurationsPage() {
       showError(getHttpErrorMessage(reason));
     }
   };
+  const visibleItems = showOnlyCurrent
+    ? items.filter(({ status }) => status !== "archived")
+    : items;
   return (
     <main className="p-4 sm:p-8">
       <div className="mx-auto max-w-7xl">
@@ -256,7 +260,40 @@ export function EvaluationConfigurationsPage() {
           <section aria-label="Historial de configuraciones">
             <div className="mb-4 flex flex-wrap items-end justify-between gap-3">
               <div><p className="text-xs font-bold uppercase tracking-wider text-mendoza-blue">Historial versionado</p><h2 className="mt-1 text-2xl font-bold text-mendoza-text">Versiones configuradas</h2><p className="mt-1 text-sm text-mendoza-muted">Consultá, validá o cloná las reglas sin alterar versiones ya utilizadas.</p></div>
-              <span className="rounded-full border border-mendoza-border bg-white px-3 py-1.5 text-xs font-bold text-mendoza-muted">{items.length} {items.length === 1 ? "versión" : "versiones"}</span>
+              <div className="flex flex-wrap items-center justify-end gap-3">
+                <div className="flex items-center gap-3 rounded-xl border border-mendoza-border bg-white px-3 py-2 shadow-sm">
+                  <span className="text-right">
+                    <span className="block text-sm font-semibold text-mendoza-text">
+                      Solo activas y borradores
+                    </span>
+                    <span className="block text-xs text-mendoza-muted">
+                      {showOnlyCurrent
+                        ? "Las archivadas están ocultas"
+                        : "Las archivadas están visibles"}
+                    </span>
+                  </span>
+                  <button
+                    aria-checked={showOnlyCurrent}
+                    aria-label="Mostrar solo configuraciones activas y borradores"
+                    className={`relative inline-flex h-7 w-12 shrink-0 items-center rounded-full transition-colors focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-mendoza-blue ${showOnlyCurrent ? "bg-mendoza-blue" : "bg-slate-300"}`}
+                    onClick={() => setShowOnlyCurrent((current) => !current)}
+                    role="switch"
+                    type="button"
+                  >
+                    <span
+                      aria-hidden="true"
+                      className={`size-5 rounded-full bg-white shadow-sm transition-transform motion-reduce:transition-none ${showOnlyCurrent ? "translate-x-6" : "translate-x-1"}`}
+                    />
+                  </button>
+                </div>
+                <span className="rounded-full border border-mendoza-border bg-white px-3 py-1.5 text-xs font-bold text-mendoza-muted">
+                  {visibleItems.length}
+                  {showOnlyCurrent && visibleItems.length !== items.length
+                    ? ` de ${items.length}`
+                    : ""}{" "}
+                  {items.length === 1 ? "versión" : "versiones"}
+                </span>
+              </div>
             </div>
             {loading ? (
               <LoadingState label="Cargando configuraciones…" />
@@ -276,9 +313,15 @@ export function EvaluationConfigurationsPage() {
                   </Button>
                 }
               />
+            ) : !visibleItems.length ? (
+              <EmptyState
+                icon={Settings2}
+                title="No hay versiones activas ni borradores"
+                description="Desactivá el filtro para consultar las configuraciones archivadas."
+              />
             ) : (
               <div className="space-y-4">
-                {items.map((item) => (
+                {visibleItems.map((item) => (
                   <Card as="article" className={`overflow-hidden border-l-4 transition-shadow hover:shadow-md ${item.status === "active" ? "border-l-mendoza-success" : item.status === "draft" ? "border-l-mendoza-gold" : "border-l-slate-300"}`} key={item.id}>
                     <div className="flex flex-wrap items-start justify-between gap-3">
                       <div>

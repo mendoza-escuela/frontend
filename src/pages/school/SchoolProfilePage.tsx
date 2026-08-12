@@ -15,6 +15,7 @@ import { Controller, type Control, useForm } from "react-hook-form";
 import { Button } from "../../components/ui/Button";
 import { ConfirmDialog } from "../../components/ui/ConfirmDialog";
 import { ErrorState } from "../../components/ui/ErrorState";
+import { LoadingState } from "../../components/ui/LoadingState";
 import { getHttpErrorMessage } from "../../lib/http-error";
 import {
   schoolRectificationSchema,
@@ -78,7 +79,7 @@ export function SchoolProfilePage() {
 
   if (isLoading) {
     return (
-      <main className="p-8 text-mendoza-blue">Cargando establecimiento…</main>
+      <main className="p-4 sm:p-8"><LoadingState label="Cargando establecimiento…" /></main>
     );
   }
 

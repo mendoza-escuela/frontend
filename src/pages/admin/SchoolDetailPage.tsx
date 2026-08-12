@@ -15,6 +15,7 @@ import { Link, useParams } from "react-router-dom";
 import { Button } from "../../components/ui/Button";
 import { ConfirmDialog } from "../../components/ui/ConfirmDialog";
 import { PaginationControls } from "../../components/ui/PaginationControls";
+import { LoadingState } from "../../components/ui/LoadingState";
 import { getHttpErrorMessage } from "../../lib/http-error";
 import { showError, showSuccess } from "../../lib/toast";
 import { adminSchoolsService } from "../../services/admin-schools.service";
@@ -135,7 +136,7 @@ export function SchoolDetailPage() {
     }
   };
   if (!school)
-    return <main className="p-8 text-mendoza-blue">Cargando detalle…</main>;
+    return <main className="p-4 sm:p-8"><LoadingState label="Cargando detalle…" /></main>;
   return (
     <main className="p-4 sm:p-8">
       <div className="mx-auto max-w-7xl">

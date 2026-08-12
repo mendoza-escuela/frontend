@@ -14,6 +14,7 @@ import { Link } from "react-router-dom";
 import { Button } from "../../components/ui/Button";
 import { ConfirmDialog } from "../../components/ui/ConfirmDialog";
 import { PaginationControls } from "../../components/ui/PaginationControls";
+import { LoadingState } from "../../components/ui/LoadingState";
 import { SearchableSelect } from "../../components/ui/SearchableSelect";
 import { inputClassName } from "../../components/ui/form-styles";
 import { getHttpErrorMessage } from "../../lib/http-error";
@@ -226,9 +227,7 @@ export function SchoolsAdminPage() {
           </Button>
         </form>
         {loading ? (
-          <div className="mt-6 rounded-2xl bg-white p-8 text-center text-mendoza-muted">
-            Cargando padrón…
-          </div>
+          <LoadingState className="mt-6" label="Cargando padrón…" />
         ) : schools.items.length === 0 ? (
           <div className="mt-6 rounded-2xl border border-mendoza-border bg-white p-8 text-center text-mendoza-muted">
             No hay colegios para los filtros seleccionados.

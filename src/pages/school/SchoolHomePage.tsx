@@ -8,6 +8,7 @@ import { schoolCampaignsService } from "../../services/school-campaigns.service"
 import { schoolPortalService } from "../../services/school-portal.service";
 import type { School } from "../../types/admin-school";
 import type { AvailableSchoolCampaignsResponse } from "../../types/school-campaign";
+import { LoadingState } from "../../components/ui/LoadingState";
 
 export function SchoolHomePage() {
   const { user } = useAuth();
@@ -30,7 +31,7 @@ export function SchoolHomePage() {
   }, []);
 
   if (isLoading) {
-    return <main className="p-8 text-mendoza-blue">Cargando portal…</main>;
+    return <main className="p-4 sm:p-8"><LoadingState label="Cargando portal…" /></main>;
   }
 
   return (
