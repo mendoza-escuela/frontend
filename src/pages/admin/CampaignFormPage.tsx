@@ -161,6 +161,7 @@ export function CampaignFormPage() {
                 </FormField>
 
                 <FormField
+                  alignControl
                   error={errors.type?.message}
                   htmlFor="type"
                   label="Periodicidad"
@@ -176,6 +177,7 @@ export function CampaignFormPage() {
                 </FormField>
 
                 <FormField
+                  alignControl
                   error={errors.surveyVersionId?.message}
                   help="Sólo se muestran versiones publicadas de cuestionarios activos."
                   htmlFor="surveyVersionId"
@@ -197,6 +199,7 @@ export function CampaignFormPage() {
                 </FormField>
 
                 <FormField
+                  alignControl
                   error={errors.startDate?.message}
                   htmlFor="startDate"
                   label="Fecha de inicio"
@@ -210,6 +213,7 @@ export function CampaignFormPage() {
                 </FormField>
 
                 <FormField
+                  alignControl
                   error={errors.endDate?.message}
                   help="El cierre se almacena a las 23:59:59 de esta fecha, hora de Mendoza."
                   htmlFor="endDate"

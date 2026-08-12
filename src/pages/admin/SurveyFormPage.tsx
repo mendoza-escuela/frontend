@@ -110,6 +110,7 @@ export function SurveyFormPage() {
             <Card>
               <form className="grid gap-5 sm:grid-cols-2" noValidate onSubmit={submit}>
                 <FormField
+                  alignControl
                   error={errors.code?.message}
                   help={
                     isEditing
@@ -127,6 +128,7 @@ export function SurveyFormPage() {
                   />
                 </FormField>
                 <FormField
+                  alignControl
                   error={errors.name?.message}
                   htmlFor="name"
                   label="Nombre"
