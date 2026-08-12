@@ -64,16 +64,16 @@ describe("CampaignTrackingPage", () => {
     expect(screen.queryByText(/revisi[oó]n/i)).not.toBeInTheDocument();
   });
 
-  it("separa visualmente la etiqueta del selector de campaña", async () => {
+  it("separa visualmente la etiqueta del selector de etapa", async () => {
     renderPage();
 
     const campaignSelect = await screen.findByRole("combobox", {
-      name: "Campaña",
+      name: "Etapa",
     });
 
     expect(campaignSelect).toHaveAttribute("id", "campaign-tracking-campaign");
     expect(campaignSelect).toHaveClass("block", "mt-2");
-    expect(screen.getByText(/Campaña activa/)).toHaveClass("mt-3");
+    expect(screen.getByText(/Etapa activa/)).toHaveClass("mt-3");
   });
 
   it("sends state, search, ordering and pagination to the backend", async () => {
@@ -152,7 +152,7 @@ describe("CampaignTrackingPage", () => {
     renderPage();
 
     expect(
-      await screen.findByRole("heading", { name: "Campaña sin escuelas" }),
+      await screen.findByRole("heading", { name: "Etapa sin escuelas" }),
     ).toBeVisible();
     expect(
       screen.getByRole("progressbar", {
@@ -174,7 +174,7 @@ function renderPage() {
 
 const campaign: AdminCampaign = {
   id: "campaign-1",
-  name: "Campaña 2026",
+  name: "Etapa 2026",
   description: null,
   type: "annual",
   status: "active",

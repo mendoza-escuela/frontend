@@ -95,7 +95,7 @@ export function CampaignFormPage() {
       const campaign = id
         ? await adminCampaignsService.update(id, values)
         : await adminCampaignsService.create(values);
-      showSuccess(isEditing ? "Campaña actualizada." : "Campaña creada.");
+      showSuccess(isEditing ? "Etapa actualizada." : "Etapa creada.");
       navigate(`/admin/campanas/${campaign.id}/escuelas`, { replace: true });
     } catch (error) {
       showError(getHttpErrorMessage(error));
@@ -106,11 +106,11 @@ export function CampaignFormPage() {
     <main className="p-4 sm:p-8">
       <div className="mx-auto max-w-4xl">
         <PageHeader
-          backLabel="Volver a campañas"
+          backLabel="Volver a etapas"
           backTo="/admin/campanas"
-          description="La campaña se crea como borrador. Al activarla, su período y la versión del cuestionario quedan protegidos."
-          eyebrow="Campañas"
-          title={isEditing ? "Editar campaña" : "Nueva campaña"}
+          description="La etapa se crea como borrador. Al activarla, su período y la versión del cuestionario quedan protegidos."
+          eyebrow="Etapas"
+          title={isEditing ? "Editar etapa" : "Nueva etapa"}
         />
 
         <div className="mt-8">
@@ -129,7 +129,7 @@ export function CampaignFormPage() {
                 No hay versiones publicadas
               </h2>
               <p className="mx-auto mt-2 max-w-xl text-sm leading-6 text-mendoza-muted">
-                Publicá una versión de cuestionario antes de crear la campaña.
+                Publicá una versión de cuestionario antes de crear la etapa.
                 Los borradores no pueden utilizarse para evaluar escuelas.
               </p>
               <Link
@@ -150,7 +150,7 @@ export function CampaignFormPage() {
                   className="sm:col-span-2"
                   error={errors.name?.message}
                   htmlFor="name"
-                  label="Nombre de la campaña"
+                  label="Nombre de la etapa"
                 >
                   <input
                     {...register("name")}

@@ -71,7 +71,7 @@ describe("CampaignSchoolsPage", () => {
     vi.clearAllMocks();
   });
 
-  it("permite incorporar una escuela durante una campaña activa con confirmación explícita", async () => {
+  it("permite incorporar una escuela durante una etapa activa con confirmación explícita", async () => {
     vi.mocked(adminCampaignsService.schoolOptions).mockResolvedValue({
       items: [availableSchool, inactiveSchool],
       pagination: { page: 1, limit: 20, total: 2, totalPages: 1 },
@@ -83,7 +83,7 @@ describe("CampaignSchoolsPage", () => {
       await screen.findByText("Activa · admite incorporaciones"),
     ).toBeVisible();
     expect(
-      screen.getByText(/incorporación durante campaña activa/i),
+      screen.getByText(/incorporación durante etapa activa/i),
     ).toBeVisible();
 
     const assignButton = screen.getByRole("button", {
@@ -111,7 +111,7 @@ describe("CampaignSchoolsPage", () => {
       }),
     ).toBeVisible();
     expect(
-      screen.getByText(/se incorporarán inmediatamente a la campaña activa/i),
+      screen.getByText(/se incorporarán inmediatamente a la etapa activa/i),
     ).toBeVisible();
     expect(
       screen.getAllByText(/demás requisitos vigentes/i).length,
@@ -178,7 +178,7 @@ describe("CampaignSchoolsPage", () => {
       screen.getByRole("button", { name: "Quitar Escuela Incorporada" }),
     ).toBeVisible();
     expect(
-      screen.queryByText(/incorporación durante campaña activa/i),
+      screen.queryByText(/incorporación durante etapa activa/i),
     ).not.toBeInTheDocument();
   });
 });
@@ -202,7 +202,7 @@ function renderPage() {
 
 const activeCampaign: AdminCampaign = {
   id: "campaign-1",
-  name: "Campaña 2026",
+  name: "Etapa 2026",
   description: null,
   type: "annual",
   status: "active",

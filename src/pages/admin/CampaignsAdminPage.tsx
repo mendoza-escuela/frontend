@@ -101,7 +101,7 @@ export function CampaignsAdminPage() {
     try {
       if (pendingAction.kind === "delete") {
         await adminCampaignsService.remove(pendingAction.campaign.id);
-        showSuccess("La campaña borrador fue eliminada.");
+        showSuccess("La etapa borrador fue eliminada.");
       } else {
         await adminCampaignsService.setStatus(
           pendingAction.campaign.id,
@@ -127,12 +127,12 @@ export function CampaignsAdminPage() {
               icon={<Plus aria-hidden="true" size={18} />}
               onClick={() => navigate("/admin/campanas/nueva")}
             >
-              Nueva campaña
+              Nueva etapa
             </Button>
           }
           description="Configurá los períodos de evaluación y vinculalos con una versión publicada e inmutable del cuestionario."
           eyebrow="Administración"
-          title="Campañas"
+          title="Etapas"
         />
 
         <form
@@ -149,7 +149,7 @@ export function CampaignsAdminPage() {
             <input
               className={`${inputClassName} mt-1`}
               onChange={(event) => setSearch(event.target.value)}
-              placeholder="Campaña o cuestionario"
+              placeholder="Etapa o cuestionario"
               value={search}
             />
           </label>
@@ -194,7 +194,7 @@ export function CampaignsAdminPage() {
 
         <div className="mt-8">
           {isLoading ? (
-            <LoadingState label="Cargando campañas…" />
+            <LoadingState label="Cargando etapas…" />
           ) : error ? (
             <ErrorState message={error} onRetry={() => void load()} />
           ) : campaigns.items.length === 0 ? (
@@ -204,12 +204,12 @@ export function CampaignsAdminPage() {
                   icon={<Plus aria-hidden="true" size={18} />}
                   onClick={() => navigate("/admin/campanas/nueva")}
                 >
-                  Crear campaña
+                  Crear etapa
                 </Button>
               }
-              description="Necesitás al menos una versión publicada para crear una campaña."
+              description="Necesitás al menos una versión publicada para crear una etapa."
               icon={CalendarRange}
-              title="Todavía no hay campañas"
+              title="Todavía no hay etapas"
             />
           ) : (
             <div className="grid gap-5 xl:grid-cols-2">
@@ -383,31 +383,31 @@ function formatCivilDate(value: string) {
 }
 
 function actionLabel(action: PendingAction) {
-  if (action.kind === "delete") return "Eliminar campaña";
-  if (action.status === "active") return "Activar campaña";
-  if (action.status === "closed") return "Cerrar campaña";
-  return "Archivar campaña";
+  if (action.kind === "delete") return "Eliminar etapa";
+  if (action.status === "active") return "Activar etapa";
+  if (action.status === "closed") return "Cerrar etapa";
+  return "Archivar etapa";
 }
 
 function actionTitle(action: PendingAction) {
-  if (action.kind === "delete") return "¿Eliminar campaña?";
-  if (action.status === "active") return "¿Activar campaña?";
-  if (action.status === "closed") return "¿Cerrar campaña ahora?";
-  return "¿Archivar campaña?";
+  if (action.kind === "delete") return "¿Eliminar etapa?";
+  if (action.status === "active") return "¿Activar etapa?";
+  if (action.status === "closed") return "¿Cerrar etapa ahora?";
+  return "¿Archivar etapa?";
 }
 
 function actionDescription(action: PendingAction) {
   if (action.kind === "delete")
-    return "La eliminación sólo está disponible mientras la campaña sea un borrador.";
+    return "La eliminación sólo está disponible mientras la etapa sea un borrador.";
   if (action.status === "active")
     return "Una vez activa, la configuración quedará protegida y no podrá volver a borrador.";
   if (action.status === "closed")
-    return "El cierre manual es irreversible. La campaña dejará de admitir nuevas cargas cuando se implemente el módulo de presentaciones.";
-  return "La campaña quedará conservada como antecedente histórico de sólo lectura.";
+    return "El cierre manual es irreversible. La etapa dejará de admitir nuevas cargas cuando se implemente el módulo de presentaciones.";
+  return "La etapa quedará conservada como antecedente histórico de sólo lectura.";
 }
 
 function statusSuccessMessage(status: CampaignStatus) {
-  if (status === "active") return "La campaña fue activada.";
-  if (status === "closed") return "La campaña fue cerrada.";
-  return "La campaña fue archivada.";
+  if (status === "active") return "La etapa fue activada.";
+  if (status === "closed") return "La etapa fue cerrada.";
+  return "La etapa fue archivada.";
 }

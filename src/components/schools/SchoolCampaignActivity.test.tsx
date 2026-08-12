@@ -19,7 +19,7 @@ const campaigns: SchoolDetail["campaigns"] = {
       },
       campaign: {
         id: "campaign-1",
-        name: "Campaña anual 2026",
+        name: "Etapa anual 2026",
         type: "annual",
         status: "closed",
         startsAt: "2026-03-01T03:00:00.000Z",
@@ -47,7 +47,7 @@ const campaigns: SchoolDetail["campaigns"] = {
       },
       campaign: {
         id: "campaign-2",
-        name: "Campaña semestral",
+        name: "Etapa semestral",
         type: "semiannual",
         status: "active",
         startsAt: "2026-04-01T03:00:00.000Z",
@@ -87,14 +87,14 @@ describe("SchoolCampaignActivity", () => {
   it("muestra participación, resultado y enlaces administrativos reales", () => {
     const { container } = renderActivity(campaigns, evaluations);
 
-    expect(screen.getByRole("heading", { name: "Campañas" })).toBeVisible();
+    expect(screen.getByRole("heading", { name: "Etapas" })).toBeVisible();
     expect(screen.getByText("Enviada")).toBeVisible();
     expect(screen.getByText("Borrador")).toBeVisible();
     expect(screen.getByText("82,5 / 100")).toBeVisible();
     expect(screen.getByText("4 estrellas")).toBeVisible();
 
     const annualCampaign = screen
-      .getAllByRole("heading", { name: "Campaña anual 2026" })[0]
+      .getAllByRole("heading", { name: "Etapa anual 2026" })[0]
       .closest("li")!;
     expect(
       within(annualCampaign).getByRole("link", { name: "Ver resultado" }),
@@ -109,7 +109,7 @@ describe("SchoolCampaignActivity", () => {
     ).toHaveAttribute("href", "/admin/seguimiento?campania=campaign-1");
 
     const draftCampaign = screen
-      .getByRole("heading", { name: "Campaña semestral" })
+      .getByRole("heading", { name: "Etapa semestral" })
       .closest("li")!;
     expect(
       within(draftCampaign).getByRole("link", { name: "Ver detalle" }),
@@ -124,7 +124,7 @@ describe("SchoolCampaignActivity", () => {
     renderActivity(
       {
         available: true,
-        message: "El colegio no tiene asignaciones de campaña vigentes.",
+        message: "El colegio no tiene asignaciones de etapa vigentes.",
         items: [],
       },
       {
@@ -135,7 +135,7 @@ describe("SchoolCampaignActivity", () => {
     );
 
     expect(
-      screen.getByText("El colegio no tiene asignaciones de campaña vigentes."),
+      screen.getByText("El colegio no tiene asignaciones de etapa vigentes."),
     ).toBeVisible();
     expect(
       screen.getByText("No se pudo consultar el historial de evaluaciones."),

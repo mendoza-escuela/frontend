@@ -43,7 +43,7 @@ export function SchoolCampaignActivity({
     <div className="mt-5 grid gap-5 xl:grid-cols-2">
       <ActivitySection
         icon={<CalendarDays aria-hidden="true" />}
-        title="Campañas"
+        title="Etapas"
       >
         {!campaigns.available ? (
           <UnavailableMessage message={campaigns.message} />
@@ -51,7 +51,7 @@ export function SchoolCampaignActivity({
           <EmptyMessage
             message={
               campaigns.message ||
-              "El colegio todavía no fue incorporado a ninguna campaña."
+              "El colegio todavía no fue incorporado a ninguna etapa."
             }
           />
         ) : (
@@ -211,7 +211,7 @@ function EvaluationCard({
       <div className="flex flex-wrap items-start justify-between gap-3">
         <div>
           <h3 className="font-bold text-mendoza-text">
-            {campaignName ?? "Campaña histórica"}
+            {campaignName ?? "Etapa histórica"}
           </h3>
           <p className="mt-1 text-xs text-mendoza-muted">
             Calculada el {formatDateTime(evaluation.calculatedAt)}

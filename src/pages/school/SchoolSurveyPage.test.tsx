@@ -49,12 +49,12 @@ describe("SchoolSurveyPage expired drafts", () => {
     renderPage();
 
     expect(
-      await screen.findByRole("heading", { name: "No hay campañas abiertas" }),
+      await screen.findByRole("heading", { name: "No hay etapas abiertas" }),
     ).toBeVisible();
     expect(
       screen.getByRole("heading", { name: "Borradores vencidos" }),
     ).toBeVisible();
-    expect(screen.getByText("Campaña finalizada 2025")).toBeVisible();
+    expect(screen.getByText("Etapa finalizada 2025")).toBeVisible();
     expect(screen.getByText("18/30 respuestas (60%)")).toBeVisible();
     expect(screen.getByText("Vencida · sólo lectura")).toBeVisible();
     expect(
@@ -176,8 +176,8 @@ function renderPage() {
 
 const expiredCampaign: AvailableSchoolCampaign = {
   id: "campaign-expired",
-  name: "Campaña finalizada 2025",
-  description: "Campaña conservada como antecedente.",
+  name: "Etapa finalizada 2025",
+  description: "Etapa conservada como antecedente.",
   type: "annual",
   status: "closed",
   startsAt: "2025-03-01T03:00:00.000Z",
@@ -193,7 +193,7 @@ const expiredCampaign: AvailableSchoolCampaign = {
   },
   canStart: false,
   blockingReason:
-    "La campaña finalizó. El borrador está disponible en sólo lectura.",
+    "La etapa finalizó. El borrador está disponible en sólo lectura.",
   submission: {
     id: "submission-expired",
     status: "draft",
@@ -211,7 +211,7 @@ const expiredCampaign: AvailableSchoolCampaign = {
 const activeCampaign: AvailableSchoolCampaign = {
   ...expiredCampaign,
   id: "campaign-active",
-  name: "Campaña abierta 2026",
+  name: "Etapa abierta 2026",
   status: "active",
   startsAt: "2026-03-01T03:00:00.000Z",
   endsAt: "2026-12-01T02:59:59.999Z",
@@ -260,7 +260,7 @@ const workspaceFixture: SchoolSubmissionWorkspace = {
     editable: false,
     canSubmit: false,
     blockingReason:
-      "La campaña finalizó. El borrador está disponible en sólo lectura.",
+      "La etapa finalizó. El borrador está disponible en sólo lectura.",
     progress: {
       answered: 18,
       total: 30,

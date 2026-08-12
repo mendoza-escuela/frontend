@@ -60,7 +60,7 @@ type CampaignComparisonPanelProps = {
 };
 
 /**
- * Compara campañas con resultados ya agregados por backend.
+ * Compara etapas con resultados ya agregados por backend.
  *
  * La interfaz no recalcula puntajes ni decide si las reglas históricas son
  * equivalentes: representa la política y la trazabilidad informadas por la API.
@@ -139,7 +139,7 @@ export function CampaignComparisonPanel({
             Comparación entre períodos
           </h2>
           <p className="mt-1 max-w-3xl text-sm text-mendoza-muted">
-            La campaña actual es la referencia. Los demás períodos reutilizan
+            La etapa actual es la referencia. Los demás períodos reutilizan
             los filtros territoriales e institucionales aplicados arriba.
             Estado de carga, estrellas y área crítica no se aplican para evitar
             seleccionar cada período por su propio resultado.
@@ -172,14 +172,14 @@ export function CampaignComparisonPanel({
               onChange={onComparisonCampaignIdsChange}
               onMaxSelectionsReached={() =>
                 showWarning(
-                  "Podés comparar hasta seis campañas: una de referencia y cinco adicionales.",
+                  "Podés comparar hasta seis etapas: una de referencia y cinco adicionales.",
                 )
               }
               options={campaignOptions}
               values={comparisonCampaignIds}
             />
             <p className="mt-1.5 text-xs text-mendoza-muted">
-              Podés sumar hasta cinco períodos a la campaña de referencia.
+              Podés sumar hasta cinco períodos a la etapa de referencia.
             </p>
           </div>
         </div>
@@ -221,11 +221,11 @@ function ComparisonResults({
         <p className="font-bold text-mendoza-blue">Criterio de comparación</p>
         <p className="mt-1">{comparison.comparisonPolicy.notice}</p>
         <p className="mt-2 font-semibold">
-          Cada campaña usa su propio universo y la ficha escolar vigente; las
+          Cada etapa usa su propio universo y la ficha escolar vigente; las
           bases se informan por período.
         </p>
         <p className="mt-1">
-          Verificá el tipo de operativo al interpretar campañas anuales y
+          Verificá el tipo de operativo al interpretar etapas anuales y
           semestrales: se muestran lado a lado, sin asumir que forman la misma
           cohorte.
         </p>
@@ -235,7 +235,7 @@ function ComparisonResults({
         <div className="flex items-start gap-3 rounded-xl border border-amber-300 bg-amber-50 p-4 text-sm text-amber-950" role="status">
           <AlertTriangle aria-hidden="true" className="mt-0.5 shrink-0" size={19} />
           <p>
-            La comparación incluye al menos una campaña activa. Sus datos son
+            La comparación incluye al menos una etapa activa. Sus datos son
             parciales y pueden cambiar con nuevos envíos.
           </p>
         </div>
@@ -347,7 +347,7 @@ function StarDistributionChart({
         Distribución de certificaciones por estrellas
       </figcaption>
       <p className="mb-3 text-xs text-mendoza-muted">
-        Porcentajes dentro de la base con certificación de cada campaña; no se
+        Porcentajes dentro de la base con certificación de cada etapa; no se
         promedian categorías ordinales.
       </p>
       <div

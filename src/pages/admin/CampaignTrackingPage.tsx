@@ -160,7 +160,7 @@ export function CampaignTrackingPage() {
   if (campaignsLoading) {
     return (
       <main className="p-4 sm:p-8">
-        <LoadingState label="Cargando campañas…" />
+        <LoadingState label="Cargando etapas…" />
       </main>
     );
   }
@@ -169,7 +169,7 @@ export function CampaignTrackingPage() {
     <main className="p-4 sm:p-8">
       <div className="mx-auto max-w-7xl">
         <PageHeader
-          description="Consultá el estado actual de participación de todas las escuelas incluidas en cada campaña."
+          description="Consultá el estado actual de participación de todas las escuelas incluidas en cada etapa."
           eyebrow="Administración"
           title="Seguimiento de presentaciones"
         />
@@ -184,9 +184,9 @@ export function CampaignTrackingPage() {
         ) : campaigns.length === 0 ? (
           <div className="mt-8">
             <EmptyState
-              description="Creá una campaña para comenzar a consultar la participación institucional."
+              description="Creá una etapa para comenzar a consultar la participación institucional."
               icon={ListChecks}
-              title="No hay campañas disponibles"
+              title="No hay etapas disponibles"
             />
           </div>
         ) : (
@@ -197,7 +197,7 @@ export function CampaignTrackingPage() {
                   className="block text-sm font-semibold text-mendoza-text"
                   htmlFor="campaign-tracking-campaign"
                 >
-                  Campaña
+                  Etapa
                 </label>
                 <select
                   className={`${inputClassName} mt-2 block`}
@@ -214,12 +214,12 @@ export function CampaignTrackingPage() {
                 {selectedCampaign && (
                   <p className="mt-3 text-sm leading-6 text-mendoza-muted">
                     {selectedCampaign.status === "draft"
-                      ? "Campaña en borrador"
+                      ? "Etapa en borrador"
                       : selectedCampaign.status === "active"
-                        ? "Campaña activa"
+                        ? "Etapa activa"
                         : selectedCampaign.status === "closed"
-                          ? "Campaña cerrada"
-                          : "Campaña archivada"}
+                          ? "Etapa cerrada"
+                          : "Etapa archivada"}
                     {" · "}
                     {selectedCampaign.surveyVersion.survey.name}, versión{" "}
                     {selectedCampaign.surveyVersion.versionNumber}
@@ -321,13 +321,13 @@ export function CampaignTrackingPage() {
                     <EmptyState
                       description={
                         summary?.totalSchools === 0
-                          ? "No hay escuelas registradas dentro del período de inclusión de esta campaña."
+                          ? "No hay escuelas registradas dentro del período de inclusión de esta etapa."
                           : "No se encontraron escuelas para los filtros seleccionados."
                       }
                       icon={School}
                       title={
                         summary?.totalSchools === 0
-                          ? "Campaña sin escuelas"
+                          ? "Etapa sin escuelas"
                           : "Sin coincidencias"
                       }
                     />

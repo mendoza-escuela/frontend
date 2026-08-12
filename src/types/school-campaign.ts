@@ -53,7 +53,7 @@ export type AvailableSchoolCampaignsResponse = {
   };
   rectification: Omit<SchoolRectificationStatus, "rectifiedBy">;
   items: AvailableSchoolCampaign[];
-  /** Borradores de campañas finalizadas, disponibles únicamente para consulta. */
+  /** Borradores de etapas finalizadas, disponibles únicamente para consulta. */
   expiredDrafts: AvailableSchoolCampaign[];
 };
 

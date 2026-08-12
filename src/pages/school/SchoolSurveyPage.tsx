@@ -203,7 +203,7 @@ export function SchoolSurveyPage() {
   if (isLoading)
     return (
       <main className="p-4 sm:p-8">
-        <LoadingState label="Buscando campañas activas…" />
+        <LoadingState label="Buscando etapas activas…" />
       </main>
     );
 
@@ -221,10 +221,10 @@ export function SchoolSurveyPage() {
           Evaluación institucional
         </p>
         <h1 className="mt-2 text-3xl font-bold text-mendoza-text">
-          Campañas disponibles
+          Etapas disponibles
         </h1>
         <p className="mt-2 text-mendoza-muted">
-          Seleccioná una campaña para iniciar o continuar la presentación de tu
+          Seleccioná una etapa para iniciar o continuar la presentación de tu
           establecimiento.
         </p>
 
@@ -236,10 +236,10 @@ export function SchoolSurveyPage() {
               size={38}
             />
             <h2 className="mt-4 text-xl font-bold text-mendoza-text">
-              No hay campañas abiertas
+              No hay etapas abiertas
             </h2>
             <p className="mt-2 text-sm text-mendoza-muted">
-              Las campañas aparecerán aquí cuando estén activas y dentro de su
+              Las etapas aparecerán aquí cuando estén activas y dentro de su
               período de carga.
             </p>
           </section>
@@ -247,7 +247,7 @@ export function SchoolSurveyPage() {
           <>
             {available.items.length > 1 && (
               <label className="mt-6 block max-w-xl text-sm font-semibold text-mendoza-text">
-                Campaña
+                Etapa
                 <select
                   className={`${inputClassName} mt-2`}
                   onChange={(event) =>
@@ -393,7 +393,7 @@ function ExpiredDraftsSection({
             Borradores vencidos
           </h2>
           <p className="mt-1 max-w-3xl text-sm leading-6 text-mendoza-muted">
-            Estas campañas ya finalizaron. Podés consultar las respuestas que
+            Estas etapas ya finalizaron. Podés consultar las respuestas que
             quedaron guardadas, pero no modificarlas ni enviarlas.
           </p>
         </div>
@@ -420,8 +420,8 @@ function ExpiredDraftsSection({
                     </span>
                     <span className="text-xs font-semibold text-mendoza-muted">
                       {campaign.type === "annual"
-                        ? "Campaña anual"
-                        : "Campaña semestral"}
+                        ? "Etapa anual"
+                        : "Etapa semestral"}
                     </span>
                   </div>
                   <h3 className="mt-3 text-xl font-bold text-mendoza-text">
@@ -510,7 +510,7 @@ function ExpiredDraftsSection({
                     <div>
                       <h4 className="font-bold">Vista de sólo lectura</h4>
                       <p className="mt-1 text-mendoza-muted">
-                        El plazo de esta campaña terminó. Las respuestas se
+                        El plazo de esta etapa terminó. Las respuestas se
                         conservan como historial y no pueden modificarse ni
                         enviarse.
                       </p>
@@ -639,7 +639,7 @@ function CampaignIntroduction({
         <div>
           <div className="flex flex-wrap items-center gap-2 text-sm font-semibold text-mendoza-blue">
             <CalendarDays aria-hidden="true" size={18} />
-            {campaign.type === "annual" ? "Campaña anual" : "Campaña semestral"}
+            {campaign.type === "annual" ? "Etapa anual" : "Etapa semestral"}
           </div>
           <h2 className="mt-2 text-2xl font-bold text-mendoza-text">
             {campaign.name}

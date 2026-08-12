@@ -450,7 +450,7 @@ export function SchoolProfilePage() {
                   </h3>
                   <p className="mt-1 text-sm text-mendoza-muted">
                     Estos datos quedarán congelados en la rectificación y en la
-                    presentación de la campaña.
+                    presentación de la etapa.
                   </p>
                 </div>
               </div>

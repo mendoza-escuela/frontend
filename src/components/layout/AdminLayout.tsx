@@ -32,7 +32,7 @@ const links = [
   },
   {
     to: "/admin/campanas",
-    label: "Campañas",
+    label: "Etapas",
     icon: CalendarRange,
   },
   {

@@ -85,7 +85,7 @@ describe("AdminSchoolResultDetailPage", () => {
 function renderPage() { return render(<MemoryRouter initialEntries={["/admin/campanas/campaign-1/colegios/school-1/resultado"]}><Routes><Route path="/admin/campanas/:campaignId/colegios/:schoolId/resultado" element={<AdminSchoolResultDetailPage />} /></Routes></MemoryRouter>); }
 
 const fullDetail: AdminSchoolResultDetail = {
-  campaign: { id: "campaign-1", name: "Campaña 2026", type: "annual", status: "active", startsAt: "2026-01-01T00:00:00Z", endsAt: "2026-12-31T00:00:00Z" },
+  campaign: { id: "campaign-1", name: "Etapa 2026", type: "annual", status: "active", startsAt: "2026-01-01T00:00:00Z", endsAt: "2026-12-31T00:00:00Z" },
   school: { id: "school-1", cue: "50001", name: "Escuela Histórica", schoolNumber: "1-001", department: "Godoy Cruz", locality: "Centro", managementType: "Estatal", scope: "Urbano", educationLevel: "Primario", isActive: false },
   participationStatus: "submitted",
   submission: { id: "submission-1", status: "submitted", startedAt: "2026-06-01T10:00:00Z", lastSavedAt: "2026-06-02T10:00:00Z", submittedAt: "2026-06-03T10:00:00Z", originalRespondent: { id: "user-1", firstName: "Persona", lastName: "Original", email: "original@example.com", isActive: false } },

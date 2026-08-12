@@ -146,9 +146,9 @@ export function CampaignSchoolsPage() {
       await adminCampaignsService.removeSchool(
         id,
         removePending.school.id,
-        "Removida desde la administración de campaña",
+        "Removida desde la administración de etapa",
       );
-      showSuccess("La escuela fue quitada de la campaña.");
+      showSuccess("La escuela fue quitada de la etapa.");
       setRemovePending(null);
       await load();
     } catch (removeError) {
@@ -159,7 +159,7 @@ export function CampaignSchoolsPage() {
   };
 
   if (loading && !campaign)
-    return <main className="p-8"><LoadingState label="Cargando escuelas de la campaña…" /></main>;
+    return <main className="p-8"><LoadingState label="Cargando escuelas de la etapa…" /></main>;
   if (error && !campaign)
     return <main className="p-8"><ErrorState message={error} onRetry={() => void load()} /></main>;
   if (!campaign) return null;
@@ -171,10 +171,10 @@ export function CampaignSchoolsPage() {
     <main className="p-4 sm:p-8">
       <div className="mx-auto max-w-7xl">
         <PageHeader
-          backLabel="Volver a campañas"
+          backLabel="Volver a etapas"
           backTo="/admin/campanas"
           description={campaignDescription(campaign.status)}
-          eyebrow="Campañas"
+          eyebrow="Etapas"
           title={`Escuelas · ${campaign.name}`}
         />
 
@@ -196,9 +196,9 @@ export function CampaignSchoolsPage() {
               size={20}
             />
             <p>
-              <strong>Incorporación durante campaña activa.</strong> Al
+              <strong>Incorporación durante etapa activa.</strong> Al
               confirmar, las escuelas seleccionadas se integrarán de inmediato
-              al universo de la campaña. Quedarán habilitadas para iniciar el
+              al universo de la etapa. Quedarán habilitadas para iniciar el
               diagnóstico cuando cumplan los demás requisitos vigentes. La fecha,
               el origen y el administrador responsable quedarán registrados para
               auditoría.
@@ -358,13 +358,13 @@ export function CampaignSchoolsPage() {
       />
       <ConfirmDialog
         confirmLabel="Quitar escuela"
-        description={removePending ? `Se quitará ${removePending.school.name} del universo de la campaña. La acción se bloqueará si ya tiene una presentación.` : ""}
+        description={removePending ? `Se quitará ${removePending.school.name} del universo de la etapa. La acción se bloqueará si ya tiene una presentación.` : ""}
         destructive
         isProcessing={processing}
         onCancel={() => setRemovePending(null)}
         onConfirm={removeAssignment}
         open={Boolean(removePending)}
-        title="¿Quitar escuela de la campaña?"
+        title="¿Quitar escuela de la etapa?"
       />
     </main>
   );
@@ -395,10 +395,10 @@ function assignmentSourceLabel(
 
 function campaignDescription(status: AdminCampaign["status"]) {
   if (status === "active")
-    return "Incorporá establecimientos habilitados aunque la campaña ya haya comenzado. La asignación queda registrada y el período original se mantiene.";
+    return "Incorporá establecimientos habilitados aunque la etapa ya haya comenzado. La asignación queda registrada y el período original se mantiene.";
   if (status === "draft")
-    return "Seleccioná el universo inicial de establecimientos. La campaña no podrá activarse sin escuelas asignadas.";
-  return "Consultá el universo histórico de establecimientos. Las campañas cerradas o archivadas no admiten nuevas incorporaciones.";
+    return "Seleccioná el universo inicial de establecimientos. La etapa no podrá activarse sin escuelas asignadas.";
+  return "Consultá el universo histórico de establecimientos. Las etapas cerradas o archivadas no admiten nuevas incorporaciones.";
 }
 
 function assignmentStatusLabel(status: AdminCampaign["status"]) {
@@ -413,8 +413,8 @@ function assignmentConfirmationDescription(
 ) {
   const alreadyAssigned = `${preview.alreadyAssigned} ya ${preview.alreadyAssigned === 1 ? "estaba asignada" : "estaban asignadas"} y no se duplicará${preview.alreadyAssigned === 1 ? "" : "n"}.`;
   const effect = isActiveCampaign
-    ? "Las nuevas escuelas se incorporarán inmediatamente a la campaña activa y podrán iniciar cuando cumplan los demás requisitos vigentes."
-    : "Las nuevas escuelas quedarán incorporadas al universo inicial de la campaña.";
+    ? "Las nuevas escuelas se incorporarán inmediatamente a la etapa activa y podrán iniciar cuando cumplan los demás requisitos vigentes."
+    : "Las nuevas escuelas quedarán incorporadas al universo inicial de la etapa.";
   return `${preview.message} ${alreadyAssigned} ${effect} La operación quedará registrada para auditoría.`;
 }
 
@@ -424,6 +424,6 @@ function assignmentSuccessMessage(
 ) {
   if (assigned === 0) return "No se incorporaron escuelas nuevas.";
   const schools = assigned === 1 ? "escuela" : "escuelas";
-  const suffix = status === "active" ? " a la campaña activa" : "";
+  const suffix = status === "active" ? " a la etapa activa" : "";
   return `Se ${assigned === 1 ? "incorporó" : "incorporaron"} ${assigned} ${schools}${suffix}.`;
 }

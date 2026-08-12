@@ -99,7 +99,7 @@ function PreliminaryResultHistory() {
                   className="inline-flex min-h-11 items-center rounded-lg bg-mendoza-blue px-5 py-2.5 text-sm font-semibold text-white transition hover:bg-mendoza-blue-dark focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-mendoza-blue"
                   to="/colegio/cuestionario"
                 >
-                  Ir a campañas
+                  Ir a etapas
                 </Link>
               }
               description="Cuando envíes una presentación y se genere su cálculo, aparecerá en este espacio."
@@ -257,7 +257,7 @@ function PreliminaryResultDetail({ campaignId }: { campaignId: string }) {
               </p>
               <dl className="mt-5 grid gap-4 sm:grid-cols-3">
                 <Metadata
-                  label="Campaña"
+                  label="Etapa"
                   value={preliminaryResult.campaign.name}
                 />
                 <Metadata
@@ -347,7 +347,7 @@ function PreliminaryResultDetail({ campaignId }: { campaignId: string }) {
           id="excel-report-download-help"
         >
           El Excel incluye el resumen, los resultados por dimensión y las
-          respuestas enviadas en esta campaña.
+          respuestas enviadas en esta etapa.
         </p>
 
         {mentalHealth.isCritical && (
