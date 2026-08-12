@@ -71,6 +71,18 @@ describe("CampaignSchoolsPage", () => {
     vi.clearAllMocks();
   });
 
+  it("no repite la carga completa cuando recibe los catálogos de filtros", async () => {
+    renderPage();
+
+    expect(await screen.findByText("Activa · admite incorporaciones")).toBeVisible();
+    await waitFor(() => {
+      expect(adminCampaignsService.findOne).toHaveBeenCalledTimes(1);
+      expect(adminCampaignsService.schoolOptions).toHaveBeenCalledTimes(1);
+      expect(adminCampaignsService.assignedSchools).toHaveBeenCalledTimes(1);
+      expect(adminSchoolsService.filters).toHaveBeenCalledTimes(1);
+    });
+  });
+
   it("permite incorporar una escuela durante una etapa activa con confirmación explícita", async () => {
     vi.mocked(adminCampaignsService.schoolOptions).mockResolvedValue({
       items: [availableSchool, inactiveSchool],

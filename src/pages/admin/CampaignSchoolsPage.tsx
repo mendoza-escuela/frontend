@@ -6,7 +6,7 @@ import {
   Trash2,
   Users,
 } from "lucide-react";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { useParams } from "react-router-dom";
 import { Button } from "../../components/ui/Button";
 import { Card } from "../../components/ui/Card";
@@ -52,6 +52,7 @@ export function CampaignSchoolsPage() {
   const { id = "" } = useParams();
   const [campaign, setCampaign] = useState<AdminCampaign | null>(null);
   const [catalogs, setCatalogs] = useState<SchoolFilterOptions | null>(null);
+  const catalogsRequest = useRef<Promise<SchoolFilterOptions> | null>(null);
   const [options, setOptions] = useState(emptyOptions);
   const [assigned, setAssigned] = useState(emptyAssigned);
   const [assignedPage, setAssignedPage] = useState(1);
@@ -73,6 +74,10 @@ export function CampaignSchoolsPage() {
     setLoading(true);
     setError("");
     try {
+      catalogsRequest.current ??= adminSchoolsService.filters().catch((requestError) => {
+        catalogsRequest.current = null;
+        throw requestError;
+      });
       const [campaignData, optionData, assignedData, filterData] =
         await Promise.all([
           adminCampaignsService.findOne(id),
@@ -81,9 +86,7 @@ export function CampaignSchoolsPage() {
             page: assignedPage,
             limit: 20,
           }),
-          catalogs
-            ? Promise.resolve(catalogs)
-            : adminSchoolsService.filters(),
+          catalogsRequest.current,
         ]);
       setCampaign(campaignData);
       setOptions(optionData);
@@ -94,7 +97,7 @@ export function CampaignSchoolsPage() {
     } finally {
       setLoading(false);
     }
-  }, [assignedPage, catalogs, filters, id]);
+  }, [assignedPage, filters, id]);
 
   useEffect(() => {
     void load();

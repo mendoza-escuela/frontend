@@ -1,9 +1,9 @@
 import { describe, expect, it } from "vitest";
 import { getHttpErrorMessage } from "./http-error";
 
-const axiosError = (message: unknown, withResponse = true) => ({
+const axiosError = (message: unknown, withResponse = true, status = 400) => ({
   isAxiosError: true,
-  response: withResponse ? { data: { message } } : undefined,
+  response: withResponse ? { data: { message }, status } : undefined,
 });
 
 describe("getHttpErrorMessage", () => {
@@ -28,5 +28,13 @@ describe("getHttpErrorMessage", () => {
     expect(getHttpErrorMessage(axiosError(null, false))).toMatch(
       /comunicarnos con el servidor/i,
     );
+  });
+
+  it("traduce el límite de solicitudes sin exponer la excepción técnica", () => {
+    expect(
+      getHttpErrorMessage(
+        axiosError("ThrottlerException: Too Many Requests", true, 429),
+      ),
+    ).toMatch(/demasiadas solicitudes/i);
   });
 });
