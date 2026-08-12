@@ -2,20 +2,24 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import {
   Building2,
   CalendarDays,
+  Check,
   Mail,
   MapPin,
+  Minus,
   Phone,
   Save,
   Users,
+  X,
 } from "lucide-react";
 import { Fragment, useEffect, useState } from "react";
 import { Controller, type Control, useForm } from "react-hook-form";
-import { OfficialCatalogSelect } from "../../components/schools/OfficialCatalogSelect";
 import { RectificationStatusNotice } from "../../components/schools/RectificationStatusNotice";
 import { Button } from "../../components/ui/Button";
 import { ConfirmDialog } from "../../components/ui/ConfirmDialog";
 import { ErrorState } from "../../components/ui/ErrorState";
 import { LoadingState } from "../../components/ui/LoadingState";
+import { SearchableSelect } from "../../components/ui/SearchableSelect";
+import { checkboxClassName } from "../../components/ui/form-styles";
 import { getHttpErrorMessage } from "../../lib/http-error";
 import {
   legacyCatalogValue,
@@ -84,7 +88,9 @@ export function SchoolProfilePage() {
 
   if (isLoading) {
     return (
-      <main className="p-4 sm:p-8"><LoadingState label="Cargando establecimiento…" /></main>
+      <main className="p-4 sm:p-8">
+        <LoadingState label="Cargando establecimiento…" />
+      </main>
     );
   }
 
@@ -368,46 +374,73 @@ export function SchoolProfilePage() {
             >
               <input className="field" {...register("address")} />
             </RectificationField>
-            <RectificationField
-              error={errors.managementType?.message}
-              label="Sector / gestión"
-              required={false}
-            >
-              <select className="field" {...register("managementType")}>
-                <option value="">Sin informar</option>
-                {catalogs.managementTypes.map((option) => (
-                  <option key={option.code} value={option.label}>
-                    {option.label}
-                  </option>
-                ))}
-              </select>
-            </RectificationField>
-            <RectificationField error={errors.scope?.message} label="Ámbito">
-              <select className="field" {...register("scope")}>
-                <option value="">Seleccioná un ámbito</option>
-                {catalogs.scopes.map((option) => (
-                  <option key={option.code} value={option.label}>
-                    {option.label}
-                  </option>
-                ))}
-              </select>
-            </RectificationField>
-            <RectificationField
-              error={errors.educationLevel?.message}
-              label="Tipo de educación"
-            >
-              <OfficialCatalogSelect
-                className="field"
-                legacyValue={legacyEducationType}
-                options={catalogs.educationTypes}
-                placeholder="Seleccioná un tipo de educación"
-                unresolvedLegacy={
-                  Boolean(legacyEducationType) &&
-                  selectedEducationType === legacyEducationType
-                }
-                {...register("educationLevel")}
+            <Controller
+              control={control}
+              name="managementType"
+              render={({ field }) => (
+                <SearchableSelect
+                  allLabel="Sin informar"
+                  error={errors.managementType?.message}
+                  label="Sector / gestión"
+                  onBlur={field.onBlur}
+                  onChange={field.onChange}
+                  options={catalogs.managementTypes.map((option) => ({
+                    value: option.label,
+                    label: option.label,
+                  }))}
+                  value={field.value}
+                />
+              )}
+            />
+            <Controller
+              control={control}
+              name="scope"
+              render={({ field }) => (
+                <SearchableSelect
+                  allLabel="Seleccioná un ámbito"
+                  error={errors.scope?.message}
+                  label="Ámbito *"
+                  onBlur={field.onBlur}
+                  onChange={field.onChange}
+                  options={catalogs.scopes.map((option) => ({
+                    value: option.label,
+                    label: option.label,
+                  }))}
+                  value={field.value}
+                />
+              )}
+            />
+            <div>
+              <Controller
+                control={control}
+                name="educationLevel"
+                render={({ field }) => (
+                  <SearchableSelect
+                    allLabel="Seleccioná un tipo de educación"
+                    error={errors.educationLevel?.message}
+                    label="Tipo de educación *"
+                    onBlur={field.onBlur}
+                    onChange={field.onChange}
+                    options={catalogs.educationTypes.map((option) => ({
+                      value: option.label,
+                      label: option.label,
+                    }))}
+                    selectedLabel={
+                      legacyEducationType && field.value === legacyEducationType
+                        ? `Valor anterior sin correspondencia: ${legacyEducationType}`
+                        : undefined
+                    }
+                    value={field.value}
+                  />
+                )}
               />
-            </RectificationField>
+              {legacyEducationType && (
+                <LegacyCatalogNotice
+                  legacyValue={legacyEducationType}
+                  unresolved={selectedEducationType === legacyEducationType}
+                />
+              )}
+            </div>
 
             <div className="md:col-span-2">
               <div className="flex flex-wrap items-center justify-between gap-3">
@@ -537,31 +570,29 @@ export function SchoolProfilePage() {
             </div>
 
             {catalogs?.shifts.available ? (
-              <RectificationField
-                error={errors.shiftCatalogId?.message}
-                label="Jornada"
-              >
-                <select
-                  className="field"
-                  {...register("shiftCatalogId", {
-                    setValueAs: (value) => value || null,
-                  })}
-                >
-                  <option value="">Seleccioná una jornada</option>
-                  {catalogs.shifts.items.map((shift) => (
-                    <option
-                      disabled={
-                        !shift.isActive && school.shiftCatalogId !== shift.id
-                      }
-                      key={shift.id}
-                      value={shift.id}
-                    >
-                      {shift.label}
-                      {!shift.isActive ? " (inactiva)" : ""}
-                    </option>
-                  ))}
-                </select>
-              </RectificationField>
+              <Controller
+                control={control}
+                name="shiftCatalogId"
+                render={({ field }) => (
+                  <SearchableSelect
+                    allLabel="Seleccioná una jornada"
+                    error={errors.shiftCatalogId?.message}
+                    label="Jornada *"
+                    onBlur={field.onBlur}
+                    onChange={(value) => field.onChange(value || null)}
+                    options={catalogs.shifts.items
+                      .filter(
+                        (shift) =>
+                          shift.isActive || school.shiftCatalogId === shift.id,
+                      )
+                      .map((shift) => ({
+                        value: shift.id,
+                        label: `${shift.label}${!shift.isActive ? " (inactiva)" : ""}`,
+                      }))}
+                    value={field.value ?? ""}
+                  />
+                )}
+              />
             ) : (
               <div>
                 <p className="text-sm font-semibold text-mendoza-text">
@@ -610,11 +641,12 @@ export function SchoolProfilePage() {
                     );
                     return (
                       <label
-                        className="flex items-center gap-3 rounded-xl border border-mendoza-border p-3 text-sm"
+                        className={`flex min-h-14 items-center gap-3 rounded-xl border p-3 text-sm transition focus-within:ring-4 focus-within:ring-mendoza-sky/15 ${selected ? "border-mendoza-blue bg-mendoza-blue-soft font-semibold text-mendoza-blue shadow-sm" : "border-mendoza-border bg-white text-mendoza-text hover:border-mendoza-sky"} ${!level.isActive && !currentSelection ? "cursor-not-allowed opacity-60" : "cursor-pointer"}`}
                         key={level.id}
                       >
                         <input
                           checked={selected}
+                          className={checkboxClassName}
                           disabled={!level.isActive && !currentSelection}
                           onChange={(event) =>
                             toggleLevel(level, event.target.checked)
@@ -729,9 +761,9 @@ function BooleanChoiceField({
   return (
     <fieldset
       aria-invalid={Boolean(error)}
-      className="rounded-xl border border-mendoza-border p-4"
+      className={`rounded-2xl border bg-white p-4 transition ${error ? "border-mendoza-error" : "border-mendoza-border"}`}
     >
-      <legend className="px-1 text-sm font-semibold text-mendoza-text">
+      <legend className="px-2 text-sm font-bold text-mendoza-text">
         {label}
         {required ? " *" : ""}
       </legend>
@@ -739,27 +771,37 @@ function BooleanChoiceField({
         control={control}
         name={name}
         render={({ field }) => (
-          <div className="mt-1 flex flex-wrap gap-4">
+          <div
+            className={`mt-2 grid gap-2 ${required ? "grid-cols-2" : "grid-cols-1 sm:grid-cols-3"}`}
+          >
             {[
-              { label: "Sí", value: true },
-              { label: "No", value: false },
-              ...(required ? [] : [{ label: "Sin informar", value: null }]),
-            ].map((option) => (
-              <label
-                className="flex items-center gap-2 text-sm"
-                key={option.label}
-              >
-                <input
-                  checked={field.value === option.value}
-                  name={field.name}
-                  onBlur={field.onBlur}
-                  onChange={() => field.onChange(option.value)}
-                  ref={field.ref}
-                  type="radio"
-                />
-                {option.label}
-              </label>
-            ))}
+              { icon: Check, label: "Sí", value: true },
+              { icon: X, label: "No", value: false },
+              ...(required
+                ? []
+                : [{ icon: Minus, label: "Sin informar", value: null }]),
+            ].map((option) => {
+              const selected = field.value === option.value;
+              const Icon = option.icon;
+              return (
+                <label
+                  className={`flex min-h-11 cursor-pointer items-center justify-center gap-2 rounded-xl border px-3 py-2 text-sm font-semibold transition focus-within:ring-4 focus-within:ring-mendoza-sky/15 ${selected ? "border-mendoza-blue bg-mendoza-blue-soft text-mendoza-blue shadow-sm" : "border-mendoza-border bg-white text-mendoza-muted hover:border-mendoza-sky hover:bg-mendoza-background"}`}
+                  key={option.label}
+                >
+                  <input
+                    checked={selected}
+                    className="sr-only"
+                    name={field.name}
+                    onBlur={field.onBlur}
+                    onChange={() => field.onChange(option.value)}
+                    ref={field.ref}
+                    type="radio"
+                  />
+                  <Icon aria-hidden="true" size={17} strokeWidth={2.5} />
+                  {option.label}
+                </label>
+              );
+            })}
           </div>
         )}
       />
@@ -799,6 +841,32 @@ function RectificationField({
         </span>
       )}
     </label>
+  );
+}
+
+function LegacyCatalogNotice({
+  legacyValue,
+  unresolved,
+}: {
+  legacyValue: string;
+  unresolved: boolean;
+}) {
+  return (
+    <span
+      className={`mt-2 block rounded-lg border p-3 text-sm leading-5 ${
+        unresolved
+          ? "border-amber-300 bg-amber-50 text-amber-950"
+          : "border-mendoza-sky/50 bg-mendoza-blue-soft text-mendoza-blue"
+      }`}
+      role={unresolved ? "alert" : "status"}
+    >
+      <strong>Valor anterior sin correspondencia: {legacyValue}.</strong> No
+      equivale automáticamente a un tipo de educación. Los niveles educativos se
+      informan por separado.{" "}
+      {unresolved
+        ? "Elegí una opción del catálogo oficial antes de guardar."
+        : "La opción oficial seleccionada se aplicará al guardar."}
+    </span>
   );
 }
 
@@ -900,28 +968,28 @@ function SnapshotDetails({
       {snapshot.contacts
         ?.filter(({ type }) => type === "RESPONDENT")
         .map((contact) => {
-        const contactLabel = "Referente responsable";
-        return (
-          <Fragment key={contact.type}>
-            <Definition
-              label={contactLabel}
-              value={`${contact.firstName} ${contact.lastName}`}
-            />
-            <Definition
-              label={`Cargo · ${contactLabel}`}
-              value={contact.position}
-            />
-            <Definition
-              label={`Correo · ${contactLabel}`}
-              value={contact.email}
-            />
-            <Definition
-              label={`Celular · ${contactLabel}`}
-              value={contact.phone}
-            />
-          </Fragment>
-        );
-      })}
+          const contactLabel = "Referente responsable";
+          return (
+            <Fragment key={contact.type}>
+              <Definition
+                label={contactLabel}
+                value={`${contact.firstName} ${contact.lastName}`}
+              />
+              <Definition
+                label={`Cargo · ${contactLabel}`}
+                value={contact.position}
+              />
+              <Definition
+                label={`Correo · ${contactLabel}`}
+                value={contact.email}
+              />
+              <Definition
+                label={`Celular · ${contactLabel}`}
+                value={contact.phone}
+              />
+            </Fragment>
+          );
+        })}
     </dl>
   );
 }

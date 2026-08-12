@@ -207,17 +207,14 @@ describe("SchoolProfilePage", () => {
     });
     render(<SchoolProfilePage />);
 
-    const educationType = await screen.findByRole("combobox", {
+    const educationType = await screen.findByRole("button", {
       name: /Tipo de educación/,
     });
-    expect(educationType).toHaveValue("Primario");
+    expect(educationType).toHaveTextContent(
+      "Valor anterior sin correspondencia: Primario",
+    );
     expect(
-      within(educationType).getByRole("option", {
-        name: "Valor anterior sin correspondencia: Primario",
-      }),
-    ).toBeDisabled();
-    expect(
-      within(educationType.closest("label")!).getByRole("alert"),
+      within(educationType.parentElement!.parentElement!).getByRole("alert"),
     ).toHaveTextContent(
       "Elegí una opción del catálogo oficial antes de guardar",
     );
@@ -234,10 +231,11 @@ describe("SchoolProfilePage", () => {
     );
     expect(schoolPortalService.rectify).not.toHaveBeenCalled();
 
-    fireEvent.change(educationType, { target: { value: "Común" } });
-    const normalizedNotice = within(educationType.closest("label")!).getByRole(
-      "status",
-    );
+    fireEvent.click(educationType);
+    fireEvent.click(screen.getByRole("option", { name: "Común" }));
+    const normalizedNotice = within(
+      educationType.parentElement!.parentElement!,
+    ).getByRole("status");
     expect(normalizedNotice).toHaveTextContent(
       "La opción oficial seleccionada se aplicará al guardar",
     );
