@@ -112,6 +112,7 @@ function isAuthenticationEntryPoint(url: string | undefined) {
   return [
     '/auth/login',
     '/auth/logout',
+    '/auth/me',
     '/auth/forgot-password',
     '/auth/reset-password',
   ].some((path) => url?.endsWith(path));

@@ -123,6 +123,8 @@ export function QuestionnaireRenderer({
   const [isSavingDraft, setIsSavingDraft] = useState(false);
   const [draftStatus, setDraftStatus] = useState<string | null>(null);
   const autoSaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const questionsStartRef = useRef<HTMLFieldSetElement | null>(null);
+  const previousSectionIndex = useRef(activeSectionIndex);
   const {
     control,
     formState: { errors, isSubmitting },
@@ -198,6 +200,22 @@ export function QuestionnaireRenderer({
     };
   }, [onSaveDraft, persistDraft, readOnly, watch]);
 
+  useEffect(() => {
+    if (previousSectionIndex.current === activeSectionIndex) return;
+    previousSectionIndex.current = activeSectionIndex;
+
+    const questionsStart = questionsStartRef.current;
+    if (!questionsStart) return;
+    questionsStart.focus({ preventScroll: true });
+    questionsStart.scrollIntoView?.({
+      behavior:
+        window.matchMedia?.('(prefers-reduced-motion: reduce)').matches === true
+          ? 'auto'
+          : 'smooth',
+      block: 'start',
+    });
+  }, [activeSectionIndex]);
+
   if (sections.length === 0) {
     return (
       <div className="rounded-2xl border border-dashed border-mendoza-gold bg-white p-6 text-center">
@@ -269,7 +287,13 @@ export function QuestionnaireRenderer({
         )}
       </header>
 
-      <fieldset className="space-y-5 p-5 sm:p-6" disabled={readOnly}>
+      <fieldset
+        aria-label={`Preguntas de ${current.section.title}`}
+        className="scroll-mt-4 space-y-5 p-5 outline-none sm:p-6"
+        disabled={readOnly}
+        ref={questionsStartRef}
+        tabIndex={-1}
+      >
         {current.section.questions.map((question, questionIndex) => (
           <QuestionField
             error={errors[question.id]?.message}

@@ -22,6 +22,12 @@ describe("AdminSchoolResultDetailPage", () => {
     expect(screen.getByText("Radar histórico")).toBeVisible();
     fireEvent.click(screen.getByRole("button", { name: "Ficha histórica" }));
     expect(screen.getByText("Directora Original")).toBeVisible();
+    expect(screen.getByText("Secundario")).toBeVisible();
+    expect(screen.getByText("4 estudiantes")).toBeVisible();
+    expect(screen.getByText("Referente Histórico")).toBeVisible();
+    expect(screen.queryByText("educationLevels")).not.toBeInTheDocument();
+    expect(screen.queryByText("contacts")).not.toBeInTheDocument();
+    expect(screen.queryByText(/RESPONDENT/)).not.toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "Historial" }));
     expect(screen.getAllByText("Persona Original").length).toBeGreaterThan(0);
   });
@@ -41,7 +47,45 @@ const fullDetail: AdminSchoolResultDetail = {
   school: { id: "school-1", cue: "50001", name: "Escuela Histórica", schoolNumber: "1-001", department: "Godoy Cruz", locality: "Centro", managementType: "Estatal", scope: "Urbano", educationLevel: "Primario", isActive: false },
   participationStatus: "submitted",
   submission: { id: "submission-1", status: "submitted", startedAt: "2026-06-01T10:00:00Z", lastSavedAt: "2026-06-02T10:00:00Z", submittedAt: "2026-06-03T10:00:00Z", originalRespondent: { id: "user-1", firstName: "Persona", lastName: "Original", email: "original@example.com", isActive: false } },
-  historicalSchoolProfile: { name: "Escuela Histórica", directorName: "Directora Original" },
+  historicalSchoolProfile: {
+    name: "Escuela Histórica",
+    cue: "50001",
+    schoolNumber: "1-001",
+    directorName: "Directora Original",
+    department: "Godoy Cruz",
+    address: "Calle Histórica 123",
+    postalCode: "5501",
+    locality: "Centro",
+    managementType: "Estatal",
+    scope: "Urbano",
+    educationLevel: "Educación común",
+    shift: "Simple",
+    phone: "2615550000",
+    email: "historica@example.com",
+    hasKiosk: false,
+    hasFoodService: true,
+    isBoarding: null,
+    enrollmentTotal: 4,
+    capturedAt: "2026-06-01T10:00:00Z",
+    shiftCatalog: { id: "shift-1", code: "simple", label: "Simple" },
+    educationLevels: [
+      { id: "level-1", code: "secundario", label: "Secundario", enrollment: 4 },
+    ],
+    characteristics: {
+      isMultigrade: false,
+      isInterculturalBilingual: null,
+    },
+    contacts: [
+      {
+        type: "RESPONDENT",
+        firstName: "Referente",
+        lastName: "Histórico",
+        position: "Director",
+        phone: "2615551111",
+        email: "referente@example.com",
+      },
+    ],
+  },
   result: { id: "result-1", generalScore: 82.5, numerator: 825, denominator: 10, stars: { base: 5, final: 4, blockingReasons: ["Área crítica"], configurationVersion: "v1" }, alerts: [], dimensions: Array.from({ length: 6 }, (_, index) => ({ id: `d-${index}`, code: `D${index}`, title: `Dimensión ${index + 1}`, order: index, score: 80, available: true, isCritical: false, criticalValue: null, criticalThreshold: null })), answers: [], excludedQuestions: [], survey: { id: "survey-1", code: "EPS", name: "Cuestionario", version: { id: "version-1", number: 2, title: "Versión 2", publishedAt: "2026-01-01T00:00:00Z" } }, calculation: { calculatedAt: "2026-06-03T10:01:00Z", algorithmVersion: "2.0", snapshotSchemaVersion: 1, source: "submission", calculatedBy: null } },
   history: [{ type: "submitted", label: "Presentación enviada", at: "2026-06-03T10:00:00Z" }],
   dataQuality: { historicalProfileAvailable: true, resultSnapshotAvailable: true },
