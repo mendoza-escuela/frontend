@@ -20,6 +20,10 @@ describe("AdminSchoolResultDetailPage", () => {
     expect(await screen.findByRole("heading", { name: "Escuela Histórica" })).toBeVisible();
     expect(screen.getByText("82,5 / 100")).toBeVisible();
     expect(screen.getByText("Radar histórico")).toBeVisible();
+    expect(screen.queryByText("result-1")).not.toBeInTheDocument();
+    expect(screen.queryByText("Identificador de resultado")).not.toBeInTheDocument();
+    expect(screen.getByText("Motor de evaluación (versión 2.0)")).toBeVisible();
+    expect(screen.getByText("Envío del cuestionario")).toBeVisible();
     fireEvent.click(screen.getByRole("button", { name: "Ficha histórica" }));
     expect(screen.getByText("Directora Original")).toBeVisible();
     expect(screen.getByText("Secundario")).toBeVisible();
@@ -37,6 +41,44 @@ describe("AdminSchoolResultDetailPage", () => {
     renderPage();
     expect(await screen.findByRole("heading", { name: "Presentación en borrador" })).toBeVisible();
     expect(screen.queryByText("Radar histórico")).not.toBeInTheDocument();
+  });
+
+  it("presenta las exclusiones sin exponer JSON ni identificadores técnicos", async () => {
+    vi.mocked(adminSchoolResultDetailService.get).mockResolvedValue({
+      ...fullDetail,
+      result: {
+        ...fullDetail.result!,
+        excludedQuestions: [{
+          id: "question-id",
+          code: "p021",
+          prompt: "Publicidad en equipamiento del kiosco",
+          required: true,
+          order: 21,
+          dimension: { code: "D2", title: "Entorno Alimentario Seguro y Saludable" },
+          section: { code: "S2", title: "Kiosco" },
+          exclusion: {
+            reasonCode: "MATCHED_OMIT_RULE",
+            reason: "Coincidió la regla de prioridad 1; acción: omitir.",
+            relevantSchoolFacts: { has_kiosk: false },
+            rules: [{
+              action: "omit",
+              defaultAction: "show",
+              groupOperator: "all",
+              conditions: [{ feature: "has_kiosk", operator: "equals", expectedValue: false }],
+            }],
+          },
+        }],
+      },
+    });
+    renderPage();
+    await screen.findByRole("heading", { name: "Escuela Histórica" });
+    fireEvent.click(screen.getByRole("button", { name: "Exclusiones" }));
+    expect(screen.getAllByText("Tiene kiosco")).toHaveLength(2);
+    expect(screen.getAllByText("No")).toHaveLength(2);
+    expect(screen.getByText(/Omitir la pregunta cuando se cumplen todas/)).toBeVisible();
+    expect(screen.queryByText("has_kiosk")).not.toBeInTheDocument();
+    expect(screen.queryByText("question-id")).not.toBeInTheDocument();
+    expect(screen.queryByText(/"operator"/)).not.toBeInTheDocument();
   });
 });
 
