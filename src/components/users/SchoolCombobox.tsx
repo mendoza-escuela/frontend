@@ -2,6 +2,7 @@ import { Check, ChevronsUpDown, LoaderCircle, Search } from "lucide-react";
 import { useEffect, useId, useRef, useState } from "react";
 import { adminUsersService } from "../../services/admin-users.service";
 import type { SchoolOption } from "../../types/admin-user";
+import { useAdaptiveDropdown } from "../../hooks/useAdaptiveDropdown";
 
 const PAGE_SIZE = 20;
 
@@ -42,6 +43,8 @@ export function SchoolCombobox({
   const [loadingMore, setLoadingMore] = useState(false);
   const [loadError, setLoadError] = useState(false);
   const [retryKey, setRetryKey] = useState(0);
+  const { triggerRef, opensUpward, panelMaxHeight, updatePlacement } =
+    useAdaptiveDropdown<HTMLButtonElement>(open);
 
   currentQueryRef.current = query;
 
@@ -96,6 +99,7 @@ export function SchoolCombobox({
 
   const openOptions = () => {
     if (disabled) return;
+    updatePlacement();
     setQuery("");
     setOpen(true);
     window.setTimeout(() => searchInputRef.current?.focus(), 0);
@@ -152,6 +156,7 @@ export function SchoolCombobox({
           className="flex w-full items-center justify-between gap-2 rounded-lg border border-mendoza-border px-3 py-2.5 text-left outline-none hover:border-mendoza-sky focus-visible:border-mendoza-sky focus-visible:ring-2 focus-visible:ring-mendoza-sky/25 disabled:cursor-not-allowed disabled:bg-gray-100 disabled:text-mendoza-muted"
           disabled={disabled}
           onClick={() => (open ? setOpen(false) : openOptions())}
+          ref={triggerRef}
           type="button"
         >
           <span className="min-w-0 truncate">
@@ -167,7 +172,11 @@ export function SchoolCombobox({
         </button>
 
         {open && (
-          <div className="absolute z-30 mt-1 w-full overflow-hidden rounded-lg border border-mendoza-border bg-white shadow-lg">
+          <div
+            className={`absolute z-50 flex w-full flex-col overflow-hidden rounded-lg border border-mendoza-border bg-white shadow-xl shadow-slate-900/10 ${opensUpward ? "bottom-full mb-1" : "top-full mt-1"}`}
+            data-placement={opensUpward ? "top" : "bottom"}
+            style={{ maxHeight: panelMaxHeight }}
+          >
             <div className="relative border-b border-mendoza-border">
               <Search
                 aria-hidden="true"
@@ -192,7 +201,7 @@ export function SchoolCombobox({
             </div>
 
             <div
-              className="max-h-64 overflow-y-auto p-1"
+              className="min-h-0 flex-1 overflow-y-auto p-1"
               id={listboxId}
               role="listbox"
             >

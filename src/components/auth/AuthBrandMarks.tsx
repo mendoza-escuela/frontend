@@ -1,4 +1,4 @@
-import epsLogoHorizontal from "../../assets/eps-logo-horizontal.svg";
+import escuelaLogo from "../../assets/imagenEscuela.png";
 import { InstitutionalBrand } from "../layout/InstitutionalBrand";
 
 export function AuthBrandMarks() {
@@ -10,8 +10,8 @@ export function AuthBrandMarks() {
       <div className="flex min-w-0 items-center justify-center border-r border-mendoza-border pr-4">
         <img
           alt="Escuelas Promotoras de Salud"
-          className="h-11 max-w-full object-contain sm:h-12"
-          src={epsLogoHorizontal}
+          className="h-14 w-14 object-contain sm:h-16 sm:w-16"
+          src={escuelaLogo}
         />
       </div>
       <InstitutionalBrand

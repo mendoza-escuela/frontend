@@ -11,6 +11,7 @@ import {
 import { MemoryRouter, Route, Routes, useLocation } from "react-router-dom";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { adminSurveysService } from "../../services/admin-surveys.service";
+import { adminUsersService } from "../../services/admin-users.service";
 import type {
   AdminSurveyVersion,
   ApplicabilityMetadata,
@@ -29,6 +30,10 @@ vi.mock("../../services/admin-surveys.service", () => ({
     reorderApplicabilityRules: vi.fn(),
     previewApplicability: vi.fn(),
   },
+}));
+
+vi.mock("../../services/admin-users.service", () => ({
+  adminUsersService: { schools: vi.fn() },
 }));
 
 vi.mock("../../lib/toast", () => ({
@@ -51,6 +56,13 @@ const metadata: ApplicabilityMetadata = {
   ],
   operators: [{ key: "equals", label: "Es igual a" }],
   resolution: "Las reglas se aplican en orden.",
+};
+
+const previewSchool = {
+  id: "school-1",
+  cue: "500012300",
+  name: "Escuela de prueba",
+  isActive: true,
 };
 
 const version: AdminSurveyVersion = {
@@ -79,7 +91,12 @@ const version: AdminSurveyVersion = {
           description: null,
           order: 0,
           questions: [
-            question("question-1", "p001", "Acta compromiso: Existe un acta vigente.", 0),
+            question(
+              "question-1",
+              "p001",
+              "Acta compromiso: Existe un acta vigente.",
+              0,
+            ),
             question(
               "question-2",
               "p002",
@@ -136,6 +153,10 @@ describe("SurveyApplicabilityRulesPage", () => {
       explanation: "La pregunta se omite para esta escuela.",
       missingFeatures: [],
     });
+    vi.mocked(adminUsersService.schools).mockResolvedValue({
+      items: [previewSchool],
+      pagination: { page: 1, limit: 20, total: 1, totalPages: 1 },
+    });
   });
 
   afterEach(() => {
@@ -153,7 +174,9 @@ describe("SurveyApplicabilityRulesPage", () => {
     ).toBeVisible();
     expect(screen.getByText("Pregunta 2 de 3")).toBeVisible();
     await waitFor(() =>
-      expect(screen.getByLabelText("Si ninguna coincide")).toHaveValue("omit"),
+      expect(
+        screen.getByRole("button", { name: "Si ninguna regla coincide" }),
+      ).toHaveTextContent("Omitir"),
     );
     expect(adminSurveysService.findVersion).toHaveBeenCalledTimes(1);
     expect(adminSurveysService.applicabilityMetadata).toHaveBeenCalledTimes(1);
@@ -190,11 +213,16 @@ describe("SurveyApplicabilityRulesPage", () => {
     renderPage("?questionId=question-2");
 
     fireEvent.click(await screen.findByRole("button", { name: "Editar" }));
-    expect(screen.getByRole("heading", { name: "Editar regla" })).toBeVisible();
-    fireEvent.change(screen.getByLabelText("Identificador de escuela"), {
-      target: { value: "school-1" },
-    });
-    fireEvent.click(screen.getByRole("button", { name: "Evaluar" }));
+    expect(
+      screen.getByRole("heading", { name: "Editar esta regla" }),
+    ).toBeVisible();
+    fireEvent.click(screen.getByRole("button", { name: "Colegio de prueba" }));
+    fireEvent.click(
+      await screen.findByRole("option", {
+        name: "500012300 - Escuela de prueba",
+      }),
+    );
+    fireEvent.click(screen.getByRole("button", { name: "Probar regla" }));
     expect(
       await screen.findByText("La pregunta se omite para esta escuela."),
     ).toBeVisible();
@@ -202,15 +230,53 @@ describe("SurveyApplicabilityRulesPage", () => {
     fireEvent.click(screen.getByRole("button", { name: "Siguiente" }));
 
     expect(
-      await screen.findByRole("heading", { name: "Nueva regla" }),
+      await screen.findByRole("heading", { name: "Definí una nueva regla" }),
     ).toBeVisible();
     expect(
       screen.queryByText("La pregunta se omite para esta escuela."),
     ).not.toBeInTheDocument();
-    expect(screen.getByLabelText("Identificador de escuela")).toHaveValue(
-      "school-1",
+    expect(
+      screen.getByRole("button", { name: "Colegio de prueba" }),
+    ).toHaveTextContent("Escuela de prueba");
+    expect(
+      screen.getByRole("button", { name: "Si ninguna regla coincide" }),
+    ).toHaveTextContent("Mostrar");
+  });
+
+  it("usa desplegables institucionales en toda la nueva regla", async () => {
+    renderPage("?questionId=question-1");
+
+    expect(
+      await screen.findByRole("button", {
+        name: "Para aplicar la regla deben cumplirse",
+      }),
+    ).toHaveTextContent("Todas las condiciones");
+    expect(screen.getByRole("button", { name: "Entonces" })).toHaveTextContent(
+      "Omitir la pregunta",
     );
-    expect(screen.getByLabelText("Si ninguna coincide")).toHaveValue("show");
+    expect(
+      screen.getByRole("button", { name: "Característica" }),
+    ).toHaveTextContent("Tiene kiosco");
+    expect(screen.getByRole("button", { name: "Operador" })).toHaveTextContent(
+      "Es igual a",
+    );
+    expect(screen.getByRole("button", { name: "Valor" })).toHaveTextContent(
+      "Sí",
+    );
+
+    fireEvent.click(
+      screen.getByRole("button", {
+        name: "Para aplicar la regla deben cumplirse",
+      }),
+    );
+    fireEvent.click(
+      screen.getByRole("option", { name: "Al menos una condición" }),
+    );
+    expect(
+      screen.getByRole("button", {
+        name: "Para aplicar la regla deben cumplirse",
+      }),
+    ).toHaveTextContent("Al menos una condición");
   });
 });
 
