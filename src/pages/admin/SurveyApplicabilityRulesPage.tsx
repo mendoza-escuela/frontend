@@ -2,12 +2,14 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import {
   ArrowDown,
   ArrowUp,
+  ChevronLeft,
+  ChevronRight,
   CirclePlus,
   Eye,
   Save,
   Trash2,
 } from "lucide-react";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import type { ReactNode } from "react";
 import { useFieldArray, useForm } from "react-hook-form";
 import type { UseFormRegisterReturn } from "react-hook-form";
@@ -19,6 +21,7 @@ import { EmptyState } from "../../components/ui/EmptyState";
 import { ErrorState } from "../../components/ui/ErrorState";
 import { LoadingState } from "../../components/ui/LoadingState";
 import { PageHeader } from "../../components/ui/PageHeader";
+import { QuestionCombobox } from "../../components/surveys/QuestionCombobox";
 import { inputClassName } from "../../components/ui/form-styles";
 import { getHttpErrorMessage } from "../../lib/http-error";
 import { showError, showSuccess } from "../../lib/toast";
@@ -57,6 +60,8 @@ export function SurveyApplicabilityRulesPage() {
   const [preview, setPreview] = useState("");
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState("");
+  const resetQuestionKey = useRef("");
+  const requestedQuestionId = searchParams.get("questionId");
   const form = useForm<FormValues>({
     resolver: zodResolver(schema),
     defaultValues: {
@@ -72,17 +77,27 @@ export function SurveyApplicabilityRulesPage() {
   });
   const conditions = form.watch("conditions");
 
+  const ruleCountByQuestion = useMemo(() => {
+    const counts = new Map<string, number>();
+    rules.forEach((rule) =>
+      counts.set(rule.questionId, (counts.get(rule.questionId) ?? 0) + 1),
+    );
+    return counts;
+  }, [rules]);
   const questions = useMemo(
     () =>
       version?.dimensions.flatMap((dimension) =>
         dimension.sections.flatMap((section) =>
           section.questions.map((question) => ({
-            id: question.id,
-            label: `${question.code} — ${question.prompt}`,
+            value: question.id,
+            code: question.code,
+            prompt: question.prompt,
+            groupLabel: dimension.title,
+            ruleCount: ruleCountByQuestion.get(question.id) ?? 0,
           })),
         ),
       ) ?? [],
-    [version],
+    [ruleCountByQuestion, version],
   );
   const selectedRules = useMemo(
     () =>
@@ -92,6 +107,10 @@ export function SurveyApplicabilityRulesPage() {
     [questionId, rules],
   );
   const readonly = version?.status !== "draft";
+  const selectedQuestionIndex = questions.findIndex(
+    ({ value }) => value === questionId,
+  );
+  const selectedQuestion = questions[selectedQuestionIndex] ?? null;
 
   const load = useCallback(async () => {
     if (!surveyId || !versionId) return;
@@ -106,32 +125,64 @@ export function SurveyApplicabilityRulesPage() {
       setVersion(loadedVersion);
       setMetadata(loadedMetadata);
       setRules(loadedRules);
-      const firstQuestion =
-        loadedVersion.dimensions[0]?.sections[0]?.questions[0]?.id ?? "";
-      const requestedQuestionId = searchParams.get("questionId");
-      const requestedExists = loadedVersion.dimensions.some((dimension) =>
-        dimension.sections.some((section) =>
-          section.questions.some(
-            (question) => question.id === requestedQuestionId,
-          ),
-        ),
-      );
-      setQuestionId((current) =>
-        current ||
-        (requestedExists && requestedQuestionId
-          ? requestedQuestionId
-          : firstQuestion),
-      );
     } catch (loadError) {
       setError(getHttpErrorMessage(loadError));
     } finally {
       setIsLoading(false);
     }
-  }, [searchParams, surveyId, versionId]);
+  }, [surveyId, versionId]);
 
   useEffect(() => {
     void load();
   }, [load]);
+
+  useEffect(() => {
+    if (isLoading || !version) return;
+    const requestedExists = questions.some(
+      ({ value }) => value === requestedQuestionId,
+    );
+    const nextQuestionId =
+      requestedExists && requestedQuestionId
+        ? requestedQuestionId
+        : (questions[0]?.value ?? "");
+
+    setQuestionId(nextQuestionId);
+    if (nextQuestionId && requestedQuestionId !== nextQuestionId)
+      setSearchParams(
+        (current) => {
+          const next = new URLSearchParams(current);
+          next.set("questionId", nextQuestionId);
+          return next;
+        },
+        { replace: true },
+      );
+  }, [
+    isLoading,
+    questions,
+    requestedQuestionId,
+    setSearchParams,
+    version,
+  ]);
+
+  useEffect(() => {
+    if (isLoading || !questionId) return;
+    const nextResetKey = `${versionId ?? ""}:${questionId}`;
+    if (resetQuestionKey.current === nextResetKey) return;
+    resetQuestionKey.current = nextResetKey;
+    const nextRules = rules
+      .filter((rule) => rule.questionId === questionId)
+      .sort((left, right) => left.order - right.order);
+    setEditingRuleId(null);
+    setPreview("");
+    form.reset({
+      groupOperator: "all",
+      action: "omit",
+      defaultAction: nextRules[0]?.defaultAction ?? "show",
+      conditions: [
+        { feature: "has_kiosk", operator: "equals", expectedValue: "true" },
+      ],
+    });
+  }, [form, isLoading, questionId, rules, versionId]);
 
   const resetNew = () => {
     setEditingRuleId(null);
@@ -143,6 +194,19 @@ export function SurveyApplicabilityRulesPage() {
         { feature: "has_kiosk", operator: "equals", expectedValue: "true" },
       ],
     });
+  };
+
+  const selectQuestion = (nextQuestionId: string) => {
+    if (!nextQuestionId || nextQuestionId === questionId) return;
+    setQuestionId(nextQuestionId);
+    setSearchParams(
+      (current) => {
+        const next = new URLSearchParams(current);
+        next.set("questionId", nextQuestionId);
+        return next;
+      },
+      { replace: true },
+    );
   };
 
   const edit = (rule: ApplicabilityRule) => {
@@ -300,25 +364,67 @@ export function SurveyApplicabilityRulesPage() {
         )}
 
         <Card className="mt-6">
-          <label className="block text-sm font-semibold" htmlFor="question">
-            Pregunta
-          </label>
-          <select
-            className={`${inputClassName} mt-2`}
-            id="question"
-            onChange={(event) => {
-              setQuestionId(event.target.value);
-              setSearchParams({ questionId: event.target.value });
-              resetNew();
-            }}
+          <QuestionCombobox
+            label="Pregunta"
+            onChange={selectQuestion}
+            options={questions}
             value={questionId}
-          >
-            {questions.map((question) => (
-              <option key={question.id} value={question.id}>
-                {question.label}
-              </option>
-            ))}
-          </select>
+          />
+          {selectedQuestion && (
+            <div
+              aria-label="Pregunta seleccionada"
+              className="mt-4 rounded-xl border border-mendoza-border bg-mendoza-background/60 p-4 sm:p-5"
+            >
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <div className="flex min-w-0 flex-wrap items-center gap-2">
+                  <span className="rounded-full bg-mendoza-blue px-2.5 py-1 text-xs font-bold text-white">
+                    {selectedQuestion.code}
+                  </span>
+                  <span className="text-sm font-semibold text-mendoza-blue">
+                    {selectedQuestion.groupLabel}
+                  </span>
+                </div>
+                <span className="text-xs font-semibold text-mendoza-muted">
+                  Pregunta {selectedQuestionIndex + 1} de {questions.length}
+                </span>
+              </div>
+              <p className="mt-3 text-base leading-7 text-mendoza-text">
+                {selectedQuestion.prompt}
+              </p>
+              <div className="mt-4 flex flex-col gap-3 border-t border-mendoza-border pt-4 sm:flex-row sm:items-center sm:justify-between">
+                <span className="text-sm text-mendoza-muted">
+                  {selectedQuestion.ruleCount === 0
+                    ? "Sin reglas configuradas"
+                    : `${selectedQuestion.ruleCount} ${selectedQuestion.ruleCount === 1 ? "regla configurada" : "reglas configuradas"}`}
+                </span>
+                <div className="grid grid-cols-2 gap-2 sm:flex">
+                  <Button
+                    disabled={selectedQuestionIndex <= 0}
+                    icon={<ChevronLeft aria-hidden="true" size={17} />}
+                    onClick={() =>
+                      selectQuestion(questions[selectedQuestionIndex - 1]?.value ?? "")
+                    }
+                    variant="outline"
+                  >
+                    Anterior
+                  </Button>
+                  <Button
+                    disabled={
+                      selectedQuestionIndex < 0 ||
+                      selectedQuestionIndex >= questions.length - 1
+                    }
+                    icon={<ChevronRight aria-hidden="true" size={17} />}
+                    onClick={() =>
+                      selectQuestion(questions[selectedQuestionIndex + 1]?.value ?? "")
+                    }
+                    variant="outline"
+                  >
+                    Siguiente
+                  </Button>
+                </div>
+              </div>
+            </div>
+          )}
         </Card>
 
         <div className="mt-6 grid gap-6 lg:grid-cols-[1fr_1.2fr]">

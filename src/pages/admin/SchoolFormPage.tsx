@@ -16,6 +16,10 @@ import { SearchableSelect } from "../../components/ui/SearchableSelect";
 import { checkboxClassName } from "../../components/ui/form-styles";
 import { getHttpErrorDetails, getHttpErrorMessage } from "../../lib/http-error";
 import {
+  legacyCatalogValue,
+  officialCatalogLabel,
+} from "../../lib/official-catalog";
+import {
   createAdminSchoolFormSchema,
   type SchoolFormValues,
 } from "../../lib/school-form-schema";
@@ -129,6 +133,13 @@ export function SchoolFormPage() {
   }, [id, reset]);
 
   const selectedLevels = watch("educationLevels") ?? [];
+  const selectedEducationType = watch("educationLevel");
+  const legacyEducationType = loadedSchool
+    ? legacyCatalogValue(
+        catalogs?.educationTypes ?? [],
+        loadedSchool.educationLevel,
+      )
+    : null;
   const toggleLevel = (level: SchoolCatalogOption, checked: boolean) => {
     const current = getValues("educationLevels");
     const selected = current.some(({ levelId }) => levelId === level.id);
@@ -148,6 +159,24 @@ export function SchoolFormPage() {
   };
 
   const submit = handleSubmit(async (values) => {
+    if (
+      !officialCatalogLabel(
+        catalogs?.educationTypes ?? [],
+        values.educationLevel,
+      )
+    ) {
+      const message =
+        "Elegí un tipo de educación del catálogo oficial antes de guardar el colegio.";
+      setError(
+        "educationLevel",
+        { type: "validate", message },
+        {
+          shouldFocus: true,
+        },
+      );
+      showError(message);
+      return;
+    }
     const shift = catalogs?.shifts.items.find(
       ({ id: shiftId }) => shiftId === values.shiftCatalogId,
     );
@@ -334,8 +363,13 @@ export function SchoolFormPage() {
               control={control}
               error={errors.educationLevel?.message}
               label="Tipo de educación *"
+              legacyValue={legacyEducationType}
               name="educationLevel"
               options={catalogs.educationTypes}
+              unresolvedLegacy={
+                Boolean(legacyEducationType) &&
+                selectedEducationType === legacyEducationType
+              }
             />
             <Controller
               control={control}
@@ -510,35 +544,63 @@ function CatalogField({
   control,
   error,
   label,
+  legacyValue,
   name,
   options,
+  unresolvedLegacy,
 }: {
   control: Control<SchoolFormValues>;
   error?: string;
   label: string;
+  legacyValue?: string | null;
   name: "managementType" | "scope" | "educationLevel";
-  options: { code: string; label: string }[];
+  options: SchoolNamedCatalogOption[];
+  unresolvedLegacy?: boolean;
 }) {
   return (
-    <Controller
-      control={control}
-      name={name}
-      render={({ field }) => (
-        <SearchableSelect
-          allLabel={options.length ? "Seleccioná una opción" : "Catálogo no disponible"}
-          disabled={!options.length}
-          error={error}
-          label={label}
-          onBlur={field.onBlur}
-          onChange={field.onChange}
-          options={options.map((option) => ({
-            value: option.label,
-            label: option.label,
-          }))}
-          value={field.value}
-        />
+    <>
+      <Controller
+        control={control}
+        name={name}
+        render={({ field }) => (
+          <SearchableSelect
+            allLabel={options.length ? "Seleccioná una opción" : "Catálogo no disponible"}
+            disabled={!options.length}
+            error={error}
+            label={label}
+            onBlur={field.onBlur}
+            onChange={field.onChange}
+            options={options.map((option) => ({
+              value: option.label,
+              label: option.label,
+            }))}
+            selectedLabel={
+              legacyValue && field.value === legacyValue
+                ? `Valor anterior sin correspondencia: ${legacyValue}`
+                : undefined
+            }
+            value={field.value}
+          />
+        )}
+      />
+      {legacyValue && (
+        <span
+          className={`mt-2 block rounded-lg border p-3 text-sm font-normal leading-5 ${
+            unresolvedLegacy
+              ? "border-amber-300 bg-amber-50 text-amber-950"
+              : "border-mendoza-sky/50 bg-mendoza-blue-soft text-mendoza-blue"
+          }`}
+          role={unresolvedLegacy ? "alert" : "status"}
+        >
+          <strong>Valor anterior sin correspondencia: {legacyValue}.</strong> No
+          equivale automáticamente a un tipo de educación. Los niveles educativos
+          se informan por separado.{" "}
+          {unresolvedLegacy
+            ? "Elegí una opción del catálogo oficial antes de guardar."
+            : "La opción oficial seleccionada se aplicará al guardar."}
+        </span>
       )}
-    />
+    </>
   );
 }
 
@@ -716,10 +778,9 @@ function schoolFormValues(
     locality: school.locality,
     address: school.address,
     postalCode: school.postalCode ?? "",
-    educationLevel: catalogLabel(
-      catalogs.educationTypes,
+    educationLevel:
+      officialCatalogLabel(catalogs.educationTypes, school.educationLevel) ??
       school.educationLevel,
-    ),
     managementType: catalogLabel(
       catalogs.managementTypes,
       school.managementType,

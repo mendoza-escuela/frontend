@@ -124,7 +124,7 @@ describe("SchoolProfilePage", () => {
 
     expect(
       await screen.findByRole("heading", {
-        name: "Revisar y rectificar ficha anual",
+        name: "Revisar y confirmar ficha anual",
       }),
     ).toBeVisible();
     const kiosk = screen.getByRole("group", { name: "¿Tiene kiosco? *" });
@@ -144,6 +144,115 @@ describe("SchoolProfilePage", () => {
     );
     expect(screen.getByLabelText(/Jornada/)).toBeEnabled();
     expect(screen.getByRole("checkbox", { name: "Primario" })).toBeEnabled();
+  });
+
+  it("muestra una confirmación histórica incompleta sin llamarla pendiente", async () => {
+    vi.mocked(schoolPortalService.ownSchool).mockResolvedValue({
+      ...profile,
+      rectification: {
+        periodYear: 2026,
+        isConfirmed: true,
+        isEvaluationReady: false,
+        isRectified: false,
+        rectifiedAt: "2026-08-10T15:00:00.000Z",
+        rectifiedBy: null,
+        missingFields: [
+          { code: "hasKiosk", label: "Kiosco" },
+          {
+            code: "hasFoodService",
+            label: "Comedor o servicio alimentario",
+          },
+        ],
+      },
+    });
+
+    render(<SchoolProfilePage />);
+
+    expect(
+      await screen.findByRole("heading", {
+        name: "Confirmada el 10/08/2026; requiere actualización",
+      }),
+    ).toBeVisible();
+    expect(
+      screen.queryByText(/confirmación pendiente/i),
+    ).not.toBeInTheDocument();
+    expect(screen.getByText("Kiosco")).toBeVisible();
+    expect(screen.getByText("Comedor o servicio alimentario")).toBeVisible();
+  });
+
+  it("conserva un tipo de educación legado y no lo equipara con Educación común", async () => {
+    const legacyProfile: SchoolProfile = {
+      ...profile,
+      educationLevel: "Primario",
+      shift: "Jornada completa",
+      shiftCatalogId: shiftId,
+      shiftCatalog: catalogs.shifts.items[0],
+      hasKiosk: true,
+      hasFoodService: false,
+      educationLevels: [
+        {
+          levelId,
+          code: "primario",
+          label: "Primario",
+          isActive: true,
+          enrollment: null,
+          order: 0,
+        },
+      ],
+    };
+    vi.mocked(schoolPortalService.ownSchool).mockResolvedValue(legacyProfile);
+    vi.mocked(schoolPortalService.rectify).mockResolvedValue({
+      ...legacyProfile,
+      educationLevel: "Común",
+    });
+    render(<SchoolProfilePage />);
+
+    const educationType = await screen.findByRole("combobox", {
+      name: /Tipo de educación/,
+    });
+    expect(educationType).toHaveValue("Primario");
+    expect(
+      within(educationType).getByRole("option", {
+        name: "Valor anterior sin correspondencia: Primario",
+      }),
+    ).toBeDisabled();
+    expect(
+      within(educationType.closest("label")!).getByRole("alert"),
+    ).toHaveTextContent(
+      "Elegí una opción del catálogo oficial antes de guardar",
+    );
+
+    fireEvent.click(
+      screen.getByRole("button", { name: "Confirmar ficha anual" }),
+    );
+    await waitFor(() =>
+      expect(
+        screen.getByText(
+          "Elegí un tipo de educación del catálogo oficial antes de confirmar la ficha.",
+        ),
+      ).toBeVisible(),
+    );
+    expect(schoolPortalService.rectify).not.toHaveBeenCalled();
+
+    fireEvent.change(educationType, { target: { value: "Común" } });
+    const normalizedNotice = within(educationType.closest("label")!).getByRole(
+      "status",
+    );
+    expect(normalizedNotice).toHaveTextContent(
+      "La opción oficial seleccionada se aplicará al guardar",
+    );
+    expect(normalizedNotice).toHaveTextContent(
+      "Valor anterior sin correspondencia: Primario",
+    );
+
+    fireEvent.click(
+      screen.getByRole("button", { name: "Confirmar ficha anual" }),
+    );
+    await waitFor(() =>
+      expect(schoolPortalService.rectify).toHaveBeenCalledWith(
+        expect.objectContaining({ educationLevel: "Común" }),
+      ),
+    );
   });
 
   it("solicita confirmación antes de quitar un nivel con matrícula", async () => {
@@ -234,7 +343,7 @@ describe("SchoolProfilePage", () => {
     render(<SchoolProfilePage />);
 
     await screen.findByRole("heading", {
-      name: "Revisar y rectificar ficha anual",
+      name: "Revisar y confirmar ficha anual",
     });
     for (const groupName of ["Plurogrado", "Intercultural y Bilingüe"]) {
       fireEvent.click(
@@ -245,7 +354,7 @@ describe("SchoolProfilePage", () => {
       );
     }
     fireEvent.click(
-      screen.getByRole("button", { name: "Confirmar rectificación anual" }),
+      screen.getByRole("button", { name: "Confirmar ficha anual" }),
     );
 
     await waitFor(() => expect(schoolPortalService.rectify).toHaveBeenCalled());

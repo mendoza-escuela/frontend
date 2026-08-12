@@ -12,9 +12,10 @@ type SearchableSelectProps = {
   allLabel?: string;
   disabled?: boolean;
   error?: string;
+  selectedLabel?: string;
 };
 
-export function SearchableSelect({ label, value, options, onChange, onBlur, allLabel = "Todos", disabled = false, error }: SearchableSelectProps) {
+export function SearchableSelect({ label, value, options, onChange, onBlur, allLabel = "Todos", disabled = false, error, selectedLabel }: SearchableSelectProps) {
   const labelId = useId();
   const listboxId = useId();
   const errorId = useId();
@@ -59,7 +60,7 @@ export function SearchableSelect({ label, value, options, onChange, onBlur, allL
   return <div className="relative min-w-0" ref={rootRef}>
     <span className="mb-2 block text-sm font-semibold text-mendoza-text" id={labelId}>{label}</span>
     <button aria-describedby={error ? errorId : undefined} aria-expanded={open} aria-haspopup="listbox" aria-invalid={Boolean(error)} aria-labelledby={labelId} className={`group flex min-h-12 w-full items-center justify-between gap-3 rounded-xl border bg-white px-3.5 text-left text-sm shadow-sm outline-none transition hover:border-mendoza-sky focus-visible:border-mendoza-sky focus-visible:ring-4 focus-visible:ring-mendoza-sky/15 disabled:cursor-not-allowed disabled:bg-slate-100 ${error ? "border-mendoza-error" : "border-mendoza-border"}`} disabled={disabled} onClick={() => open ? setOpen(false) : show()} type="button">
-      <span className={`truncate ${selected ? "font-semibold text-mendoza-text" : "text-mendoza-muted"}`}>{selected?.label ?? allLabel}</span>
+      <span className={`truncate ${selected || selectedLabel ? "font-semibold text-mendoza-text" : "text-mendoza-muted"}`}>{selectedLabel ?? selected?.label ?? allLabel}</span>
       <span className="flex shrink-0 items-center gap-1">
         {value && <X aria-hidden="true" className="text-mendoza-muted opacity-0 transition group-hover:opacity-100" size={15} />}
         <ChevronDown aria-hidden="true" className={`text-mendoza-blue transition-transform ${open ? "rotate-180" : ""}`} size={18} />

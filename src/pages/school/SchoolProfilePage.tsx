@@ -1,9 +1,7 @@
 import { zodResolver } from "@hookform/resolvers/zod";
 import {
-  AlertCircle,
   Building2,
   CalendarDays,
-  CheckCircle2,
   Mail,
   MapPin,
   Phone,
@@ -12,11 +10,17 @@ import {
 } from "lucide-react";
 import { Fragment, useEffect, useState } from "react";
 import { Controller, type Control, useForm } from "react-hook-form";
+import { OfficialCatalogSelect } from "../../components/schools/OfficialCatalogSelect";
+import { RectificationStatusNotice } from "../../components/schools/RectificationStatusNotice";
 import { Button } from "../../components/ui/Button";
 import { ConfirmDialog } from "../../components/ui/ConfirmDialog";
 import { ErrorState } from "../../components/ui/ErrorState";
 import { LoadingState } from "../../components/ui/LoadingState";
 import { getHttpErrorMessage } from "../../lib/http-error";
+import {
+  legacyCatalogValue,
+  officialCatalogLabel,
+} from "../../lib/official-catalog";
 import {
   schoolRectificationSchema,
   type SchoolRectificationValues,
@@ -52,6 +56,7 @@ export function SchoolProfilePage() {
     register,
     handleSubmit,
     reset,
+    setError,
     setValue,
     watch,
     formState: { errors, isSubmitting },
@@ -104,6 +109,11 @@ export function SchoolProfilePage() {
 
   const selectedLevels = watch("educationLevels") ?? [];
   const contacts = watch("contacts") ?? [];
+  const selectedEducationType = watch("educationLevel");
+  const legacyEducationType = legacyCatalogValue(
+    catalogs.educationTypes,
+    school.educationLevel,
+  );
   const savedRespondent = school.contacts?.find(
     ({ type }) => type === "RESPONDENT",
   );
@@ -144,6 +154,19 @@ export function SchoolProfilePage() {
   };
 
   const submit = handleSubmit(async (values) => {
+    if (!officialCatalogLabel(catalogs.educationTypes, values.educationLevel)) {
+      const message =
+        "Elegí un tipo de educación del catálogo oficial antes de confirmar la ficha.";
+      setError(
+        "educationLevel",
+        { type: "validate", message },
+        {
+          shouldFocus: true,
+        },
+      );
+      showError(message);
+      return;
+    }
     if (
       values.hasKiosk === null ||
       values.hasFoodService === null ||
@@ -180,7 +203,10 @@ export function SchoolProfilePage() {
       setSchool(profile);
       if (catalogs) reset(rectificationValues(profile, catalogs));
       showSuccess(
-        `Ficha rectificada para el período ${profile.rectification.periodYear}.`,
+        (profile.rectification.isEvaluationReady ??
+          profile.rectification.isRectified)
+          ? `Ficha confirmada para ${profile.rectification.periodYear} y lista para evaluar.`
+          : `Ficha confirmada para ${profile.rectification.periodYear}; requiere actualización.`,
       );
     } catch (error) {
       showError(getHttpErrorMessage(error));
@@ -297,7 +323,7 @@ export function SchoolProfilePage() {
 
         <section className="mt-5 rounded-2xl border border-mendoza-border bg-white p-5 shadow-sm sm:p-6">
           <h2 className="text-xl font-bold text-mendoza-blue">
-            Revisar y rectificar ficha anual
+            Revisar y confirmar ficha anual
           </h2>
           <p className="mt-2 text-sm text-mendoza-muted">
             Al confirmar se guardará una copia histórica e inmutable con tu
@@ -370,14 +396,17 @@ export function SchoolProfilePage() {
               error={errors.educationLevel?.message}
               label="Tipo de educación"
             >
-              <select className="field" {...register("educationLevel")}>
-                <option value="">Seleccioná un tipo de educación</option>
-                {catalogs.educationTypes.map((option) => (
-                  <option key={option.code} value={option.label}>
-                    {option.label}
-                  </option>
-                ))}
-              </select>
+              <OfficialCatalogSelect
+                className="field"
+                legacyValue={legacyEducationType}
+                options={catalogs.educationTypes}
+                placeholder="Seleccioná un tipo de educación"
+                unresolvedLegacy={
+                  Boolean(legacyEducationType) &&
+                  selectedEducationType === legacyEducationType
+                }
+                {...register("educationLevel")}
+              />
             </RectificationField>
 
             <div className="md:col-span-2">
@@ -654,9 +683,7 @@ export function SchoolProfilePage() {
                 icon={<Save size={17} />}
                 type="submit"
               >
-                {isSubmitting
-                  ? "Rectificando…"
-                  : "Confirmar rectificación anual"}
+                {isSubmitting ? "Confirmando…" : "Confirmar ficha anual"}
               </Button>
             </div>
           </form>
@@ -682,33 +709,7 @@ export function SchoolProfilePage() {
 
 function RectificationStatus({ school }: { school: SchoolProfile }) {
   return (
-    <section
-      className={`mt-6 rounded-2xl border p-5 shadow-sm ${
-        school.rectification.isRectified
-          ? "border-green-200 bg-green-50"
-          : "border-mendoza-gold bg-white"
-      }`}
-    >
-      <div className="flex items-start gap-3">
-        {school.rectification.isRectified ? (
-          <CheckCircle2 className="shrink-0 text-mendoza-success" />
-        ) : (
-          <AlertCircle className="shrink-0 text-mendoza-warning" />
-        )}
-        <div>
-          <h2 className="font-bold text-mendoza-text">
-            {school.rectification.isRectified
-              ? `Ficha rectificada para ${school.rectification.periodYear}`
-              : `Rectificación pendiente para ${school.rectification.periodYear}`}
-          </h2>
-          <p className="mt-1 text-sm text-mendoza-muted">
-            {school.rectification.rectifiedAt
-              ? `Última confirmación: ${formatDate(school.rectification.rectifiedAt)}.`
-              : "Revisá los datos obligatorios y confirmalos para el período vigente."}
-          </p>
-        </div>
-      </div>
-    </section>
+    <RectificationStatusNotice className="mt-6" status={school.rectification} />
   );
 }
 
@@ -942,10 +943,9 @@ function rectificationValues(
     department: school.department,
     address: school.address,
     locality: school.locality,
-    educationLevel: catalogLabel(
-      catalogs.educationTypes,
+    educationLevel:
+      officialCatalogLabel(catalogs.educationTypes, school.educationLevel) ??
       school.educationLevel,
-    ),
     managementType: catalogLabel(
       catalogs.managementTypes,
       school.managementType,

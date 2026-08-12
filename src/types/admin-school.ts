@@ -148,6 +148,15 @@ export type SchoolRectificationCatalogs = {
 
 export type SchoolRectificationStatus = {
   periodYear: number;
+  /** Existe una confirmación anual, aunque el snapshot pueda requerir actualización. */
+  isConfirmed?: boolean;
+  /** El snapshot confirmado contiene todos los datos necesarios para evaluar. */
+  isEvaluationReady?: boolean;
+  missingFields?: Array<{
+    code: string;
+    label: string;
+  }>;
+  /** Campo legado conservado durante la transición del contrato. */
   isRectified: boolean;
   rectifiedAt: string | null;
   rectifiedBy: SchoolUserSummary | null;
@@ -235,6 +244,56 @@ export type SchoolUserListResponse = {
     totalPages: number;
   };
 };
+
+export type SchoolCampaignParticipationStatus =
+  "not_started" | "draft" | "submitted";
+
+export type SchoolDetailCampaignActivity = {
+  assignment: {
+    id: string;
+    source: string;
+    assignedAt: string | null;
+  };
+  campaign: {
+    id: string;
+    name: string;
+    type: "annual" | "semiannual";
+    status: "draft" | "active" | "closed" | "archived";
+    startsAt: string | null;
+    endsAt: string | null;
+  };
+  participationStatus: SchoolCampaignParticipationStatus;
+  submission: {
+    id: string;
+    status: "draft" | "submitted";
+    startedAt: string | null;
+    lastSavedAt: string | null;
+    submittedAt: string | null;
+  } | null;
+  result: {
+    available: boolean;
+    id: string | null;
+    calculatedAt: string | null;
+  };
+};
+
+export type SchoolDetailEvaluation = {
+  id: string;
+  campaignId: string;
+  submissionId: string;
+  calculatedAt: string | null;
+  generalScore: number | null;
+  stars: number | null;
+};
+
+type SchoolDetailActivityCollection<T> = {
+  /** `false` se conserva para respuestas anteriores donde el módulo no estaba disponible. */
+  available: boolean;
+  items: T[];
+  /** Vacío cuando hay datos; descriptivo cuando la colección está vacía o no disponible. */
+  message: string;
+};
+
 export type SchoolDetail = School & {
   rectification: SchoolRectificationStatus;
   rectifications: Array<{
@@ -267,8 +326,8 @@ export type SchoolDetail = School & {
     changes: Record<string, unknown>;
     createdAt: string;
   }>;
-  campaigns: { available: false; items: []; message: string };
-  evaluations: { available: false; items: []; message: string };
+  campaigns: SchoolDetailActivityCollection<SchoolDetailCampaignActivity>;
+  evaluations: SchoolDetailActivityCollection<SchoolDetailEvaluation>;
   actions: {
     canEdit: boolean;
     canChangeStatus: boolean;

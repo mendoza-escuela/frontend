@@ -1,12 +1,15 @@
 import {
   AlertCircle,
+  Archive,
   CalendarDays,
   CheckCircle2,
   Clock3,
+  Eye,
   Info,
+  LockKeyhole,
   PlayCircle,
 } from "lucide-react";
-import { useCallback, useEffect, useMemo, useState } from "react";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { QuestionnaireRenderer } from "../../components/surveys/QuestionnaireRenderer";
 import { Button } from "../../components/ui/Button";
@@ -44,6 +47,13 @@ export function SchoolSurveyPage() {
   const [error, setError] = useState("");
   const [workspaceError, setWorkspaceError] = useState("");
   const [workspaceReloadKey, setWorkspaceReloadKey] = useState(0);
+  const [selectedExpiredDraftId, setSelectedExpiredDraftId] = useState("");
+  const [expiredWorkspace, setExpiredWorkspace] =
+    useState<SchoolSubmissionWorkspace | null>(null);
+  const [expiredWorkspaceError, setExpiredWorkspaceError] = useState("");
+  const [isOpeningExpiredDraft, setIsOpeningExpiredDraft] = useState(false);
+  const activeWorkspaceRequestId = useRef(0);
+  const expiredWorkspaceRequestId = useRef(0);
 
   const loadCampaigns = useCallback(async () => {
     setIsLoading(true);
@@ -76,41 +86,83 @@ export function SchoolSurveyPage() {
   );
 
   useEffect(() => {
+    const requestId = ++activeWorkspaceRequestId.current;
+    setIsOpening(false);
     setWorkspace(null);
     setWorkspaceError("");
-    if (!selectedCampaign?.submission) return;
+    if (!selectedCampaign) return;
+    expiredWorkspaceRequestId.current += 1;
+    setSelectedExpiredDraftId("");
+    setExpiredWorkspace(null);
+    setExpiredWorkspaceError("");
+    if (!selectedCampaign.submission) return;
     let active = true;
     setIsOpening(true);
     schoolCampaignsService
       .workspace(selectedCampaign.id)
       .then((response) => {
-        if (active) setWorkspace(response);
+        if (active && requestId === activeWorkspaceRequestId.current)
+          setWorkspace(response);
       })
       .catch((loadError) => {
-        if (active) setWorkspaceError(getHttpErrorMessage(loadError));
+        if (active && requestId === activeWorkspaceRequestId.current)
+          setWorkspaceError(getHttpErrorMessage(loadError));
       })
       .finally(() => {
-        if (active) setIsOpening(false);
+        if (active && requestId === activeWorkspaceRequestId.current)
+          setIsOpening(false);
       });
     return () => {
       active = false;
     };
-  }, [
-    selectedCampaign?.id,
-    selectedCampaign?.submission,
-    workspaceReloadKey,
-  ]);
+  }, [selectedCampaign, workspaceReloadKey]);
 
   const openCampaign = async () => {
     if (!selectedCampaign) return;
+    const requestId = ++activeWorkspaceRequestId.current;
+    expiredWorkspaceRequestId.current += 1;
+    setSelectedExpiredDraftId("");
+    setExpiredWorkspace(null);
+    setExpiredWorkspaceError("");
     setIsOpening(true);
     try {
-      setWorkspace(await schoolCampaignsService.start(selectedCampaign.id));
-      await loadCampaigns();
+      const hasSubmission = Boolean(selectedCampaign.submission);
+      const response =
+        hasSubmission
+          ? await schoolCampaignsService.workspace(selectedCampaign.id)
+          : await schoolCampaignsService.start(selectedCampaign.id);
+      if (requestId === activeWorkspaceRequestId.current)
+        setWorkspace(response);
+      if (!hasSubmission && requestId === activeWorkspaceRequestId.current)
+        await loadCampaigns();
     } catch (openError) {
-      showError(getHttpErrorMessage(openError));
+      if (requestId === activeWorkspaceRequestId.current)
+        showError(getHttpErrorMessage(openError));
     } finally {
-      setIsOpening(false);
+      if (requestId === activeWorkspaceRequestId.current) setIsOpening(false);
+    }
+  };
+
+  const openExpiredDraft = async (campaignId: string) => {
+    activeWorkspaceRequestId.current += 1;
+    const requestId = ++expiredWorkspaceRequestId.current;
+    setIsOpening(false);
+    setWorkspace(null);
+    setWorkspaceError("");
+    setSelectedExpiredDraftId(campaignId);
+    setExpiredWorkspace(null);
+    setExpiredWorkspaceError("");
+    setIsOpeningExpiredDraft(true);
+    try {
+      const response = await schoolCampaignsService.workspace(campaignId);
+      if (requestId === expiredWorkspaceRequestId.current)
+        setExpiredWorkspace(response);
+    } catch (loadError) {
+      if (requestId === expiredWorkspaceRequestId.current)
+        setExpiredWorkspaceError(getHttpErrorMessage(loadError));
+    } finally {
+      if (requestId === expiredWorkspaceRequestId.current)
+        setIsOpeningExpiredDraft(false);
     }
   };
 
@@ -286,6 +338,15 @@ export function SchoolSurveyPage() {
             )}
           </>
         )}
+
+        <ExpiredDraftsSection
+          campaigns={available?.expiredDrafts ?? []}
+          isOpening={isOpeningExpiredDraft}
+          onOpen={(campaignId) => void openExpiredDraft(campaignId)}
+          selectedCampaignId={selectedExpiredDraftId}
+          workspace={expiredWorkspace}
+          workspaceError={expiredWorkspaceError}
+        />
       </div>
 
       <ConfirmDialog
@@ -301,10 +362,200 @@ export function SchoolSurveyPage() {
   );
 }
 
+function ExpiredDraftsSection({
+  campaigns,
+  selectedCampaignId,
+  workspace,
+  workspaceError,
+  isOpening,
+  onOpen,
+}: {
+  campaigns: AvailableSchoolCampaign[];
+  selectedCampaignId: string;
+  workspace: SchoolSubmissionWorkspace | null;
+  workspaceError: string;
+  isOpening: boolean;
+  onOpen: (campaignId: string) => void;
+}) {
+  if (!campaigns.length) return null;
+
+  return (
+    <section aria-labelledby="expired-drafts-title" className="mt-10">
+      <div className="flex items-start gap-3">
+        <span className="rounded-xl bg-mendoza-gold/20 p-2.5 text-mendoza-blue">
+          <Archive aria-hidden="true" size={22} />
+        </span>
+        <div>
+          <h2
+            className="text-2xl font-bold text-mendoza-text"
+            id="expired-drafts-title"
+          >
+            Borradores vencidos
+          </h2>
+          <p className="mt-1 max-w-3xl text-sm leading-6 text-mendoza-muted">
+            Estas campañas ya finalizaron. Podés consultar las respuestas que
+            quedaron guardadas, pero no modificarlas ni enviarlas.
+          </p>
+        </div>
+      </div>
+
+      <div className="mt-5 grid gap-4">
+        {campaigns.map((campaign) => {
+          const selected = campaign.id === selectedCampaignId;
+          const progress = campaign.submission?.progress;
+          return (
+            <article
+              className={`rounded-2xl border bg-white p-5 shadow-sm sm:p-6 ${
+                selected
+                  ? "border-mendoza-blue ring-2 ring-mendoza-blue/10"
+                  : "border-mendoza-border"
+              }`}
+              key={campaign.id}
+            >
+              <div className="flex flex-col gap-5 lg:flex-row lg:items-start lg:justify-between">
+                <div className="min-w-0">
+                  <div className="flex flex-wrap items-center gap-2">
+                    <span className="rounded-full bg-mendoza-background px-3 py-1 text-xs font-bold text-mendoza-muted">
+                      Vencida · sólo lectura
+                    </span>
+                    <span className="text-xs font-semibold text-mendoza-muted">
+                      {campaign.type === "annual"
+                        ? "Campaña anual"
+                        : "Campaña semestral"}
+                    </span>
+                  </div>
+                  <h3 className="mt-3 text-xl font-bold text-mendoza-text">
+                    {campaign.name}
+                  </h3>
+                  <p className="mt-2 text-sm text-mendoza-muted">
+                    Período: {formatDateTime(campaign.startsAt)} al{" "}
+                    {formatDateTime(campaign.endsAt)}
+                  </p>
+                </div>
+
+                <Button
+                  aria-expanded={selected && Boolean(workspace)}
+                  disabled={isOpening && selected}
+                  icon={<Eye aria-hidden="true" size={18} />}
+                  onClick={() => onOpen(campaign.id)}
+                  variant="outline"
+                >
+                  {isOpening && selected
+                    ? "Abriendo…"
+                    : "Ver en solo lectura"}
+                </Button>
+              </div>
+
+              <dl className="mt-5 grid gap-4 border-t border-mendoza-border pt-4 sm:grid-cols-2">
+                <Detail
+                  icon={CheckCircle2}
+                  label="Progreso guardado"
+                  value={
+                    progress
+                      ? `${progress.answered}/${progress.total} respuestas (${progress.percentage}%)`
+                      : "Sin respuestas guardadas"
+                  }
+                />
+                <Detail
+                  icon={Clock3}
+                  label="Último guardado"
+                  value={formatDateTime(campaign.submission?.lastSavedAt)}
+                />
+              </dl>
+
+              {progress && (
+                <div className="mt-4">
+                  <div
+                    aria-label={`${progress.percentage}% del borrador completado`}
+                    aria-valuemax={100}
+                    aria-valuemin={0}
+                    aria-valuenow={progress.percentage}
+                    className="h-2 overflow-hidden rounded-full bg-mendoza-background"
+                    role="progressbar"
+                  >
+                    <div
+                      className="h-full rounded-full bg-mendoza-gold"
+                      style={{ width: `${progress.percentage}%` }}
+                    />
+                  </div>
+                </div>
+              )}
+
+              {selected && isOpening && !workspace && (
+                <div className="mt-5">
+                  <LoadingState label="Cargando borrador vencido…" />
+                </div>
+              )}
+
+              {selected && workspaceError && (
+                <div className="mt-5">
+                  <ErrorState
+                    message={workspaceError}
+                    onRetry={() => onOpen(campaign.id)}
+                  />
+                </div>
+              )}
+
+              {selected && workspace && (
+                <div className="mt-6 border-t border-mendoza-border pt-6">
+                  <div
+                    className="mb-4 flex gap-3 rounded-xl border border-mendoza-gold/50 bg-mendoza-gold/10 p-4 text-sm text-mendoza-text"
+                    role="status"
+                  >
+                    <LockKeyhole
+                      aria-hidden="true"
+                      className="shrink-0 text-mendoza-blue"
+                      size={20}
+                    />
+                    <div>
+                      <h4 className="font-bold">Vista de sólo lectura</h4>
+                      <p className="mt-1 text-mendoza-muted">
+                        El plazo de esta campaña terminó. Las respuestas se
+                        conservan como historial y no pueden modificarse ni
+                        enviarse.
+                      </p>
+                    </div>
+                  </div>
+                  <ApplicabilityNotice historical workspace={workspace} />
+                  {workspace.survey.version.dimensions.length ? (
+                    <QuestionnaireRenderer
+                      defaultValues={workspace.answers}
+                      key={workspace.submission.id}
+                      readOnly
+                      survey={workspace.survey}
+                    />
+                  ) : (
+                    <Card>
+                      <Info
+                        aria-hidden="true"
+                        className="text-mendoza-blue"
+                        size={24}
+                      />
+                      <h4 className="mt-3 text-lg font-bold text-mendoza-text">
+                        No hay preguntas para mostrar
+                      </h4>
+                      <p className="mt-2 text-sm text-mendoza-muted">
+                        El borrador no contiene preguntas aplicables en su
+                        versión histórica.
+                      </p>
+                    </Card>
+                  )}
+                </div>
+              )}
+            </article>
+          );
+        })}
+      </div>
+    </section>
+  );
+}
+
 function ApplicabilityNotice({
   workspace,
+  historical = false,
 }: {
   workspace: SchoolSubmissionWorkspace;
+  historical?: boolean;
 }) {
   if (workspace.applicability.status === "incomplete") {
     return (
@@ -315,20 +566,37 @@ function ApplicabilityNotice({
         <div className="flex gap-3">
           <AlertCircle aria-hidden="true" className="shrink-0" size={20} />
           <div>
-            <h2 className="font-bold">Faltan datos en la ficha escolar</h2>
-            <p className="mt-1">
-              Para determinar qué preguntas corresponden, completá:{" "}
-              {workspace.applicability.missingFields
-                .map(({ label }) => label)
-                .join(", ")}
-              .
-            </p>
-            <Link
-              className="mt-3 inline-flex font-semibold text-mendoza-blue hover:underline"
-              to="/colegio/establecimiento"
-            >
-              Ir a la rectificación escolar
-            </Link>
+            <h2 className="font-bold">
+              {historical
+                ? "El borrador quedó con datos escolares incompletos"
+                : "Faltan datos en la ficha escolar"}
+            </h2>
+            {historical ? (
+              <p className="mt-1">
+                Se conserva tal como estaba al vencer y no puede regularizarse
+                desde esta vista. Datos faltantes:{" "}
+                {workspace.applicability.missingFields
+                  .map(({ label }) => label)
+                  .join(", ")}
+                .
+              </p>
+            ) : (
+              <>
+                <p className="mt-1">
+                  Para determinar qué preguntas corresponden, completá:{" "}
+                  {workspace.applicability.missingFields
+                    .map(({ label }) => label)
+                    .join(", ")}
+                  .
+                </p>
+                <Link
+                  className="mt-3 inline-flex font-semibold text-mendoza-blue hover:underline"
+                  to="/colegio/establecimiento"
+                >
+                  Ir a la rectificación escolar
+                </Link>
+              </>
+            )}
           </div>
         </div>
       </section>
@@ -453,6 +721,18 @@ function CampaignIntroduction({
             onClick={onOpen}
           >
             {isOpening ? "Preparando…" : "Comenzar evaluación"}
+          </Button>
+        </div>
+      )}
+
+      {!workspace && campaign.submission?.status === "draft" && (
+        <div className="mt-5 flex justify-end">
+          <Button
+            disabled={isOpening}
+            icon={<PlayCircle aria-hidden="true" size={18} />}
+            onClick={onOpen}
+          >
+            {isOpening ? "Abriendo…" : "Continuar evaluación"}
           </Button>
         </div>
       )}
