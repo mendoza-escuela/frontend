@@ -105,6 +105,20 @@ export function SchoolHomePage() {
                   Ir a la evaluación
                 </Link>
               </>
+            ) : campaigns && (campaigns.expiredDrafts?.length ?? 0) > 0 ? (
+              <>
+                <div className="mt-4 flex gap-3 rounded-xl bg-mendoza-background p-4 text-sm text-mendoza-muted">
+                  <Info aria-hidden="true" className="shrink-0" size={19} />
+                  No hay campañas abiertas, pero tenés borradores vencidos
+                  disponibles para consultar en sólo lectura.
+                </div>
+                <Link
+                  className="mt-6 inline-flex min-h-11 items-center rounded-lg border border-mendoza-blue px-4 text-sm font-semibold text-mendoza-blue transition hover:bg-mendoza-blue-soft"
+                  to="/colegio/cuestionario"
+                >
+                  Ver historial de borradores
+                </Link>
+              </>
             ) : (
               <div className="mt-4 flex gap-3 rounded-xl bg-mendoza-background p-4 text-sm text-mendoza-muted">
                 <Info aria-hidden="true" className="shrink-0" size={19} />

@@ -12,6 +12,8 @@ import {
 } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Link, useParams } from "react-router-dom";
+import { SchoolCampaignActivity } from "../../components/schools/SchoolCampaignActivity";
+import { RectificationStatusNotice } from "../../components/schools/RectificationStatusNotice";
 import { Button } from "../../components/ui/Button";
 import { ConfirmDialog } from "../../components/ui/ConfirmDialog";
 import { PaginationControls } from "../../components/ui/PaginationControls";
@@ -162,11 +164,6 @@ export function SchoolDetailPage() {
               CUE {school.cue}
               {school.schoolNumber ? ` · N.º ${school.schoolNumber}` : ""}
             </p>
-            <p className="mt-2 text-sm font-semibold text-mendoza-blue">
-              {school.rectification.isRectified
-                ? `Ficha ${school.rectification.periodYear} rectificada el ${date(school.rectification.rectifiedAt!)}`
-                : `Ficha ${school.rectification.periodYear} pendiente de rectificación`}
-            </p>
           </div>
           <div className="flex flex-wrap gap-2">
             <Link
@@ -191,6 +188,10 @@ export function SchoolDetailPage() {
             </Button>
           </div>
         </div>
+        <RectificationStatusNotice
+          className="mt-5"
+          status={school.rectification}
+        />
         {!school.isActive && (
           <div className="mt-5 rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-800">
             El colegio conserva todo su historial, pero su usuario no puede
@@ -208,7 +209,7 @@ export function SchoolDetailPage() {
                 label="Ubicación"
                 value={`${school.address}, ${school.locality}, ${school.department}`}
               />
-              <Datum label="Nivel" value={school.educationLevel} />
+              <Datum label="Tipo de educación" value={school.educationLevel} />
               <Datum
                 label="Niveles estructurados"
                 value={
@@ -373,18 +374,11 @@ export function SchoolDetailPage() {
             </p>
           </section>
         </div>
-        <div className="mt-5 grid gap-5 lg:grid-cols-2">
-          <Unavailable
-            icon={<CalendarDays />}
-            title="Campañas"
-            message={school.campaigns.message}
-          />
-          <Unavailable
-            icon={<ClipboardCheck />}
-            title="Evaluaciones"
-            message={school.evaluations.message}
-          />
-        </div>
+        <SchoolCampaignActivity
+          campaigns={school.campaigns}
+          evaluations={school.evaluations}
+          schoolId={school.id}
+        />
         <div className="mt-5 grid gap-5 xl:grid-cols-2">
           <Timeline
             title="Historial de asociaciones"
@@ -486,25 +480,6 @@ function snapshotSummary(snapshot: SchoolDetail["rectifications"][number]["snaps
     snapshot.educationLevels?.map(({ label }) => label).join(", ") ||
     snapshot.educationLevel;
   return `Jornada: ${shift || "Sin informar"} · Niveles: ${levels || "Sin informar"} · Matrícula: ${snapshot.enrollmentTotal ?? "Sin informar"}`;
-}
-function Unavailable({
-  icon,
-  title,
-  message,
-}: {
-  icon: React.ReactNode;
-  title: string;
-  message: string;
-}) {
-  return (
-    <section className="rounded-2xl border border-dashed border-mendoza-gold bg-white p-5">
-      <div className="flex items-center gap-2 text-mendoza-blue">
-        {icon}
-        <h2 className="text-xl font-bold">{title}</h2>
-      </div>
-      <p className="mt-3 text-sm text-mendoza-muted">{message}</p>
-    </section>
-  );
 }
 function Timeline({
   title,

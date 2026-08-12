@@ -245,6 +245,55 @@ describe("SchoolFormPage", () => {
     ).not.toBeInTheDocument();
   });
 
+  it("conserva un tipo de educación legado y exige elegir el catálogo oficial", async () => {
+    vi.mocked(adminSchoolsService.findOne).mockResolvedValue({
+      ...school,
+      educationLevel: "Primario",
+    });
+    renderPage("/admin/colegios/school-1/editar");
+
+    const educationType = await screen.findByRole("combobox", {
+      name: /Tipo de educación \*/,
+    });
+    expect(educationType).toHaveValue("Primario");
+    expect(
+      within(educationType).getByRole("option", {
+        name: "Valor anterior sin correspondencia: Primario",
+      }),
+    ).toBeDisabled();
+    expect(screen.getByRole("alert")).toHaveTextContent(
+      "No equivale automáticamente a un tipo de educación",
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "Guardar colegio" }));
+
+    await waitFor(() =>
+      expect(
+        screen.getByText(
+          "Elegí un tipo de educación del catálogo oficial antes de guardar el colegio.",
+        ),
+      ).toBeVisible(),
+    );
+    expect(adminSchoolsService.updateAndRectify).not.toHaveBeenCalled();
+
+    fireEvent.change(educationType, { target: { value: "Común" } });
+    const normalizedNotice = screen.getByRole("status");
+    expect(normalizedNotice).toHaveTextContent(
+      "La opción oficial seleccionada se aplicará al guardar",
+    );
+    expect(normalizedNotice).toHaveTextContent(
+      "Valor anterior sin correspondencia: Primario",
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "Guardar colegio" }));
+    await waitFor(() =>
+      expect(adminSchoolsService.updateAndRectify).toHaveBeenCalledWith(
+        "school-1",
+        expect.objectContaining({ educationLevel: "Común" }),
+      ),
+    );
+  });
+
   it("preserva matrícula nula y permite limpiar cargos y características", async () => {
     renderPage("/admin/colegios/school-1/editar");
 

@@ -9,9 +9,14 @@ import {
   useForm,
 } from "react-hook-form";
 import { Link, useNavigate, useParams } from "react-router-dom";
+import { OfficialCatalogSelect } from "../../components/schools/OfficialCatalogSelect";
 import { Button } from "../../components/ui/Button";
 import { ErrorState } from "../../components/ui/ErrorState";
 import { getHttpErrorMessage } from "../../lib/http-error";
+import {
+  legacyCatalogValue,
+  officialCatalogLabel,
+} from "../../lib/official-catalog";
 import {
   schoolFormSchema,
   type SchoolFormValues,
@@ -88,6 +93,7 @@ export function SchoolFormPage() {
     register,
     handleSubmit,
     reset,
+    setError,
     setValue,
     watch,
     formState: { errors, isSubmitting },
@@ -125,6 +131,13 @@ export function SchoolFormPage() {
   }, [id, reset]);
 
   const selectedLevels = watch("educationLevels") ?? [];
+  const selectedEducationType = watch("educationLevel");
+  const legacyEducationType = loadedSchool
+    ? legacyCatalogValue(
+        catalogs?.educationTypes ?? [],
+        loadedSchool.educationLevel,
+      )
+    : null;
   const toggleLevel = (level: SchoolCatalogOption, checked: boolean) => {
     const current = getValues("educationLevels");
     const selected = current.some(({ levelId }) => levelId === level.id);
@@ -144,6 +157,24 @@ export function SchoolFormPage() {
   };
 
   const submit = handleSubmit(async (values) => {
+    if (
+      !officialCatalogLabel(
+        catalogs?.educationTypes ?? [],
+        values.educationLevel,
+      )
+    ) {
+      const message =
+        "Elegí un tipo de educación del catálogo oficial antes de guardar el colegio.";
+      setError(
+        "educationLevel",
+        { type: "validate", message },
+        {
+          shouldFocus: true,
+        },
+      );
+      showError(message);
+      return;
+    }
     const shift = catalogs?.shifts.items.find(
       ({ id: shiftId }) => shiftId === values.shiftCatalogId,
     );
@@ -340,9 +371,14 @@ export function SchoolFormPage() {
             <CatalogField
               error={errors.educationLevel?.message}
               label="Tipo de educación *"
+              legacyValue={legacyEducationType}
               name="educationLevel"
               options={catalogs.educationTypes}
               register={register}
+              unresolvedLegacy={
+                Boolean(legacyEducationType) &&
+                selectedEducationType === legacyEducationType
+              }
             />
             <Field label="Jornada *" error={errors.shiftCatalogId?.message}>
               <Controller
@@ -544,28 +580,33 @@ export function SchoolFormPage() {
 function CatalogField({
   error,
   label,
+  legacyValue,
   name,
   options,
   register,
+  unresolvedLegacy,
 }: {
   error?: string;
   label: string;
+  legacyValue?: string | null;
   name: "managementType" | "scope" | "educationLevel";
   options: SchoolNamedCatalogOption[];
   register: UseFormRegister<SchoolFormValues>;
+  unresolvedLegacy?: boolean;
 }) {
   return (
     <Field error={error} label={label}>
-      <select className="field" disabled={!options.length} {...register(name)}>
-        <option value="">
-          {options.length ? "Seleccioná una opción" : "Catálogo no disponible"}
-        </option>
-        {options.map((option) => (
-          <option key={option.code} value={option.label}>
-            {option.label}
-          </option>
-        ))}
-      </select>
+      <OfficialCatalogSelect
+        className="field"
+        disabled={!options.length}
+        legacyValue={legacyValue}
+        options={options}
+        placeholder={
+          options.length ? "Seleccioná una opción" : "Catálogo no disponible"
+        }
+        unresolvedLegacy={unresolvedLegacy}
+        {...register(name)}
+      />
     </Field>
   );
 }
@@ -736,10 +777,9 @@ function schoolFormValues(
     locality: school.locality,
     address: school.address,
     postalCode: school.postalCode ?? "",
-    educationLevel: catalogLabel(
-      catalogs.educationTypes,
+    educationLevel:
+      officialCatalogLabel(catalogs.educationTypes, school.educationLevel) ??
       school.educationLevel,
-    ),
     managementType: catalogLabel(
       catalogs.managementTypes,
       school.managementType,
