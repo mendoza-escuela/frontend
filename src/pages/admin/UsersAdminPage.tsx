@@ -13,6 +13,7 @@ import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { Button } from "../../components/ui/Button";
 import { PaginationControls } from "../../components/ui/PaginationControls";
+import { LoadingState } from "../../components/ui/LoadingState";
 import { SchoolCombobox } from "../../components/users/SchoolCombobox";
 import { getHttpErrorMessage } from "../../lib/http-error";
 import { showError, showSuccess } from "../../lib/toast";
@@ -184,8 +185,8 @@ export function UsersAdminPage() {
               value={filters.role}
             >
               <option value="">Todos</option>
-              <option value="admin">Administrador</option>
-              <option value="school">Colegio</option>
+              <option value="admin">Administrador Central</option>
+              <option value="school">Escuela</option>
             </select>
           </label>
           <label className="text-sm font-semibold">
@@ -250,7 +251,7 @@ export function UsersAdminPage() {
                     className="px-4 py-8 text-center text-mendoza-muted"
                     colSpan={6}
                   >
-                    Cargando usuarios…
+                    <LoadingState compact label="Cargando usuarios…" />
                   </td>
                 </tr>
               ) : users.items.length === 0 ? (
@@ -277,7 +278,9 @@ export function UsersAdminPage() {
                       )}
                     </td>
                     <td className="px-4 py-3">
-                      {user.role === "admin" ? "Administrador" : "Colegio"}
+                      {user.role === "admin"
+                        ? "Administrador Central"
+                        : "Escuela"}
                     </td>
                     <td className="px-4 py-3">
                       {user.school

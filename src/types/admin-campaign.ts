@@ -54,3 +54,74 @@ export type CampaignWriteInput = {
   startDate: string;
   endDate: string;
 };
+
+export type CampaignSchoolAssignmentSource = "manual" | "filter" | "bulk";
+
+export type CampaignSchoolFilters = {
+  search?: string;
+  department?: string;
+  locality?: string;
+  educationLevel?: string;
+  managementType?: string;
+  scope?: string;
+  shift?: string;
+  isActive?: boolean;
+  page?: number;
+  limit?: number;
+};
+
+export type CampaignSchoolOption = {
+  id: string;
+  cue: string;
+  name: string;
+  department: string;
+  locality: string;
+  isActive: boolean;
+  assigned: boolean;
+};
+
+export type CampaignSchoolAssignment = {
+  id: string;
+  assignedAt: string;
+  assignmentSource: CampaignSchoolAssignmentSource;
+  school: Omit<CampaignSchoolOption, "assigned"> & {
+    educationLevel: string;
+    managementType: string;
+    scope: string;
+    shift: string;
+  };
+};
+
+export type CampaignSchoolsResponse<T> = {
+  items: T[];
+  pagination: Pagination;
+};
+
+export type CampaignSchoolOptionsResponse = CampaignSchoolsResponse<CampaignSchoolOption> & {
+  summary: {
+    matched: number;
+    assigned: number;
+    unassigned: number;
+  };
+};
+
+export type CampaignSchoolSelection = CampaignSchoolFilters & {
+  source: CampaignSchoolAssignmentSource;
+  schoolIds?: string[];
+};
+
+export type CampaignSchoolPreview = {
+  matched: number;
+  alreadyAssigned: number;
+  willAssign: number;
+  message: string;
+};
+
+export type CampaignSchoolAssignmentResult = {
+  matched: number;
+  assigned: number;
+  summary: {
+    assigned: number;
+    removed: number;
+  };
+};

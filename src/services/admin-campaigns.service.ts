@@ -6,6 +6,13 @@ import type {
   CampaignType,
   CampaignWriteInput,
   PublishedSurveyVersionOption,
+  CampaignSchoolAssignment,
+  CampaignSchoolAssignmentResult,
+  CampaignSchoolFilters,
+  CampaignSchoolOptionsResponse,
+  CampaignSchoolPreview,
+  CampaignSchoolSelection,
+  CampaignSchoolsResponse,
 } from "../types/admin-campaign";
 
 export const adminCampaignsService = {
@@ -58,5 +65,49 @@ export const adminCampaignsService = {
 
   async remove(id: string) {
     await api.delete(`/admin/campaigns/${id}`);
+  },
+
+  async assignedSchools(id: string, filters: CampaignSchoolFilters) {
+    return (
+      await api.get<CampaignSchoolsResponse<CampaignSchoolAssignment>>(
+        `/admin/campaigns/${id}/schools`,
+        { params: filters },
+      )
+    ).data;
+  },
+
+  async schoolOptions(id: string, filters: CampaignSchoolFilters) {
+    return (
+      await api.get<CampaignSchoolOptionsResponse>(
+        `/admin/campaigns/${id}/schools/options`,
+        { params: filters },
+      )
+    ).data;
+  },
+
+  async previewSchools(id: string, selection: CampaignSchoolSelection) {
+    return (
+      await api.post<CampaignSchoolPreview>(
+        `/admin/campaigns/${id}/schools/preview`,
+        selection,
+      )
+    ).data;
+  },
+
+  async assignSchools(id: string, selection: CampaignSchoolSelection) {
+    return (
+      await api.post<CampaignSchoolAssignmentResult>(
+        `/admin/campaigns/${id}/schools/assign`,
+        selection,
+      )
+    ).data;
+  },
+
+  async removeSchool(id: string, schoolId: string, reason?: string) {
+    return (
+      await api.delete(`/admin/campaigns/${id}/schools/${schoolId}`, {
+        data: { reason },
+      })
+    ).data;
   },
 };

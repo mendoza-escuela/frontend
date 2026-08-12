@@ -2,15 +2,18 @@ import { zodResolver } from "@hookform/resolvers/zod";
 import {
   ArrowDown,
   ArrowUp,
+  ChevronLeft,
+  ChevronRight,
   CirclePlus,
   Eye,
+  GitBranch,
+  ListChecks,
+  PlayCircle,
   Save,
   Trash2,
 } from "lucide-react";
-import { useCallback, useEffect, useMemo, useState } from "react";
-import type { ReactNode } from "react";
-import { useFieldArray, useForm } from "react-hook-form";
-import type { UseFormRegisterReturn } from "react-hook-form";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { Controller, useFieldArray, useForm } from "react-hook-form";
 import { useParams, useSearchParams } from "react-router-dom";
 import { z } from "zod";
 import { Button } from "../../components/ui/Button";
@@ -19,15 +22,20 @@ import { EmptyState } from "../../components/ui/EmptyState";
 import { ErrorState } from "../../components/ui/ErrorState";
 import { LoadingState } from "../../components/ui/LoadingState";
 import { PageHeader } from "../../components/ui/PageHeader";
+import { QuestionCombobox } from "../../components/surveys/QuestionCombobox";
+import { SchoolCombobox } from "../../components/users/SchoolCombobox";
 import { inputClassName } from "../../components/ui/form-styles";
+import { SearchableSelect } from "../../components/ui/SearchableSelect";
 import { getHttpErrorMessage } from "../../lib/http-error";
 import { showError, showSuccess } from "../../lib/toast";
 import { adminSurveysService } from "../../services/admin-surveys.service";
 import type {
+  ApplicabilityDecision,
   AdminSurveyVersion,
   ApplicabilityMetadata,
   ApplicabilityRule,
 } from "../../types/admin-survey";
+import type { SchoolOption } from "../../types/admin-user";
 
 const schema = z.object({
   groupOperator: z.enum(["all", "any"]),
@@ -53,17 +61,21 @@ export function SurveyApplicabilityRulesPage() {
   const [rules, setRules] = useState<ApplicabilityRule[]>([]);
   const [questionId, setQuestionId] = useState("");
   const [editingRuleId, setEditingRuleId] = useState<string | null>(null);
-  const [schoolId, setSchoolId] = useState("");
-  const [preview, setPreview] = useState("");
+  const [previewSchool, setPreviewSchool] = useState<SchoolOption | null>(null);
+  const [preview, setPreview] = useState<ApplicabilityDecision | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState("");
+  const resetQuestionKey = useRef("");
+  const requestedQuestionId = searchParams.get("questionId");
   const form = useForm<FormValues>({
     resolver: zodResolver(schema),
     defaultValues: {
       groupOperator: "all",
       action: "omit",
       defaultAction: "show",
-      conditions: [{ feature: "has_kiosk", operator: "equals", expectedValue: "true" }],
+      conditions: [
+        { feature: "has_kiosk", operator: "equals", expectedValue: "true" },
+      ],
     },
   });
   const conditionFields = useFieldArray({
@@ -72,17 +84,27 @@ export function SurveyApplicabilityRulesPage() {
   });
   const conditions = form.watch("conditions");
 
+  const ruleCountByQuestion = useMemo(() => {
+    const counts = new Map<string, number>();
+    rules.forEach((rule) =>
+      counts.set(rule.questionId, (counts.get(rule.questionId) ?? 0) + 1),
+    );
+    return counts;
+  }, [rules]);
   const questions = useMemo(
     () =>
       version?.dimensions.flatMap((dimension) =>
         dimension.sections.flatMap((section) =>
           section.questions.map((question) => ({
-            id: question.id,
-            label: `${question.code} — ${question.prompt}`,
+            value: question.id,
+            code: question.code,
+            prompt: question.prompt,
+            groupLabel: dimension.title,
+            ruleCount: ruleCountByQuestion.get(question.id) ?? 0,
           })),
         ),
       ) ?? [],
-    [version],
+    [ruleCountByQuestion, version],
   );
   const selectedRules = useMemo(
     () =>
@@ -92,6 +114,10 @@ export function SurveyApplicabilityRulesPage() {
     [questionId, rules],
   );
   const readonly = version?.status !== "draft";
+  const selectedQuestionIndex = questions.findIndex(
+    ({ value }) => value === questionId,
+  );
+  const selectedQuestion = questions[selectedQuestionIndex] ?? null;
 
   const load = useCallback(async () => {
     if (!surveyId || !versionId) return;
@@ -106,32 +132,58 @@ export function SurveyApplicabilityRulesPage() {
       setVersion(loadedVersion);
       setMetadata(loadedMetadata);
       setRules(loadedRules);
-      const firstQuestion =
-        loadedVersion.dimensions[0]?.sections[0]?.questions[0]?.id ?? "";
-      const requestedQuestionId = searchParams.get("questionId");
-      const requestedExists = loadedVersion.dimensions.some((dimension) =>
-        dimension.sections.some((section) =>
-          section.questions.some(
-            (question) => question.id === requestedQuestionId,
-          ),
-        ),
-      );
-      setQuestionId((current) =>
-        current ||
-        (requestedExists && requestedQuestionId
-          ? requestedQuestionId
-          : firstQuestion),
-      );
     } catch (loadError) {
       setError(getHttpErrorMessage(loadError));
     } finally {
       setIsLoading(false);
     }
-  }, [searchParams, surveyId, versionId]);
+  }, [surveyId, versionId]);
 
   useEffect(() => {
     void load();
   }, [load]);
+
+  useEffect(() => {
+    if (isLoading || !version) return;
+    const requestedExists = questions.some(
+      ({ value }) => value === requestedQuestionId,
+    );
+    const nextQuestionId =
+      requestedExists && requestedQuestionId
+        ? requestedQuestionId
+        : (questions[0]?.value ?? "");
+
+    setQuestionId(nextQuestionId);
+    if (nextQuestionId && requestedQuestionId !== nextQuestionId)
+      setSearchParams(
+        (current) => {
+          const next = new URLSearchParams(current);
+          next.set("questionId", nextQuestionId);
+          return next;
+        },
+        { replace: true },
+      );
+  }, [isLoading, questions, requestedQuestionId, setSearchParams, version]);
+
+  useEffect(() => {
+    if (isLoading || !questionId) return;
+    const nextResetKey = `${versionId ?? ""}:${questionId}`;
+    if (resetQuestionKey.current === nextResetKey) return;
+    resetQuestionKey.current = nextResetKey;
+    const nextRules = rules
+      .filter((rule) => rule.questionId === questionId)
+      .sort((left, right) => left.order - right.order);
+    setEditingRuleId(null);
+    setPreview(null);
+    form.reset({
+      groupOperator: "all",
+      action: "omit",
+      defaultAction: nextRules[0]?.defaultAction ?? "show",
+      conditions: [
+        { feature: "has_kiosk", operator: "equals", expectedValue: "true" },
+      ],
+    });
+  }, [form, isLoading, questionId, rules, versionId]);
 
   const resetNew = () => {
     setEditingRuleId(null);
@@ -143,6 +195,19 @@ export function SurveyApplicabilityRulesPage() {
         { feature: "has_kiosk", operator: "equals", expectedValue: "true" },
       ],
     });
+  };
+
+  const selectQuestion = (nextQuestionId: string) => {
+    if (!nextQuestionId || nextQuestionId === questionId) return;
+    setQuestionId(nextQuestionId);
+    setSearchParams(
+      (current) => {
+        const next = new URLSearchParams(current);
+        next.set("questionId", nextQuestionId);
+        return next;
+      },
+      { replace: true },
+    );
   };
 
   const edit = (rule: ApplicabilityRule) => {
@@ -183,14 +248,14 @@ export function SurveyApplicabilityRulesPage() {
               ? raw === "true"
               : feature?.type === "number"
                 ? Number(raw)
-              : condition.operator === "in" ||
-                  condition.operator === "contains_any" ||
-                  condition.operator === "contains_all"
-                ? raw
-                    .split(",")
-                    .map((value) => value.trim())
-                    .filter(Boolean)
-                : raw,
+                : condition.operator === "in" ||
+                    condition.operator === "contains_any" ||
+                    condition.operator === "contains_all"
+                  ? raw
+                      .split(",")
+                      .map((value) => value.trim())
+                      .filter(Boolean)
+                  : raw,
           order,
         };
       }),
@@ -261,15 +326,15 @@ export function SurveyApplicabilityRulesPage() {
   };
 
   const runPreview = async () => {
-    if (!surveyId || !versionId || !questionId || !schoolId) return;
+    if (!surveyId || !versionId || !questionId || !previewSchool) return;
     try {
       const decision = await adminSurveysService.previewApplicability(
         surveyId,
         versionId,
         questionId,
-        schoolId,
+        previewSchool.id,
       );
-      setPreview(decision.explanation);
+      setPreview(decision);
     } catch (previewError) {
       showError(getHttpErrorMessage(previewError));
     }
@@ -286,7 +351,7 @@ export function SurveyApplicabilityRulesPage() {
         <PageHeader
           backLabel="Volver al cuestionario"
           backTo={`/admin/cuestionarios/${surveyId}`}
-          description={metadata.resolution}
+          description="Definí cuándo una pregunta debe mostrarse u omitirse según las características de cada colegio."
           eyebrow={`Versión ${version.versionNumber} · ${version.status}`}
           title="Reglas de aplicabilidad"
         />
@@ -299,178 +364,410 @@ export function SurveyApplicabilityRulesPage() {
           </Card>
         )}
 
-        <Card className="mt-6">
-          <label className="block text-sm font-semibold" htmlFor="question">
-            Pregunta
-          </label>
-          <select
-            className={`${inputClassName} mt-2`}
-            id="question"
-            onChange={(event) => {
-              setQuestionId(event.target.value);
-              setSearchParams({ questionId: event.target.value });
-              resetNew();
-            }}
-            value={questionId}
-          >
-            {questions.map((question) => (
-              <option key={question.id} value={question.id}>
-                {question.label}
-              </option>
+        <section
+          aria-label="Cómo configurar reglas"
+          className="mt-6 rounded-2xl border border-mendoza-sky/40 bg-mendoza-blue-soft/50 p-5"
+        >
+          <div className="flex items-start gap-3">
+            <GitBranch
+              aria-hidden="true"
+              className="mt-0.5 shrink-0 text-mendoza-blue"
+              size={22}
+            />
+            <div>
+              <h2 className="font-bold text-mendoza-blue">
+                Configurá la pregunta en cuatro pasos
+              </h2>
+              <p className="mt-1 text-sm leading-6 text-mendoza-muted">
+                Elegí una pregunta, agregá sus reglas en orden de prioridad y
+                probá el resultado con un colegio antes de terminar.
+              </p>
+            </div>
+          </div>
+          <ol className="mt-4 grid gap-3 sm:grid-cols-2 lg:grid-cols-4">
+            {[
+              [
+                "1",
+                "Elegir pregunta",
+                "Seleccioná qué pregunta querés controlar.",
+              ],
+              [
+                "2",
+                "Revisar prioridad",
+                "La primera regla que coincide define el resultado.",
+              ],
+              ["3", "Definir regla", "Indicá cuándo se muestra u omite."],
+              [
+                "4",
+                "Probar",
+                "Comprobá el comportamiento con un colegio real.",
+              ],
+            ].map(([number, title, description]) => (
+              <li className="rounded-xl bg-white p-3 shadow-sm" key={number}>
+                <span className="grid size-7 place-items-center rounded-full bg-mendoza-blue text-xs font-bold text-white">
+                  {number}
+                </span>
+                <strong className="mt-2 block text-sm text-mendoza-text">
+                  {title}
+                </strong>
+                <span className="mt-1 block text-xs leading-5 text-mendoza-muted">
+                  {description}
+                </span>
+              </li>
             ))}
-          </select>
+          </ol>
+        </section>
+
+        <Card className="mt-6">
+          <div className="mb-4 flex items-center gap-3">
+            <span className="grid size-8 place-items-center rounded-full bg-mendoza-blue text-sm font-bold text-white">
+              1
+            </span>
+            <div>
+              <h2 className="font-bold text-mendoza-text">Elegí la pregunta</h2>
+              <p className="text-sm text-mendoza-muted">
+                Las reglas se guardan únicamente para la pregunta seleccionada.
+              </p>
+            </div>
+          </div>
+          <QuestionCombobox
+            label="Pregunta"
+            onChange={selectQuestion}
+            options={questions}
+            value={questionId}
+          />
+          {selectedQuestion && (
+            <div
+              aria-label="Pregunta seleccionada"
+              className="mt-4 rounded-xl border border-mendoza-border bg-mendoza-background/60 p-4 sm:p-5"
+            >
+              <div className="flex flex-wrap items-center justify-between gap-2">
+                <div className="flex min-w-0 flex-wrap items-center gap-2">
+                  <span className="rounded-full bg-mendoza-blue px-2.5 py-1 text-xs font-bold text-white">
+                    {selectedQuestion.code}
+                  </span>
+                  <span className="text-sm font-semibold text-mendoza-blue">
+                    {selectedQuestion.groupLabel}
+                  </span>
+                </div>
+                <span className="text-xs font-semibold text-mendoza-muted">
+                  Pregunta {selectedQuestionIndex + 1} de {questions.length}
+                </span>
+              </div>
+              <p className="mt-3 text-base leading-7 text-mendoza-text">
+                {selectedQuestion.prompt}
+              </p>
+              <div className="mt-4 flex flex-col gap-3 border-t border-mendoza-border pt-4 sm:flex-row sm:items-center sm:justify-between">
+                <span className="text-sm text-mendoza-muted">
+                  {selectedQuestion.ruleCount === 0
+                    ? "Sin reglas configuradas"
+                    : `${selectedQuestion.ruleCount} ${selectedQuestion.ruleCount === 1 ? "regla configurada" : "reglas configuradas"}`}
+                </span>
+                <div className="grid grid-cols-2 gap-2 sm:flex">
+                  <Button
+                    disabled={selectedQuestionIndex <= 0}
+                    icon={<ChevronLeft aria-hidden="true" size={17} />}
+                    onClick={() =>
+                      selectQuestion(
+                        questions[selectedQuestionIndex - 1]?.value ?? "",
+                      )
+                    }
+                    variant="outline"
+                  >
+                    Anterior
+                  </Button>
+                  <Button
+                    disabled={
+                      selectedQuestionIndex < 0 ||
+                      selectedQuestionIndex >= questions.length - 1
+                    }
+                    icon={<ChevronRight aria-hidden="true" size={17} />}
+                    onClick={() =>
+                      selectQuestion(
+                        questions[selectedQuestionIndex + 1]?.value ?? "",
+                      )
+                    }
+                    variant="outline"
+                  >
+                    Siguiente
+                  </Button>
+                </div>
+              </div>
+            </div>
+          )}
         </Card>
 
         <div className="mt-6 grid gap-6 lg:grid-cols-[1fr_1.2fr]">
           <Card>
-            <h2 className="text-xl font-bold">Reglas configuradas</h2>
+            <div className="flex items-start gap-3">
+              <span className="grid size-8 shrink-0 place-items-center rounded-full bg-mendoza-blue text-sm font-bold text-white">
+                2
+              </span>
+              <div>
+                <h2 className="text-xl font-bold">Prioridad de las reglas</h2>
+                <p className="mt-1 text-sm leading-5 text-mendoza-muted">
+                  Se evalúan de arriba hacia abajo. Cuando una coincide, las
+                  siguientes ya no se aplican.
+                </p>
+              </div>
+            </div>
             {!selectedRules.length ? (
               <div className="mt-4">
                 <EmptyState
-                  description="Sin reglas, la pregunta se muestra de forma predeterminada."
-                  title="No hay reglas"
+                  description="Creá la primera regla en el panel siguiente. Mientras no haya reglas, esta pregunta se mostrará para todos los colegios."
+                  icon={ListChecks}
+                  title="Esta pregunta todavía no tiene reglas"
                 />
               </div>
             ) : (
-              <ol className="mt-4 space-y-3">
-                {selectedRules.map((rule, index) => (
-                  <li className="rounded-xl border p-4" key={rule.id}>
-                    <p className="font-semibold">
-                      {index + 1}. {rule.action === "show" ? "Mostrar" : "Omitir"} si{" "}
-                      {rule.groupOperator === "all" ? "todas" : "alguna"} de las
-                      condiciones coincide
-                    </p>
-                    <ul className="mt-2 text-sm text-mendoza-muted">
-                      {rule.conditions.map((condition) => (
-                        <li key={condition.id}>
-                          {condition.feature} {condition.operator}{" "}
-                          {String(condition.expectedValue)}
-                        </li>
-                      ))}
-                    </ul>
-                    {!readonly && (
-                      <div className="mt-3 flex gap-2">
-                        <Button onClick={() => edit(rule)} variant="outline">
-                          Editar
-                        </Button>
-                        <Button
-                          disabled={index === 0}
-                          icon={<ArrowUp size={16} />}
-                          onClick={() => void move(index, -1)}
-                          variant="outline"
+              <>
+                <div className="mt-4 rounded-xl border border-mendoza-sky/40 bg-mendoza-blue-soft/40 p-3 text-sm text-mendoza-text">
+                  Si ninguna regla coincide, la pregunta se{" "}
+                  <strong>
+                    {selectedRules[0].defaultAction === "show"
+                      ? "mostrará"
+                      : "omitirá"}
+                  </strong>
+                  .
+                </div>
+                <ol className="mt-4 space-y-3">
+                  {selectedRules.map((rule, index) => (
+                    <li
+                      className={`rounded-xl border border-l-4 bg-white p-4 shadow-sm ${rule.action === "show" ? "border-l-mendoza-success" : "border-l-mendoza-gold"}`}
+                      key={rule.id}
+                    >
+                      <div className="flex flex-wrap items-center justify-between gap-2">
+                        <span className="rounded-full bg-mendoza-background px-2.5 py-1 text-xs font-bold text-mendoza-muted">
+                          Prioridad {index + 1}
+                        </span>
+                        <span
+                          className={`rounded-full px-2.5 py-1 text-xs font-bold ${rule.action === "show" ? "bg-green-100 text-green-800" : "bg-amber-100 text-amber-900"}`}
                         >
-                          Subir
-                        </Button>
-                        <Button
-                          disabled={index === selectedRules.length - 1}
-                          icon={<ArrowDown size={16} />}
-                          onClick={() => void move(index, 1)}
-                          variant="outline"
-                        >
-                          Bajar
-                        </Button>
-                        <Button
-                          icon={<Trash2 size={16} />}
-                          onClick={() => void remove(rule)}
-                          variant="outline"
-                        >
-                          Eliminar
-                        </Button>
+                          {rule.action === "show"
+                            ? "Mostrar pregunta"
+                            : "Omitir pregunta"}
+                        </span>
                       </div>
-                    )}
-                  </li>
-                ))}
-              </ol>
+                      <p className="mt-3 text-sm font-semibold text-mendoza-text">
+                        Cuando{" "}
+                        {rule.groupOperator === "all"
+                          ? "todas"
+                          : "al menos una"}{" "}
+                        de estas condiciones se cumpla:
+                      </p>
+                      <ul className="mt-2 space-y-2">
+                        {rule.conditions.map((condition, conditionIndex) => (
+                          <li
+                            className="flex gap-2 rounded-lg bg-mendoza-background/70 p-2.5 text-sm text-mendoza-text"
+                            key={condition.id ?? `${rule.id}-${conditionIndex}`}
+                          >
+                            <span className="font-bold text-mendoza-blue">
+                              {conditionIndex === 0
+                                ? "SI"
+                                : rule.groupOperator === "all"
+                                  ? "Y"
+                                  : "O"}
+                            </span>
+                            <span>{conditionText(condition, metadata)}</span>
+                          </li>
+                        ))}
+                      </ul>
+                      {!readonly && (
+                        <div className="mt-4 flex flex-wrap gap-2 border-t border-mendoza-border pt-3">
+                          <Button onClick={() => edit(rule)} variant="outline">
+                            Editar
+                          </Button>
+                          <Button
+                            disabled={index === 0}
+                            icon={<ArrowUp size={16} />}
+                            onClick={() => void move(index, -1)}
+                            variant="outline"
+                          >
+                            Subir
+                          </Button>
+                          <Button
+                            disabled={index === selectedRules.length - 1}
+                            icon={<ArrowDown size={16} />}
+                            onClick={() => void move(index, 1)}
+                            variant="outline"
+                          >
+                            Bajar
+                          </Button>
+                          <Button
+                            icon={<Trash2 size={16} />}
+                            onClick={() => void remove(rule)}
+                            variant="outline"
+                          >
+                            Eliminar
+                          </Button>
+                        </div>
+                      )}
+                    </li>
+                  ))}
+                </ol>
+              </>
             )}
           </Card>
 
           {!readonly && (
             <Card>
-              <h2 className="text-xl font-bold">
-                {editingRuleId ? "Editar regla" : "Nueva regla"}
-              </h2>
-              <form className="mt-4 space-y-4" onSubmit={save}>
-                <div className="grid gap-4 sm:grid-cols-3">
-                  <Select label="Coincidencia" registration={form.register("groupOperator")}>
-                    <option value="all">Todas (AND)</option>
-                    <option value="any">Alguna (OR)</option>
-                  </Select>
-                  <Select label="Acción" registration={form.register("action")}>
-                    <option value="show">Mostrar</option>
-                    <option value="omit">Omitir</option>
-                  </Select>
-                  <Select label="Si ninguna coincide" registration={form.register("defaultAction")}>
-                    <option value="show">Mostrar</option>
-                    <option value="omit">Omitir</option>
-                  </Select>
+              <div className="flex items-start gap-3">
+                <span className="grid size-8 shrink-0 place-items-center rounded-full bg-mendoza-blue text-sm font-bold text-white">
+                  3
+                </span>
+                <div>
+                  <h2 className="text-xl font-bold">
+                    {editingRuleId
+                      ? "Editar esta regla"
+                      : "Definí una nueva regla"}
+                  </h2>
+                  <p className="mt-1 text-sm leading-5 text-mendoza-muted">
+                    Completá la frase: “Cuando se cumpla esto, entonces…”
+                  </p>
                 </div>
+              </div>
+              <form className="mt-4 space-y-4" onSubmit={save}>
+                <div className="grid gap-4 rounded-xl border border-mendoza-sky/40 bg-mendoza-blue-soft/30 p-4 sm:grid-cols-2">
+                  <Controller
+                    control={form.control}
+                    name="action"
+                    render={({ field }) => (
+                      <RuleSelect
+                        label="Entonces"
+                        onBlur={field.onBlur}
+                        onChange={field.onChange}
+                        options={actionOptions}
+                        value={field.value}
+                      />
+                    )}
+                  />
+                  <Controller
+                    control={form.control}
+                    name="defaultAction"
+                    render={({ field }) => (
+                      <RuleSelect
+                        label="Si ninguna regla coincide"
+                        onBlur={field.onBlur}
+                        onChange={field.onChange}
+                        options={actionOptions}
+                        value={field.value}
+                      />
+                    )}
+                  />
+                </div>
+                <Controller
+                  control={form.control}
+                  name="groupOperator"
+                  render={({ field }) => (
+                    <RuleSelect
+                      label="Para aplicar la regla deben cumplirse"
+                      onBlur={field.onBlur}
+                      onChange={field.onChange}
+                      options={[
+                        { value: "all", label: "Todas las condiciones" },
+                        { value: "any", label: "Al menos una condición" },
+                      ]}
+                      value={field.value}
+                    />
+                  )}
+                />
                 {conditionFields.fields.map((field, index) => {
                   const feature = metadata.features.find(
                     ({ key }) => key === conditions[index]?.feature,
                   );
                   return (
-                    <fieldset className="rounded-xl border p-4" key={field.id}>
-                      <legend className="px-2 font-semibold">
-                        Condición {index + 1}
+                    <fieldset
+                      className="rounded-xl border border-mendoza-border bg-mendoza-background/40 p-4"
+                      key={field.id}
+                    >
+                      <legend className="px-2 font-semibold text-mendoza-blue">
+                        Cuando · condición {index + 1}
                       </legend>
                       <div className="grid gap-3 sm:grid-cols-3">
-                        <Select
-                          label="Característica"
-                          registration={form.register(`conditions.${index}.feature`, {
-                            onChange: (event) => {
-                              const next = metadata.features.find(
-                                ({ key }) => key === event.target.value,
-                              );
-                              form.setValue(
-                                `conditions.${index}.operator`,
-                                next?.operators[0] ?? "",
-                              );
-                              form.setValue(
-                                `conditions.${index}.expectedValue`,
-                                next?.type === "boolean" ? "true" : "",
-                              );
-                            },
-                          })}
-                        >
-                          {metadata.features.map((option) => (
-                            <option key={option.key} value={option.key}>
-                              {option.label}
-                            </option>
-                          ))}
-                        </Select>
-                        <Select
-                          label="Operador"
-                          registration={form.register(`conditions.${index}.operator`)}
-                        >
-                          {feature?.operators.map((operator) => (
-                            <option key={operator} value={operator}>
-                              {metadata.operators.find(({ key }) => key === operator)?.label ??
-                                operator}
-                            </option>
-                          ))}
-                        </Select>
-                        <label className="text-sm font-semibold">
-                          Valor
-                          {feature?.allowedValues ? (
-                            <select
-                              className={`${inputClassName} mt-1`}
-                              {...form.register(`conditions.${index}.expectedValue`)}
-                            >
-                              {feature.allowedValues.map((option) => (
-                                <option key={String(option.value)} value={String(option.value)}>
-                                  {option.label}
-                                </option>
-                              ))}
-                            </select>
-                          ) : (
+                        <Controller
+                          control={form.control}
+                          name={`conditions.${index}.feature`}
+                          render={({ field: featureField }) => (
+                            <RuleSelect
+                              label="Característica"
+                              onBlur={featureField.onBlur}
+                              onChange={(value) => {
+                                featureField.onChange(value);
+                                const next = metadata.features.find(
+                                  ({ key }) => key === value,
+                                );
+                                form.setValue(
+                                  `conditions.${index}.operator`,
+                                  next?.operators[0] ?? "",
+                                );
+                                form.setValue(
+                                  `conditions.${index}.expectedValue`,
+                                  next?.type === "boolean" ? "true" : "",
+                                );
+                              }}
+                              options={metadata.features.map((option) => ({
+                                value: option.key,
+                                label: option.label,
+                              }))}
+                              value={featureField.value}
+                            />
+                          )}
+                        />
+                        <Controller
+                          control={form.control}
+                          name={`conditions.${index}.operator`}
+                          render={({ field: operatorField }) => (
+                            <RuleSelect
+                              label="Operador"
+                              onBlur={operatorField.onBlur}
+                              onChange={operatorField.onChange}
+                              options={(feature?.operators ?? []).map(
+                                (operator) => ({
+                                  value: operator,
+                                  label:
+                                    metadata.operators.find(
+                                      ({ key }) => key === operator,
+                                    )?.label ?? operator,
+                                }),
+                              )}
+                              value={operatorField.value}
+                            />
+                          )}
+                        />
+                        {feature?.allowedValues ? (
+                          <Controller
+                            control={form.control}
+                            name={`conditions.${index}.expectedValue`}
+                            render={({ field: valueField }) => (
+                              <RuleSelect
+                                label="Valor"
+                                onBlur={valueField.onBlur}
+                                onChange={valueField.onChange}
+                                options={feature.allowedValues!.map(
+                                  (option) => ({
+                                    value: String(option.value),
+                                    label: option.label,
+                                  }),
+                                )}
+                                value={valueField.value}
+                              />
+                            )}
+                          />
+                        ) : (
+                          <label className="text-sm font-semibold">
+                            Valor
                             <input
                               className={`${inputClassName} mt-1`}
                               placeholder="Separá múltiples valores con comas"
-                              type={feature?.type === "number" ? "number" : "text"}
-                              {...form.register(`conditions.${index}.expectedValue`)}
+                              type={
+                                feature?.type === "number" ? "number" : "text"
+                              }
+                              {...form.register(
+                                `conditions.${index}.expectedValue`,
+                              )}
                             />
-                          )}
-                        </label>
+                          </label>
+                        )}
                       </div>
                       {conditionFields.fields.length > 1 && (
                         <button
@@ -484,7 +781,7 @@ export function SurveyApplicabilityRulesPage() {
                     </fieldset>
                   );
                 })}
-                <div className="flex flex-wrap gap-2">
+                <div className="flex flex-wrap items-center justify-between gap-2 border-t border-mendoza-border pt-4">
                   <Button
                     icon={<CirclePlus size={16} />}
                     onClick={() =>
@@ -499,9 +796,20 @@ export function SurveyApplicabilityRulesPage() {
                   >
                     Agregar condición
                   </Button>
-                  <Button icon={<Save size={16} />} type="submit">
-                    Guardar regla
-                  </Button>
+                  <div className="flex flex-wrap gap-2">
+                    {editingRuleId && (
+                      <Button
+                        onClick={resetNew}
+                        type="button"
+                        variant="outline"
+                      >
+                        Cancelar edición
+                      </Button>
+                    )}
+                    <Button icon={<Save size={16} />} type="submit">
+                      {editingRuleId ? "Guardar cambios" : "Guardar regla"}
+                    </Button>
+                  </div>
                 </div>
               </form>
             </Card>
@@ -509,41 +817,117 @@ export function SurveyApplicabilityRulesPage() {
         </div>
 
         <Card className="mt-6">
-          <h2 className="text-xl font-bold">Previsualizar para una escuela</h2>
-          <div className="mt-3 flex flex-col gap-2 sm:flex-row">
-            <input
-              aria-label="Identificador de escuela"
-              className={inputClassName}
-              onChange={(event) => setSchoolId(event.target.value)}
-              placeholder="UUID de la escuela"
-              value={schoolId}
+          <div className="flex items-start gap-3">
+            <span className="grid size-8 shrink-0 place-items-center rounded-full bg-mendoza-blue text-sm font-bold text-white">
+              4
+            </span>
+            <div>
+              <h2 className="text-xl font-bold">Probá el resultado</h2>
+              <p className="mt-1 text-sm leading-5 text-mendoza-muted">
+                Seleccioná un colegio para comprobar si la pregunta se mostrará
+                u omitirá con sus datos actuales.
+              </p>
+            </div>
+          </div>
+          <div className="mt-4 grid items-end gap-3 sm:grid-cols-[minmax(0,1fr)_auto]">
+            <SchoolCombobox
+              label="Colegio de prueba"
+              onChange={(school) => {
+                setPreviewSchool(school);
+                setPreview(null);
+              }}
+              placeholder="Buscar por CUE, número o nombre…"
+              selectedSchool={previewSchool}
             />
-            <Button icon={<Eye size={16} />} onClick={() => void runPreview()}>
-              Evaluar
+            <Button
+              disabled={!previewSchool}
+              icon={<PlayCircle size={17} />}
+              onClick={() => void runPreview()}
+            >
+              Probar regla
             </Button>
           </div>
-          {preview && <p className="mt-3 rounded-lg bg-mendoza-blue-soft p-3">{preview}</p>}
+          {preview && (
+            <div
+              className={`mt-4 rounded-xl border p-4 ${
+                preview.status === "applicable"
+                  ? "border-green-200 bg-green-50 text-green-900"
+                  : preview.status === "excluded"
+                    ? "border-amber-300 bg-amber-50 text-amber-950"
+                    : "border-mendoza-sky bg-mendoza-blue-soft text-mendoza-blue"
+              }`}
+              role="status"
+            >
+              <div className="flex items-center gap-2 font-bold">
+                <Eye aria-hidden="true" size={18} />
+                {preview.status === "applicable"
+                  ? "La pregunta se mostrará"
+                  : preview.status === "excluded"
+                    ? "La pregunta se omitirá"
+                    : "Faltan datos para decidir"}
+              </div>
+              <p className="mt-1 text-sm leading-6">{preview.explanation}</p>
+            </div>
+          )}
         </Card>
       </div>
     </main>
   );
 }
 
-function Select({
+const actionOptions = [
+  { value: "show", label: "Mostrar la pregunta" },
+  { value: "omit", label: "Omitir la pregunta" },
+];
+
+function conditionText(
+  condition: ApplicabilityRule["conditions"][number],
+  metadata: ApplicabilityMetadata,
+) {
+  const feature = metadata.features.find(
+    ({ key }) => key === condition.feature,
+  );
+  const operator = metadata.operators.find(
+    ({ key }) => key === condition.operator,
+  );
+  const rawValues = Array.isArray(condition.expectedValue)
+    ? condition.expectedValue
+    : [condition.expectedValue];
+  const values = rawValues.map((value) => {
+    const allowed = feature?.allowedValues?.find(
+      (option) => String(option.value) === String(value),
+    );
+    if (allowed) return allowed.label;
+    if (value === true || value === "true") return "Sí";
+    if (value === false || value === "false") return "No";
+    return String(value);
+  });
+
+  return `${feature?.label ?? condition.feature} ${(operator?.label ?? condition.operator).toLocaleLowerCase("es-AR")} ${values.join(", ")}`;
+}
+
+function RuleSelect({
   label,
-  registration,
-  children,
+  value,
+  options,
+  onChange,
+  onBlur,
 }: {
   label: string;
-  registration: UseFormRegisterReturn;
-  children: ReactNode;
+  value: string;
+  options: Array<{ value: string; label: string }>;
+  onChange: (value: string) => void;
+  onBlur?: () => void;
 }) {
   return (
-    <label className="text-sm font-semibold">
-      {label}
-      <select className={`${inputClassName} mt-1`} {...registration}>
-        {children}
-      </select>
-    </label>
+    <SearchableSelect
+      allLabel="Seleccioná una opción"
+      disabled={!options.length}
+      label={label}
+      onBlur={onBlur}
+      onChange={onChange}
+      options={options}
+      value={value}
+    />
   );
 }

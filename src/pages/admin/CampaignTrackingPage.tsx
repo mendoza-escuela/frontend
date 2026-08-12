@@ -192,10 +192,16 @@ export function CampaignTrackingPage() {
         ) : (
           <>
             <Card className="mt-7">
-              <label className="block text-sm font-semibold text-mendoza-text">
-                Campaña
+              <div className="max-w-2xl">
+                <label
+                  className="block text-sm font-semibold text-mendoza-text"
+                  htmlFor="campaign-tracking-campaign"
+                >
+                  Campaña
+                </label>
                 <select
-                  className={`${inputClassName} mt-1 max-w-2xl`}
+                  className={`${inputClassName} mt-2 block`}
+                  id="campaign-tracking-campaign"
                   onChange={(event) => selectCampaign(event.target.value)}
                   value={campaignId}
                 >
@@ -205,21 +211,21 @@ export function CampaignTrackingPage() {
                     </option>
                   ))}
                 </select>
-              </label>
-              {selectedCampaign && (
-                <p className="mt-2 text-sm text-mendoza-muted">
-                  {selectedCampaign.status === "draft"
-                    ? "Campaña en borrador"
-                    : selectedCampaign.status === "active"
-                      ? "Campaña activa"
-                      : selectedCampaign.status === "closed"
-                        ? "Campaña cerrada"
-                        : "Campaña archivada"}
-                  {" · "}
-                  {selectedCampaign.surveyVersion.survey.name}, versión{" "}
-                  {selectedCampaign.surveyVersion.versionNumber}
-                </p>
-              )}
+                {selectedCampaign && (
+                  <p className="mt-3 text-sm leading-6 text-mendoza-muted">
+                    {selectedCampaign.status === "draft"
+                      ? "Campaña en borrador"
+                      : selectedCampaign.status === "active"
+                        ? "Campaña activa"
+                        : selectedCampaign.status === "closed"
+                          ? "Campaña cerrada"
+                          : "Campaña archivada"}
+                    {" · "}
+                    {selectedCampaign.surveyVersion.survey.name}, versión{" "}
+                    {selectedCampaign.surveyVersion.versionNumber}
+                  </p>
+                )}
+              </div>
             </Card>
 
             {trackingError ? (

@@ -2,13 +2,15 @@ import { api } from "../lib/api";
 import { downloadBlob } from "../lib/download";
 import type {
   SchoolDetail,
+  SchoolCreateResponse,
   SchoolFilterOptions,
   SchoolImportPreview,
   SchoolImportResult,
   SchoolListResponse,
+  SchoolRectificationCatalogs,
+  SchoolUpdateAndRectifyInput,
   SchoolUserListResponse,
   SchoolWriteInput,
-  SchoolRectificationInput,
 } from "../types/admin-school";
 
 export type SchoolFilters = {
@@ -41,16 +43,23 @@ export const adminSchoolsService = {
   async filters() {
     return (await api.get<SchoolFilterOptions>("/admin/schools/filters")).data;
   },
+  async rectificationCatalogs() {
+    return (
+      await api.get<SchoolRectificationCatalogs>(
+        "/admin/schools/rectification/catalogs",
+      )
+    ).data;
+  },
   async findOne(id: string) {
     return (await api.get<SchoolDetail>(`/admin/schools/${id}`)).data;
   },
   async create(input: SchoolWriteInput) {
-    return (await api.post<SchoolDetail>("/admin/schools", input)).data;
+    return (await api.post<SchoolCreateResponse>("/admin/schools", input)).data;
   },
   async update(id: string, input: Partial<SchoolWriteInput>) {
     return (await api.patch<SchoolDetail>(`/admin/schools/${id}`, input)).data;
   },
-  async rectify(id: string, input: SchoolRectificationInput) {
+  async updateAndRectify(id: string, input: SchoolUpdateAndRectifyInput) {
     return (
       await api.put<SchoolDetail>(`/admin/schools/${id}/rectification`, input)
     ).data;

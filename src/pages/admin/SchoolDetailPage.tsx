@@ -12,8 +12,13 @@ import {
 } from "lucide-react";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { Link, useParams } from "react-router-dom";
+import { SchoolCampaignActivity } from "../../components/schools/SchoolCampaignActivity";
+import { RectificationStatusNotice } from "../../components/schools/RectificationStatusNotice";
 import { Button } from "../../components/ui/Button";
+import { ConfirmDialog } from "../../components/ui/ConfirmDialog";
 import { PaginationControls } from "../../components/ui/PaginationControls";
+import { LoadingState } from "../../components/ui/LoadingState";
+import { SearchableSelect } from "../../components/ui/SearchableSelect";
 import { getHttpErrorMessage } from "../../lib/http-error";
 import { showError, showSuccess } from "../../lib/toast";
 import { adminSchoolsService } from "../../services/admin-schools.service";
@@ -31,10 +36,13 @@ export function SchoolDetailPage() {
   const [eligibleUsers, setEligibleUsers] = useState(emptyAssignableUsers);
   const [userSearch, setUserSearch] = useState("");
   const [appliedUserSearch, setAppliedUserSearch] = useState("");
-  const [selectedUser, setSelectedUser] =
-    useState<SchoolUserSummary | null>(null);
+  const [selectedUser, setSelectedUser] = useState<SchoolUserSummary | null>(
+    null,
+  );
   const [loadingUsers, setLoadingUsers] = useState(false);
   const [saving, setSaving] = useState(false);
+  const [statusDialogOpen, setStatusDialogOpen] = useState(false);
+  const [changingStatus, setChangingStatus] = useState(false);
   const detailRequest = useRef<AbortController | null>(null);
   const usersRequest = useRef<AbortController | null>(null);
 
@@ -92,17 +100,20 @@ export function SchoolDetailPage() {
       : eligibleUsers.items;
   const changeStatus = async () => {
     if (!school) return;
+    const wasActive = school.isActive;
+    setChangingStatus(true);
     try {
-      setSchool(
-        await adminSchoolsService.setStatus(school.id, !school.isActive),
-      );
+      setSchool(await adminSchoolsService.setStatus(school.id, !wasActive));
       showSuccess(
-        school.isActive
-          ? "Colegio desactivado; se bloquearon nuevas evaluaciones."
-          : "Colegio activado.",
+        wasActive
+          ? "Colegio desactivado: acceso bloqueado, sesiones cerradas e historial conservado."
+          : "Colegio activado. El usuario debe iniciar una sesión nueva.",
       );
+      setStatusDialogOpen(false);
     } catch (error) {
       showError(getHttpErrorMessage(error));
+    } finally {
+      setChangingStatus(false);
     }
   };
   const assign = async () => {
@@ -129,7 +140,11 @@ export function SchoolDetailPage() {
     }
   };
   if (!school)
-    return <main className="p-8 text-mendoza-blue">Cargando detalle…</main>;
+    return (
+      <main className="p-4 sm:p-8">
+        <LoadingState label="Cargando detalle…" />
+      </main>
+    );
   return (
     <main className="p-4 sm:p-8">
       <div className="mx-auto max-w-7xl">
@@ -156,11 +171,6 @@ export function SchoolDetailPage() {
               CUE {school.cue}
               {school.schoolNumber ? ` · N.º ${school.schoolNumber}` : ""}
             </p>
-            <p className="mt-2 text-sm font-semibold text-mendoza-blue">
-              {school.rectification.isRectified
-                ? `Ficha ${school.rectification.periodYear} rectificada el ${date(school.rectification.rectifiedAt!)}`
-                : `Ficha ${school.rectification.periodYear} pendiente de rectificación`}
-            </p>
           </div>
           <div className="flex flex-wrap gap-2">
             <Link
@@ -178,17 +188,22 @@ export function SchoolDetailPage() {
                   <ShieldCheck size={17} />
                 )
               }
-              onClick={() => void changeStatus()}
+              onClick={() => setStatusDialogOpen(true)}
               variant={school.isActive ? "outline" : "primary"}
             >
               {school.isActive ? "Desactivar" : "Activar"}
             </Button>
           </div>
         </div>
+        <RectificationStatusNotice
+          className="mt-5"
+          status={school.rectification}
+        />
         {!school.isActive && (
           <div className="mt-5 rounded-xl border border-red-200 bg-red-50 p-4 text-sm text-red-800">
-            El colegio conserva todo su historial, pero no puede iniciar nuevas
-            evaluaciones mientras esté inactivo.
+            El colegio conserva todo su historial, pero su usuario no puede
+            iniciar sesión ni realizar nuevas cargas mientras esté inactivo. Las
+            sesiones anteriores permanecen revocadas aunque se reactive.
           </div>
         )}
         <div className="mt-6 grid gap-5 xl:grid-cols-3">
@@ -201,13 +216,12 @@ export function SchoolDetailPage() {
                 label="Ubicación"
                 value={`${school.address}, ${school.locality}, ${school.department}`}
               />
-              <Datum label="Nivel" value={school.educationLevel} />
+              <Datum label="Tipo de educación" value={school.educationLevel} />
               <Datum
                 label="Niveles estructurados"
                 value={
-                  school.educationLevels
-                    .map(({ label }) => label)
-                    .join(", ") || "Sin informar"
+                  school.educationLevels.map(({ label }) => label).join(", ") ||
+                  "Sin informar"
                 }
               />
               <Datum label="Director/a" value={school.directorName} />
@@ -231,18 +245,12 @@ export function SchoolDetailPage() {
                     : school.enrollment.toLocaleString("es-AR")
                 }
               />
-              <Datum
-                label="Kiosco"
-                value={yesNoUnknown(school.hasKiosk)}
-              />
+              <Datum label="Kiosco" value={yesNoUnknown(school.hasKiosk)} />
               <Datum
                 label="Comedor o servicio alimentario"
                 value={yesNoUnknown(school.hasFoodService)}
               />
-              <Datum
-                label="Albergue"
-                value={yesNoUnknown(school.isBoarding)}
-              />
+              <Datum label="Albergue" value={yesNoUnknown(school.isBoarding)} />
               <Datum
                 label="Contacto"
                 value={
@@ -251,11 +259,11 @@ export function SchoolDetailPage() {
                 }
               />
               <Datum
-                label="Referente"
+                label="Referente responsable"
                 value={`${school.referentFirstName} ${school.referentLastName}`}
               />
               <Datum
-                label="Contacto referente"
+                label="Contacto del responsable"
                 value={
                   [school.referentEmail, school.referentPhone]
                     .filter(Boolean)
@@ -289,7 +297,10 @@ export function SchoolDetailPage() {
             </div>
             {school.users.length ? (
               school.users.map((user) => (
-                <div className="mt-4 rounded-xl bg-mendoza-background p-4" key={user.id}>
+                <div
+                  className="mt-4 rounded-xl bg-mendoza-background p-4"
+                  key={user.id}
+                >
                   <p className="font-semibold">
                     {user.firstName} {user.lastName}
                   </p>
@@ -310,9 +321,14 @@ export function SchoolDetailPage() {
               </p>
             )}
             <label className="mt-5 block text-sm font-semibold">
-              Buscar usuario disponible
+              Buscar usuario
               <span className="mt-2 flex gap-2">
-                <input className="min-w-0 flex-1 rounded-lg border border-mendoza-border px-3 py-2.5 font-normal" onChange={(event) => setUserSearch(event.target.value)} placeholder="Nombre o correo" value={userSearch} />
+                <input
+                  className="min-w-0 flex-1 rounded-lg border border-mendoza-border px-3 py-2.5 font-normal"
+                  onChange={(event) => setUserSearch(event.target.value)}
+                  placeholder="Nombre o correo"
+                  value={userSearch}
+                />
                 <Button
                   onClick={() => {
                     const nextSearch = userSearch.trim();
@@ -326,27 +342,29 @@ export function SchoolDetailPage() {
                 </Button>
               </span>
             </label>
-            <label className="mt-4 block text-sm font-semibold">
-              Asociar o reemplazar
-              <select
-                className="mt-2 w-full rounded-lg border border-mendoza-border px-3 py-2.5"
-                onChange={(event) =>
+            <div className="mt-4">
+              <SearchableSelect
+                allLabel="Sin usuario"
+                disabled={loadingUsers}
+                label="Asociar o reemplazar"
+                onChange={(userId) =>
                   setSelectedUser(
                     selectableUsers.find(
-                      (candidate) => candidate.id === event.target.value,
+                      (candidate) => candidate.id === userId,
                     ) ?? null,
                   )
                 }
+                options={selectableUsers.map((user) => ({
+                  value: user.id,
+                  label: `${user.lastName}, ${user.firstName} · ${user.email}${
+                    user.assignedSchool && user.assignedSchool.id !== school.id
+                      ? ` · Actualmente en ${user.assignedSchool.name}`
+                      : ""
+                  }`,
+                }))}
                 value={selectedUser?.id ?? ""}
-              >
-                <option value="">Sin usuario</option>
-                {selectableUsers.map((user) => (
-                  <option key={user.id} value={user.id}>
-                    {user.lastName}, {user.firstName} · {user.email}
-                  </option>
-                ))}
-              </select>
-            </label>
+              />
+            </div>
             <PaginationControls
               loading={loadingUsers}
               onPageChange={(page) => void loadEligibleUsers(page)}
@@ -361,23 +379,17 @@ export function SchoolDetailPage() {
               {saving ? "Guardando…" : "Guardar asociación"}
             </Button>
             <p className="mt-2 text-xs text-mendoza-muted">
-              Sólo se muestran usuarios activos con rol Colegio que no
-              pertenecen a otro establecimiento.
+              Se muestran usuarios activos con rol Colegio. Si elegís uno
+              asociado a otro establecimiento, se trasladará a este colegio y el
+              cambio quedará registrado en ambos historiales.
             </p>
           </section>
         </div>
-        <div className="mt-5 grid gap-5 lg:grid-cols-2">
-          <Unavailable
-            icon={<CalendarDays />}
-            title="Campañas"
-            message={school.campaigns.message}
-          />
-          <Unavailable
-            icon={<ClipboardCheck />}
-            title="Evaluaciones"
-            message={school.evaluations.message}
-          />
-        </div>
+        <SchoolCampaignActivity
+          campaigns={school.campaigns}
+          evaluations={school.evaluations}
+          schoolId={school.id}
+        />
         <div className="mt-5 grid gap-5 xl:grid-cols-2">
           <Timeline
             title="Historial de asociaciones"
@@ -438,6 +450,22 @@ export function SchoolDetailPage() {
           }))}
         />
       </div>
+      <ConfirmDialog
+        confirmLabel={
+          school.isActive ? "Desactivar colegio" : "Activar colegio"
+        }
+        description={
+          school.isActive
+            ? "Se impedirá el inicio de sesión, se cerrarán todas las sesiones vigentes y se bloquearán nuevas cargas. La escuela, sus asociaciones y todo el historial se conservarán."
+            : "La escuela volverá a estar habilitada, pero las sesiones anteriores no se recuperarán: el usuario deberá iniciar sesión nuevamente."
+        }
+        destructive={school.isActive}
+        isProcessing={changingStatus}
+        onCancel={() => setStatusDialogOpen(false)}
+        onConfirm={changeStatus}
+        open={statusDialogOpen}
+        title={school.isActive ? "¿Desactivar colegio?" : "¿Activar colegio?"}
+      />
     </main>
   );
 }
@@ -457,31 +485,14 @@ function yesNoUnknown(value: boolean | null) {
   return value ? "Sí" : "No";
 }
 
-function snapshotSummary(snapshot: SchoolDetail["rectifications"][number]["snapshot"]) {
+function snapshotSummary(
+  snapshot: SchoolDetail["rectifications"][number]["snapshot"],
+) {
   const shift = snapshot.shiftCatalog?.label ?? snapshot.shift;
   const levels =
     snapshot.educationLevels?.map(({ label }) => label).join(", ") ||
     snapshot.educationLevel;
   return `Jornada: ${shift || "Sin informar"} · Niveles: ${levels || "Sin informar"} · Matrícula: ${snapshot.enrollmentTotal ?? "Sin informar"}`;
-}
-function Unavailable({
-  icon,
-  title,
-  message,
-}: {
-  icon: React.ReactNode;
-  title: string;
-  message: string;
-}) {
-  return (
-    <section className="rounded-2xl border border-dashed border-mendoza-gold bg-white p-5">
-      <div className="flex items-center gap-2 text-mendoza-blue">
-        {icon}
-        <h2 className="text-xl font-bold">{title}</h2>
-      </div>
-      <p className="mt-3 text-sm text-mendoza-muted">{message}</p>
-    </section>
-  );
 }
 function Timeline({
   title,
@@ -509,8 +520,12 @@ function Timeline({
           {entries.map((entry) => (
             <li className="border-l-2 border-mendoza-sky pl-3" key={entry.id}>
               <p className="font-semibold text-mendoza-text">{entry.title}</p>
-              <p className="break-all text-sm text-mendoza-muted">{entry.detail}</p>
-              <time className="text-xs text-mendoza-muted">{date(entry.date)}</time>
+              <p className="break-all text-sm text-mendoza-muted">
+                {entry.detail}
+              </p>
+              <time className="text-xs text-mendoza-muted">
+                {date(entry.date)}
+              </time>
             </li>
           ))}
         </ul>
@@ -531,6 +546,7 @@ const auditLabel = (action: string) =>
     SCHOOL_UPDATED: "Datos modificados",
     SCHOOL_ACTIVATED: "Colegio activado",
     SCHOOL_DEACTIVATED: "Colegio desactivado",
+    SCHOOL_SESSIONS_REVOKED: "Sesiones del colegio revocadas",
     SCHOOL_USER_ASSIGNED: "Usuario asociado",
     SCHOOL_USER_REPLACED: "Usuario reemplazado",
     SCHOOL_USER_UNASSIGNED: "Usuario desvinculado",

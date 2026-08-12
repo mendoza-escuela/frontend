@@ -92,10 +92,11 @@ export function CampaignFormPage() {
 
   const submit = handleSubmit(async (values) => {
     try {
-      if (id) await adminCampaignsService.update(id, values);
-      else await adminCampaignsService.create(values);
+      const campaign = id
+        ? await adminCampaignsService.update(id, values)
+        : await adminCampaignsService.create(values);
       showSuccess(isEditing ? "Campaña actualizada." : "Campaña creada.");
-      navigate("/admin/campanas", { replace: true });
+      navigate(`/admin/campanas/${campaign.id}/escuelas`, { replace: true });
     } catch (error) {
       showError(getHttpErrorMessage(error));
     }

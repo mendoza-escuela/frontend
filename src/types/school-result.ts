@@ -133,3 +133,17 @@ export type SchoolPreliminaryResultSummary = {
 export type SchoolPreliminaryResultList = {
   items: SchoolPreliminaryResultSummary[];
 };
+
+export type SchoolStarDistribution = {
+  available: boolean;
+  reason?: "insufficient_sample";
+  minimumSample?: number;
+  scope?: "province" | "department";
+  denominator: number;
+  ownStars: number | null;
+  items: Array<{
+    stars: number;
+    count: number;
+    percentage: number;
+  }>;
+};

@@ -1,0 +1,25 @@
+{
+  "organization": "Gobierno de Mendoza | Salud | DGE | OPS",
+  "files": [
+    {
+      "path": "/brand/official/organismo/logo-on-light.svg",
+      "surface": "light",
+      "sha256": "",
+      "sourceDocumentOrUrl": "",
+      "providedBy": "",
+      "providedAt": "YYYY-MM-DD",
+      "licenseOrUsageTerms": "",
+      "approvedBy": ""
+    },
+    {
+      "path": "/brand/official/organismo/logo-on-blue.svg",
+      "surface": "blue",
+      "sha256": "",
+      "sourceDocumentOrUrl": "",
+      "providedBy": "",
+      "providedAt": "YYYY-MM-DD",
+      "licenseOrUsageTerms": "",
+      "approvedBy": ""
+    }
+  ]
+}

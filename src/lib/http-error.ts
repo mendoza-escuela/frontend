@@ -34,3 +34,25 @@ export function getHttpErrorMessage(error: unknown): string {
   }
   return FALLBACK_MESSAGE;
 }
+
+export type HttpErrorDetails = {
+  code: string | null;
+  field: string | null;
+  message: string;
+};
+
+export function getHttpErrorDetails(error: unknown): HttpErrorDetails | null {
+  if (!axios.isAxiosError(error) || !error.response) return null;
+  const payload = error.response.data;
+  if (!payload || typeof payload !== "object") return null;
+  const response = payload as {
+    code?: unknown;
+    field?: unknown;
+    message?: unknown;
+  };
+  return {
+    code: typeof response.code === "string" ? response.code : null,
+    field: typeof response.field === "string" ? response.field : null,
+    message: safeMessage(response.message) ?? FALLBACK_MESSAGE,
+  };
+}

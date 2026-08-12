@@ -8,6 +8,7 @@ import { schoolCampaignsService } from "../../services/school-campaigns.service"
 import { schoolPortalService } from "../../services/school-portal.service";
 import type { School } from "../../types/admin-school";
 import type { AvailableSchoolCampaignsResponse } from "../../types/school-campaign";
+import { LoadingState } from "../../components/ui/LoadingState";
 
 export function SchoolHomePage() {
   const { user } = useAuth();
@@ -30,7 +31,7 @@ export function SchoolHomePage() {
   }, []);
 
   if (isLoading) {
-    return <main className="p-8 text-mendoza-blue">Cargando portal…</main>;
+    return <main className="p-4 sm:p-8"><LoadingState label="Cargando portal…" /></main>;
   }
 
   return (
@@ -103,6 +104,20 @@ export function SchoolHomePage() {
                   to="/colegio/cuestionario"
                 >
                   Ir a la evaluación
+                </Link>
+              </>
+            ) : campaigns && (campaigns.expiredDrafts?.length ?? 0) > 0 ? (
+              <>
+                <div className="mt-4 flex gap-3 rounded-xl bg-mendoza-background p-4 text-sm text-mendoza-muted">
+                  <Info aria-hidden="true" className="shrink-0" size={19} />
+                  No hay campañas abiertas, pero tenés borradores vencidos
+                  disponibles para consultar en sólo lectura.
+                </div>
+                <Link
+                  className="mt-6 inline-flex min-h-11 items-center rounded-lg border border-mendoza-blue px-4 text-sm font-semibold text-mendoza-blue transition hover:bg-mendoza-blue-soft"
+                  to="/colegio/cuestionario"
+                >
+                  Ver historial de borradores
                 </Link>
               </>
             ) : (

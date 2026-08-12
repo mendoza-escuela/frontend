@@ -3,11 +3,11 @@ import {
   Building2,
   ClipboardList,
   Home,
-  LogOut,
 } from "lucide-react";
-import { NavLink, Outlet, useNavigate } from "react-router-dom";
+import { NavLink, Outlet } from "react-router-dom";
+import { LogoutButton } from "../auth/LogoutButton";
 import { useAuth } from "../../hooks/useAuth";
-import { showError } from "../../lib/toast";
+import { InstitutionalBrand } from "./InstitutionalBrand";
 
 const links = [
   { to: "/colegio", label: "Inicio", icon: Home, end: true },
@@ -25,21 +25,11 @@ const links = [
 ];
 
 export function SchoolLayout() {
-  const { user, logout } = useAuth();
-  const navigate = useNavigate();
-
-  const closeSession = async () => {
-    try {
-      await logout();
-      navigate("/login", { replace: true });
-    } catch {
-      showError("No se pudo cerrar la sesión correctamente.");
-    }
-  };
+  const { user } = useAuth();
 
   return (
     <div className="min-h-screen bg-mendoza-background lg:flex">
-      <aside className="bg-mendoza-blue p-4 text-white lg:sticky lg:top-0 lg:h-screen lg:w-72 lg:shrink-0 lg:self-start lg:overflow-y-auto lg:p-6">
+      <aside className="bg-mendoza-blue p-4 text-white lg:sticky lg:top-0 lg:h-screen lg:w-72 lg:shrink-0 lg:self-start lg:overflow-y-auto lg:p-6" data-print-hidden="true">
         <div className="flex items-center gap-3 border-b border-white/20 pb-5">
           <Building2 aria-hidden="true" />
           <div>
@@ -69,10 +59,15 @@ export function SchoolLayout() {
             </NavLink>
           ))}
         </nav>
+        <InstitutionalBrand
+          className="mt-6 border-t border-white/20 pt-5"
+          compact
+          surface="blue"
+        />
       </aside>
 
       <div className="min-w-0 flex-1">
-        <header className="flex flex-wrap items-center justify-between gap-3 border-b border-mendoza-border bg-white px-4 py-4 sm:px-8">
+        <header className="flex flex-wrap items-center justify-between gap-3 border-b border-mendoza-border bg-white px-4 py-4 sm:px-8" data-print-hidden="true">
           <div>
             <p className="text-sm text-mendoza-muted">
               Portal del establecimiento
@@ -81,14 +76,7 @@ export function SchoolLayout() {
               {user?.firstName} {user?.lastName}
             </p>
           </div>
-          <button
-            className="inline-flex min-h-10 items-center gap-2 rounded-lg border border-mendoza-blue px-4 text-sm font-semibold text-mendoza-blue transition hover:bg-mendoza-blue-soft focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-mendoza-blue"
-            onClick={closeSession}
-            type="button"
-          >
-            <LogOut aria-hidden="true" size={17} />
-            Cerrar sesión
-          </button>
+          <LogoutButton />
         </header>
         <Outlet />
       </div>

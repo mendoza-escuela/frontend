@@ -2,12 +2,18 @@ import { zodResolver } from '@hookform/resolvers/zod';
 import { Eye, EyeOff, LogIn } from 'lucide-react';
 import { useState } from 'react';
 import { useForm } from 'react-hook-form';
-import { Link, useNavigate } from 'react-router-dom';
+import {
+  Link,
+  useLocation,
+  useNavigate,
+  useSearchParams,
+} from 'react-router-dom';
 import { z } from 'zod';
 import { AuthCard } from '../components/auth/AuthCard';
 import { Button } from '../components/ui/Button';
 import { useAuth } from '../hooks/useAuth';
 import { getHttpErrorMessage } from '../lib/http-error';
+import { getSafeInternalPath } from '../lib/safe-navigation';
 import { showError } from '../lib/toast';
 
 const schema = z.object({
@@ -20,17 +26,27 @@ export function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
   const { login } = useAuth();
   const navigate = useNavigate();
+  const location = useLocation();
+  const [searchParameters] = useSearchParams();
   const { register, handleSubmit, formState: { errors, isSubmitting } } = useForm<LoginForm>({ resolver: zodResolver(schema) });
 
   const submit = handleSubmit(async ({ email, password }) => {
     try {
       const user = await login(email, password);
-      navigate(user.mustChangePassword ? '/cambiar-clave' : user.role === 'admin' ? '/admin' : '/colegio', { replace: true });
+      const stateFrom = (location.state as { from?: unknown } | null)?.from;
+      const requestedReturnPath = searchParameters.get('returnTo') ?? stateFrom;
+      const safeReturnPath = getSafeInternalPath(requestedReturnPath);
+      navigate(
+        user.mustChangePassword
+          ? '/cambiar-clave'
+          : (safeReturnPath ?? (user.role === 'admin' ? '/admin' : '/colegio')),
+        { replace: true },
+      );
     } catch (error) { showError(getHttpErrorMessage(error)); }
   });
 
   return (
-    <AuthCard title="Iniciar sesión" description="Ingresá con el correo institucional asociado a tu cuenta.">
+    <AuthCard title="Iniciar sesión" description="Ingresá con el correo y contraseña de tu cuenta.">
       <form className="mt-7 space-y-5" onSubmit={submit} noValidate>
         <label className="block text-sm font-semibold text-mendoza-text">Correo institucional
           <input {...register('email')} autoComplete="email" className="mt-2 w-full rounded-lg border border-mendoza-border px-3 py-2.5 outline-none focus:border-mendoza-sky focus:ring-2 focus:ring-mendoza-sky/25" type="email" />

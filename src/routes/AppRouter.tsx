@@ -1,9 +1,20 @@
-import { createBrowserRouter, RouterProvider } from "react-router-dom";
+import {
+  createBrowserRouter,
+  Navigate,
+  RouterProvider,
+  type RouteObject,
+} from "react-router-dom";
 import { lazy, Suspense, type ReactNode } from "react";
 import { ProtectedRoute } from "../components/auth/ProtectedRoute";
+import { GlobalHttpErrorHandler } from "../components/errors/GlobalHttpErrorHandler";
 import { AdminLayout } from "../components/layout/AdminLayout";
 import { AppLayout } from "../components/layout/AppLayout";
 import { SchoolLayout } from "../components/layout/SchoolLayout";
+import { LoadingState } from "../components/ui/LoadingState";
+import {
+  ErrorRoutePage,
+  RouteErrorBoundaryPage,
+} from "../pages/ErrorRoutePage";
 const AccessDeniedPage = lazy(() =>
   import("../pages/AccessDeniedPage").then((module) => ({
     default: module.AccessDeniedPage,
@@ -19,11 +30,6 @@ const ForgotPasswordPage = lazy(() =>
     default: module.ForgotPasswordPage,
   })),
 );
-const HomePage = lazy(() =>
-  import("../pages/HomePage").then((module) => ({
-    default: module.HomePage,
-  })),
-);
 const LoginPage = lazy(() =>
   import("../pages/LoginPage").then((module) => ({
     default: module.LoginPage,
@@ -32,11 +38,6 @@ const LoginPage = lazy(() =>
 const ResetPasswordPage = lazy(() =>
   import("../pages/ResetPasswordPage").then((module) => ({
     default: module.ResetPasswordPage,
-  })),
-);
-const AdminHomePage = lazy(() =>
-  import("../pages/admin/AdminHomePage").then((module) => ({
-    default: module.AdminHomePage,
   })),
 );
 const BulkUserImportPage = lazy(() =>
@@ -124,6 +125,11 @@ const CampaignFormPage = lazy(() =>
     default: module.CampaignFormPage,
   })),
 );
+const CampaignSchoolsPage = lazy(() =>
+  import("../pages/admin/CampaignSchoolsPage").then((module) => ({
+    default: module.CampaignSchoolsPage,
+  })),
+);
 const ParticipationDashboardPage = lazy(() =>
   import("../pages/admin/ParticipationDashboardPage").then((module) => ({
     default: module.ParticipationDashboardPage,
@@ -167,19 +173,17 @@ const SchoolResultsPage = lazy(() =>
 
 function lazyPage(page: ReactNode) {
   return (
-    <Suspense
-      fallback={<div className="p-8 text-mendoza-blue">Cargando módulo…</div>}
-    >
+    <Suspense fallback={<LoadingState page label="Cargando…" />}>
       {page}
     </Suspense>
   );
 }
 
-const router = createBrowserRouter([
+const applicationRoutes: RouteObject[] = [
   {
     element: <AppLayout />,
     children: [
-      { index: true, element: lazyPage(<HomePage />) },
+      { index: true, element: lazyPage(<LoginPage />) },
       { path: "login", element: lazyPage(<LoginPage />) },
       { path: "recuperar-clave", element: lazyPage(<ForgotPasswordPage />) },
       {
@@ -192,7 +196,6 @@ const router = createBrowserRouter([
     element: <ProtectedRoute allowPasswordChange />,
     children: [
       { path: "cambiar-clave", element: lazyPage(<ChangePasswordPage />) },
-      { path: "acceso-denegado", element: lazyPage(<AccessDeniedPage />) },
     ],
   },
   {
@@ -202,7 +205,7 @@ const router = createBrowserRouter([
         path: "admin",
         element: <AdminLayout />,
         children: [
-          { index: true, element: lazyPage(<AdminHomePage />) },
+          { index: true, element: <Navigate replace to="participacion" /> },
           {
             path: "participacion",
             element: lazyPage(<ParticipationDashboardPage />),
@@ -275,6 +278,10 @@ const router = createBrowserRouter([
             element: lazyPage(<CampaignFormPage />),
           },
           {
+            path: "campanas/:id/escuelas",
+            element: lazyPage(<CampaignSchoolsPage />),
+          },
+          {
             path: "seguimiento",
             element: lazyPage(<CampaignTrackingPage />),
           },
@@ -314,7 +321,22 @@ const router = createBrowserRouter([
       },
     ],
   },
-]);
+  { path: "acceso-denegado", element: lazyPage(<AccessDeniedPage />) },
+  { path: "error", element: <ErrorRoutePage statusCode="generic" /> },
+  { path: "error/:statusCode", element: <ErrorRoutePage /> },
+  { path: "*", element: <ErrorRoutePage statusCode={404} /> },
+];
+
+// oxlint-disable-next-line react/only-export-components -- Reutilizado por pruebas de integración con MemoryRouter.
+export const appRoutes: RouteObject[] = [
+  {
+    element: <GlobalHttpErrorHandler />,
+    errorElement: <RouteErrorBoundaryPage />,
+    children: applicationRoutes,
+  },
+];
+
+const router = createBrowserRouter(appRoutes);
 
 export function AppRouter() {
   return <RouterProvider router={router} />;

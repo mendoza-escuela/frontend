@@ -12,7 +12,9 @@ import {
 import { useEffect, useRef, useState } from "react";
 import { Link } from "react-router-dom";
 import { Button } from "../../components/ui/Button";
+import { ConfirmDialog } from "../../components/ui/ConfirmDialog";
 import { PaginationControls } from "../../components/ui/PaginationControls";
+import { LoadingState } from "../../components/ui/LoadingState";
 import { SearchableSelect } from "../../components/ui/SearchableSelect";
 import { inputClassName } from "../../components/ui/form-styles";
 import { getHttpErrorMessage } from "../../lib/http-error";
@@ -50,6 +52,8 @@ export function SchoolsAdminPage() {
   const [schools, setSchools] = useState(emptyList);
   const [options, setOptions] = useState(emptyOptions);
   const [loading, setLoading] = useState(true);
+  const [statusTarget, setStatusTarget] = useState<SchoolListItem | null>(null);
+  const [changingStatus, setChangingStatus] = useState(false);
   const listRequest = useRef<AbortController | null>(null);
   const load = async (next = filters) => {
     listRequest.current?.abort();
@@ -85,17 +89,23 @@ export function SchoolsAdminPage() {
     setFilters(next);
     void load(next);
   };
-  const status = async (school: SchoolListItem) => {
+  const changeStatus = async () => {
+    if (!statusTarget) return;
+    const school = statusTarget;
+    setChangingStatus(true);
     try {
       await adminSchoolsService.setStatus(school.id, !school.isActive);
       showSuccess(
         school.isActive
-          ? "Colegio desactivado. No podrá iniciar nuevas evaluaciones."
-          : "Colegio activado.",
+          ? "Colegio desactivado: acceso bloqueado, sesiones cerradas e historial conservado."
+          : "Colegio activado. El usuario debe iniciar una sesión nueva.",
       );
+      setStatusTarget(null);
       await load();
     } catch (error) {
       showError(getHttpErrorMessage(error));
+    } finally {
+      setChangingStatus(false);
     }
   };
   const exportRegistry = async (format: "csv" | "xlsx") => {
@@ -217,9 +227,7 @@ export function SchoolsAdminPage() {
           </Button>
         </form>
         {loading ? (
-          <div className="mt-6 rounded-2xl bg-white p-8 text-center text-mendoza-muted">
-            Cargando padrón…
-          </div>
+          <LoadingState className="mt-6" label="Cargando padrón…" />
         ) : schools.items.length === 0 ? (
           <div className="mt-6 rounded-2xl border border-mendoza-border bg-white p-8 text-center text-mendoza-muted">
             No hay colegios para los filtros seleccionados.
@@ -228,7 +236,7 @@ export function SchoolsAdminPage() {
           <>
             <div className="mt-5 grid gap-3 md:hidden">
               {schools.items.map((school) => (
-                <SchoolCard key={school.id} school={school} status={status} />
+                <SchoolCard key={school.id} school={school} status={setStatusTarget} />
               ))}
             </div>
             <div className="mt-5 hidden overflow-x-auto rounded-2xl border border-mendoza-border bg-white shadow-sm md:block">
@@ -280,7 +288,7 @@ export function SchoolsAdminPage() {
                         <Status active={school.isActive} />
                       </td>
                       <td className="px-4 py-3">
-                        <Actions school={school} status={status} />
+                        <Actions school={school} status={setStatusTarget} />
                       </td>
                     </tr>
                   ))}
@@ -295,6 +303,24 @@ export function SchoolsAdminPage() {
           pagination={schools.pagination}
         />
       </div>
+      <ConfirmDialog
+        confirmLabel={
+          statusTarget?.isActive ? "Desactivar colegio" : "Activar colegio"
+        }
+        description={
+          statusTarget?.isActive
+            ? "Se impedirá el inicio de sesión, se cerrarán todas las sesiones vigentes y se bloquearán nuevas cargas. La escuela, sus asociaciones y todo el historial se conservarán."
+            : "La escuela volverá a estar habilitada, pero las sesiones anteriores no se recuperarán: el usuario deberá iniciar sesión nuevamente."
+        }
+        destructive={statusTarget?.isActive === true}
+        isProcessing={changingStatus}
+        onCancel={() => setStatusTarget(null)}
+        onConfirm={changeStatus}
+        open={statusTarget !== null}
+        title={
+          statusTarget?.isActive ? "¿Desactivar colegio?" : "¿Activar colegio?"
+        }
+      />
     </main>
   );
 }
@@ -346,7 +372,7 @@ function Actions({
   status,
 }: {
   school: SchoolListItem;
-  status: (school: SchoolListItem) => Promise<void>;
+  status: (school: SchoolListItem) => void;
 }) {
   return (
     <div className="flex gap-1">
@@ -371,7 +397,7 @@ function Actions({
             : `Activar ${school.name}`
         }
         className={`rounded-lg p-2 ${school.isActive ? "text-mendoza-error" : "text-green-700"}`}
-        onClick={() => void status(school)}
+        onClick={() => status(school)}
         type="button"
       >
         {school.isActive ? <ShieldOff size={17} /> : <ShieldCheck size={17} />}
@@ -384,7 +410,7 @@ function SchoolCard({
   status,
 }: {
   school: SchoolListItem;
-  status: (school: SchoolListItem) => Promise<void>;
+  status: (school: SchoolListItem) => void;
 }) {
   return (
     <article className="rounded-2xl border border-mendoza-border bg-white p-4 shadow-sm">

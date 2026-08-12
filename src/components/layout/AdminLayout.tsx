@@ -2,20 +2,17 @@ import {
   Building2,
   CalendarRange,
   ClipboardList,
-  Home,
   LayoutDashboard,
   ListChecks,
-  LogOut,
   School,
   Settings2,
   Users,
 } from "lucide-react";
-import { NavLink, Outlet, useNavigate } from "react-router-dom";
-import { useAuth } from "../../hooks/useAuth";
-import { showError } from "../../lib/toast";
+import { NavLink, Outlet } from "react-router-dom";
+import { LogoutButton } from "../auth/LogoutButton";
+import { InstitutionalBrand } from "./InstitutionalBrand";
 
 const links = [
-  { to: "/admin", label: "Inicio", icon: Home, end: true },
   {
     to: "/admin/participacion",
     label: "Participación",
@@ -46,20 +43,9 @@ const links = [
 ];
 
 export function AdminLayout() {
-  const { user, logout } = useAuth();
-  const navigate = useNavigate();
-  const closeSession = async () => {
-    try {
-      await logout();
-      navigate("/login", { replace: true });
-    } catch {
-      showError("No se pudo cerrar la sesión correctamente.");
-    }
-  };
-
   return (
     <div className="min-h-screen bg-mendoza-background lg:flex">
-      <aside className="bg-mendoza-blue p-4 text-white lg:sticky lg:top-0 lg:h-screen lg:w-64 lg:shrink-0 lg:self-start lg:overflow-y-auto lg:p-6">
+      <aside className="bg-mendoza-blue p-4 text-white lg:sticky lg:top-0 lg:h-screen lg:w-64 lg:shrink-0 lg:self-start lg:overflow-y-auto lg:p-6" data-print-hidden="true">
         <div className="flex items-center gap-3 border-b border-white/20 pb-5">
           <Building2 aria-hidden="true" />
           <div>
@@ -87,23 +73,18 @@ export function AdminLayout() {
         </nav>
       </aside>
       <div className="min-w-0 flex-1">
-        <header className="flex flex-wrap items-center justify-between gap-3 border-b border-mendoza-border bg-white px-4 py-4 sm:px-8">
-          <div>
-            <p className="text-sm text-mendoza-muted">
-              Sesión de administrador
-            </p>
-            <p className="font-semibold text-mendoza-text">
-              {user?.firstName} {user?.lastName}
-            </p>
+        <header
+          className="border-b border-mendoza-border bg-white px-4 py-4 sm:px-8"
+          data-print-hidden="true"
+        >
+          <div className="flex w-full flex-col gap-4 sm:flex-row sm:items-center">
+            <InstitutionalBrand
+              className="min-w-0 max-w-full flex-1"
+              compact
+              organizationKeys={["mendoza", "ops"]}
+            />
+            <LogoutButton />
           </div>
-          <button
-            className="inline-flex min-h-10 items-center gap-2 rounded-lg border border-mendoza-blue px-4 text-sm font-semibold text-mendoza-blue hover:bg-mendoza-blue-soft"
-            onClick={closeSession}
-            type="button"
-          >
-            <LogOut size={17} />
-            Cerrar sesión
-          </button>
         </header>
         <Outlet />
       </div>

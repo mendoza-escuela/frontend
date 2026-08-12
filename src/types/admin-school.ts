@@ -20,6 +20,7 @@ export type School = {
   referentLastName: string;
   referentEmail: string | null;
   referentPhone: string | null;
+  contacts?: SchoolContact[];
   enrollment: number | null;
   hasKiosk: boolean | null;
   hasFoodService: boolean | null;
@@ -31,12 +32,27 @@ export type School = {
   updatedAt: string;
 };
 
+export type SchoolContact = {
+  id?: string;
+  type: "RESPONDENT" | "HEALTH_PROMOTION";
+  firstName: string;
+  lastName: string;
+  position: string | null;
+  phone: string | null;
+  email: string | null;
+};
+
 export type SchoolCatalogOption = {
   id: string;
   code: string;
   label: string;
   isActive: boolean;
   order: number;
+};
+
+export type SchoolNamedCatalogOption = {
+  code: string;
+  label: string;
 };
 
 export type SchoolEducationLevelSelection = {
@@ -52,21 +68,36 @@ export type SchoolRectificationInput = {
   name: string;
   cue: string;
   directorName: string;
+  department: string;
   address: string;
   locality: string;
+  managementType?: string;
   scope: string;
-  educationLevel?: string;
+  educationLevel: string;
   shift?: string;
-  hasKiosk?: boolean | null;
-  hasFoodService?: boolean | null;
+  hasKiosk: boolean;
+  hasFoodService: boolean;
   isBoarding?: boolean | null;
-  shiftCatalogId?: string | null;
-  educationLevels?: Array<{
+  shiftCatalogId: string;
+  educationLevels: Array<{
     levelId: string;
     enrollment: number | null;
   }>;
   enrollment?: number | null;
+  characteristics?: Record<string, string | number | boolean | null>;
   expectedUpdatedAt?: string;
+  contacts?: Array<Omit<SchoolContact, "id">>;
+};
+
+export type SchoolUpdateAndRectifyInput = Omit<
+  SchoolRectificationInput,
+  "expectedUpdatedAt"
+> & {
+  schoolNumber: string | null;
+  postalCode: string | null;
+  phone: string | null;
+  email: string | null;
+  expectedUpdatedAt: string;
 };
 
 export type SchoolRectificationSnapshot = {
@@ -77,13 +108,16 @@ export type SchoolRectificationSnapshot = {
   cue: string;
   directorName: string;
   address: string;
+  department?: string;
   locality: string;
+  managementType?: string;
   scope: string;
   educationLevel: string;
   shift: string;
   hasKiosk?: boolean | null;
   hasFoodService?: boolean | null;
   isBoarding?: boolean | null;
+  characteristics?: Record<string, string | number | boolean | null>;
   shiftCatalog?: Pick<SchoolCatalogOption, "id" | "code" | "label"> | null;
   educationLevels?: Array<{
     id: string;
@@ -92,6 +126,7 @@ export type SchoolRectificationSnapshot = {
     enrollment: number | null;
   }>;
   enrollmentTotal?: number | null;
+  contacts?: Array<Omit<SchoolContact, "id">>;
 };
 
 export type SchoolRectificationCatalogs = {
@@ -105,10 +140,23 @@ export type SchoolRectificationCatalogs = {
     message: string | null;
     items: SchoolCatalogOption[];
   };
+  managementTypes: SchoolNamedCatalogOption[];
+  scopes: SchoolNamedCatalogOption[];
+  educationTypes: SchoolNamedCatalogOption[];
+  characteristics: SchoolNamedCatalogOption[];
 };
 
 export type SchoolRectificationStatus = {
   periodYear: number;
+  /** Existe una confirmación anual, aunque el snapshot pueda requerir actualización. */
+  isConfirmed?: boolean;
+  /** El snapshot confirmado contiene todos los datos necesarios para evaluar. */
+  isEvaluationReady?: boolean;
+  missingFields?: Array<{
+    code: string;
+    label: string;
+  }>;
+  /** Campo legado conservado durante la transición del contrato. */
   isRectified: boolean;
   rectifiedAt: string | null;
   rectifiedBy: SchoolUserSummary | null;
@@ -130,15 +178,23 @@ export type SchoolWriteInput = Omit<
   | "id"
   | "createdAt"
   | "updatedAt"
-  | "characteristics"
-  | "shiftCatalogId"
   | "shiftCatalog"
-  | "hasKiosk"
-  | "hasFoodService"
-  | "isBoarding"
   | "educationLevels"
+  | "contacts"
+  | "characteristics"
+  | "shift"
 > & {
+  shift?: string;
   characteristics?: School["characteristics"];
+  shiftCatalogId: string | null;
+  educationLevels: Array<{
+    levelId: string;
+    enrollment: number | null;
+  }>;
+  contacts: Array<Omit<SchoolContact, "id">>;
+};
+export type SchoolCreateResponse = SchoolDetail & {
+  responsibleUserInvitationEmailSent: boolean;
 };
 export type SchoolListItem = Pick<
   School,
@@ -178,6 +234,11 @@ export type SchoolUserSummary = {
   role?: string;
   isActive?: boolean;
   lastLoginAt?: string | null;
+  assignedSchool?: {
+    id: string;
+    cue: string;
+    name: string;
+  } | null;
 };
 export type SchoolUserListResponse = {
   items: SchoolUserSummary[];
@@ -188,6 +249,56 @@ export type SchoolUserListResponse = {
     totalPages: number;
   };
 };
+
+export type SchoolCampaignParticipationStatus =
+  "not_started" | "draft" | "submitted";
+
+export type SchoolDetailCampaignActivity = {
+  assignment: {
+    id: string;
+    source: string;
+    assignedAt: string | null;
+  };
+  campaign: {
+    id: string;
+    name: string;
+    type: "annual" | "semiannual";
+    status: "draft" | "active" | "closed" | "archived";
+    startsAt: string | null;
+    endsAt: string | null;
+  };
+  participationStatus: SchoolCampaignParticipationStatus;
+  submission: {
+    id: string;
+    status: "draft" | "submitted";
+    startedAt: string | null;
+    lastSavedAt: string | null;
+    submittedAt: string | null;
+  } | null;
+  result: {
+    available: boolean;
+    id: string | null;
+    calculatedAt: string | null;
+  };
+};
+
+export type SchoolDetailEvaluation = {
+  id: string;
+  campaignId: string;
+  submissionId: string;
+  calculatedAt: string | null;
+  generalScore: number | null;
+  stars: number | null;
+};
+
+type SchoolDetailActivityCollection<T> = {
+  /** `false` se conserva para respuestas anteriores donde el módulo no estaba disponible. */
+  available: boolean;
+  items: T[];
+  /** Vacío cuando hay datos; descriptivo cuando la colección está vacía o no disponible. */
+  message: string;
+};
+
 export type SchoolDetail = School & {
   rectification: SchoolRectificationStatus;
   rectifications: Array<{
@@ -220,8 +331,8 @@ export type SchoolDetail = School & {
     changes: Record<string, unknown>;
     createdAt: string;
   }>;
-  campaigns: { available: false; items: []; message: string };
-  evaluations: { available: false; items: []; message: string };
+  campaigns: SchoolDetailActivityCollection<SchoolDetailCampaignActivity>;
+  evaluations: SchoolDetailActivityCollection<SchoolDetailEvaluation>;
   actions: {
     canEdit: boolean;
     canChangeStatus: boolean;
@@ -247,7 +358,14 @@ export type SchoolImportPreview = {
 export type SchoolImportResult = {
   totalRows: number;
   importedCount: number;
+  invitationEmailSentCount: number;
+  invitationEmailPendingCount: number;
   errorCount: number;
-  imported: Array<{ line: number; id: string; cue: string }>;
+  imported: Array<{
+    line: number;
+    id: string;
+    cue: string;
+    invitationEmailSent: boolean;
+  }>;
   errors: Array<{ line: number; cue: string; errors: string[] }>;
 };

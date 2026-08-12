@@ -4,9 +4,10 @@ import { useEffect, useMemo, useState } from "react";
 import { Controller, useForm } from "react-hook-form";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { Button } from "../../components/ui/Button";
+import { LoadingState } from "../../components/ui/LoadingState";
 import { SchoolCombobox } from "../../components/users/SchoolCombobox";
-import { getHttpErrorMessage } from "../../lib/http-error";
-import { showError, showSuccess } from "../../lib/toast";
+import { getHttpErrorDetails, getHttpErrorMessage } from "../../lib/http-error";
+import { showError, showSuccess, showWarning } from "../../lib/toast";
 import {
   createUserFormSchema,
   type UserFormValues,
@@ -28,6 +29,8 @@ export function UserFormPage() {
     register,
     handleSubmit,
     reset,
+    setError,
+    setFocus,
     watch,
     control,
     formState: { errors, isSubmitting },
@@ -77,28 +80,50 @@ export function UserFormPage() {
         lastName: values.lastName,
         email: values.email,
         role: values.role,
-        schoolId: values.role === "school" ? values.schoolId : null,
+        schoolId: values.role === "school" ? values.schoolId || null : null,
         isActive: values.isActive,
       };
       if (id) {
         await adminUsersService.update(id, input);
         showSuccess("Usuario actualizado y cambios auditados.");
       } else {
-        await adminUsersService.create({
+        const createdUser = await adminUsersService.create({
           ...input,
           schoolId: input.schoolId ?? undefined,
           temporaryPassword: values.temporaryPassword!,
         });
-        showSuccess("Usuario creado con cambio de contraseña obligatorio.");
+        if (createdUser.invitationEmailSent) {
+          showSuccess(
+            "Usuario creado. Enviamos sus datos e instrucciones de acceso por correo.",
+          );
+        } else {
+          showWarning(
+            "Usuario creado, pero el correo no pudo enviarse. Verificá SMTP y entregá las credenciales por un canal seguro.",
+          );
+        }
       }
       navigate("/admin/usuarios");
     } catch (error) {
+      const details = getHttpErrorDetails(error);
+      if (
+        details?.code === "USER_EMAIL_CONFLICT" &&
+        details.field === "email"
+      ) {
+        setError("email", { type: "server", message: details.message });
+        setFocus("email");
+        showError(details.message);
+        return;
+      }
       showError(getHttpErrorMessage(error));
     }
   });
 
   if (loading)
-    return <main className="p-8 text-mendoza-blue">Cargando usuario…</main>;
+    return (
+      <main className="p-4 sm:p-8">
+        <LoadingState label="Cargando usuario…" />
+      </main>
+    );
   return (
     <main className="p-4 sm:p-8">
       <div className="mx-auto max-w-3xl">
@@ -117,7 +142,7 @@ export function UserFormPage() {
           <p className="mt-2 text-sm text-mendoza-muted">
             {editing
               ? "Los cambios de datos, rol, estado y asociación quedarán auditados."
-              : "La cuenta deberá cambiar la contraseña temporal durante su primer acceso."}
+              : "La cuenta recibirá por correo sus datos de acceso y deberá cambiar la contraseña temporal durante el primer ingreso."}
           </p>
           <form
             className="mt-7 grid gap-5 sm:grid-cols-2"
@@ -148,8 +173,8 @@ export function UserFormPage() {
             </Field>
             <Field label="Rol" error={errors.role?.message}>
               <select {...register("role")} className="field">
-                <option value="school">Colegio</option>
-                <option value="admin">Administrador</option>
+                <option value="school">Escuela</option>
+                <option value="admin">Administrador Central</option>
               </select>
             </Field>
             <Controller
@@ -157,17 +182,25 @@ export function UserFormPage() {
               name="schoolId"
               render={({ field }) => (
                 <SchoolCombobox
+                  allowClear={editing}
+                  clearLabel="Sin asignar"
                   disabled={role !== "school"}
                   error={errors.schoolId?.message}
                   onChange={(school) => {
-                    if (!school) return;
                     setSelectedSchool(school);
-                    field.onChange(school.id);
+                    field.onChange(school?.id ?? "");
                   }}
                   selectedSchool={selectedSchool}
                 />
               )}
             />
+            {editing && role === "school" && (
+              <p className="text-xs leading-5 text-mendoza-muted sm:col-start-2">
+                Podés dejar el usuario sin asignar. Si elegís un colegio que ya
+                tiene otro usuario, la asociación será reemplazada y el cambio
+                quedará registrado.
+              </p>
+            )}
             {!editing && (
               <Field
                 label="Contraseña temporal"

@@ -1,3 +1,4 @@
+import type { SchoolRectificationStatus } from "./admin-school";
 import type { PublishedSurvey, QuestionnaireFormValues } from "./survey";
 
 export type SchoolSubmissionStatus = "draft" | "submitted";
@@ -7,7 +8,7 @@ export type SchoolCampaignSummary = {
   name: string;
   description: string | null;
   type: "annual" | "semiannual";
-  status: "active";
+  status: "draft" | "active" | "closed" | "archived";
   startsAt: string;
   endsAt: string;
   surveyVersion: {
@@ -31,6 +32,7 @@ export type SubmissionProgress = {
 
 export type AvailableSchoolCampaign = SchoolCampaignSummary & {
   canStart: boolean;
+  readOnly?: boolean;
   blockingReason: string | null;
   submission: {
     id: string;
@@ -49,12 +51,10 @@ export type AvailableSchoolCampaignsResponse = {
     name: string;
     isActive: boolean;
   };
-  rectification: {
-    periodYear: number;
-    isRectified: boolean;
-    rectifiedAt: string | null;
-  };
+  rectification: Omit<SchoolRectificationStatus, "rectifiedBy">;
   items: AvailableSchoolCampaign[];
+  /** Borradores de campañas finalizadas, disponibles únicamente para consulta. */
+  expiredDrafts: AvailableSchoolCampaign[];
 };
 
 export type SchoolSubmissionWorkspace = {

@@ -64,6 +64,18 @@ describe("CampaignTrackingPage", () => {
     expect(screen.queryByText(/revisi[oó]n/i)).not.toBeInTheDocument();
   });
 
+  it("separa visualmente la etiqueta del selector de campaña", async () => {
+    renderPage();
+
+    const campaignSelect = await screen.findByRole("combobox", {
+      name: "Campaña",
+    });
+
+    expect(campaignSelect).toHaveAttribute("id", "campaign-tracking-campaign");
+    expect(campaignSelect).toHaveClass("block", "mt-2");
+    expect(screen.getByText(/Campaña activa/)).toHaveClass("mt-3");
+  });
+
   it("sends state, search, ordering and pagination to the backend", async () => {
     renderPage();
     await screen.findByText("Avance general de envíos");
