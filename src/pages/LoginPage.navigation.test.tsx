@@ -26,13 +26,20 @@ const adminUser: AuthUser = {
   role: 'admin',
 };
 
+const schoolUser: AuthUser = {
+  ...adminUser,
+  email: 'colegio@example.com',
+  id: 'school-1',
+  role: 'school',
+};
+
 function Destination() {
   const location = useLocation();
   return <output>{`${location.pathname}${location.search}`}</output>;
 }
 
-function renderLogin(initialEntry: string) {
-  const login = vi.fn().mockResolvedValue(adminUser);
+function renderLogin(initialEntry: string, authenticatedUser = adminUser) {
+  const login = vi.fn().mockResolvedValue(authenticatedUser);
   vi.mocked(useAuth).mockReturnValue({
     authenticationErrorStatus: null,
     isLoading: false,
@@ -81,6 +88,22 @@ describe('LoginPage return navigation', () => {
 
   it('descarta un retorno externo y usa el panel del rol', async () => {
     renderLogin('/login?returnTo=%2F%2Fmalicioso.example');
+
+    await submitLogin();
+
+    expect(await screen.findByText('/admin')).toBeVisible();
+  });
+
+  it('descarta una ruta de administrador para un usuario de colegio', async () => {
+    renderLogin('/login?returnTo=%2Fadmin%2Fusuarios', schoolUser);
+
+    await submitLogin();
+
+    expect(await screen.findByText('/colegio')).toBeVisible();
+  });
+
+  it('descarta una ruta de colegio para un administrador', async () => {
+    renderLogin('/login?returnTo=%2Fcolegio%2Fresultados');
 
     await submitLogin();
 

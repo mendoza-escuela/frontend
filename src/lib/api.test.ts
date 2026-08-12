@@ -83,7 +83,7 @@ describe('api', () => {
     const events = await captureWindowEvents(
       apiModule.AUTH_UNAUTHORIZED_EVENT,
       () =>
-        apiModule.api.get('/auth/me', {
+        apiModule.api.get('/schools/me', {
           adapter: rejectedAdapter({ status: 401 }),
         }),
     );
@@ -100,6 +100,18 @@ describe('api', () => {
           { email: 'persona@example.com', password: 'incorrecta' },
           { adapter: rejectedAdapter({ status: 401 }) },
         ),
+    );
+
+    expect(events).toHaveLength(0);
+  });
+
+  it('deja que AuthProvider maneje localmente un 401 de /auth/me', async () => {
+    const events = await captureWindowEvents(
+      apiModule.AUTH_UNAUTHORIZED_EVENT,
+      () =>
+        apiModule.api.get('/auth/me', {
+          adapter: rejectedAdapter({ status: 401 }),
+        }),
     );
 
     expect(events).toHaveLength(0);
