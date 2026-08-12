@@ -40,13 +40,9 @@ describe("SchoolCombobox", () => {
 
   it("busca opciones en el servidor y permite seleccionar un colegio", async () => {
     const onChange = vi.fn();
-    render(
-      <SchoolCombobox onChange={onChange} selectedSchool={null} />,
-    );
+    render(<SchoolCombobox onChange={onChange} selectedSchool={null} />);
 
-    fireEvent.click(
-      screen.getByRole("button", { name: "Colegio asociado" }),
-    );
+    fireEvent.click(screen.getByRole("button", { name: "Colegio asociado" }));
     fireEvent.change(
       screen.getByRole("combobox", {
         name: "Buscar colegio por CUE, número o nombre",
@@ -75,5 +71,22 @@ describe("SchoolCombobox", () => {
     expect(
       screen.getByRole("button", { name: "Colegio asociado" }),
     ).toBeDisabled();
+  });
+
+  it("permite seleccionar Sin asignar cuando se habilita la opción", async () => {
+    const onChange = vi.fn();
+    render(
+      <SchoolCombobox
+        allowClear
+        clearLabel="Sin asignar"
+        onChange={onChange}
+        selectedSchool={school}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "Colegio asociado" }));
+    fireEvent.click(await screen.findByRole("option", { name: "Sin asignar" }));
+
+    expect(onChange).toHaveBeenCalledWith(null);
   });
 });

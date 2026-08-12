@@ -161,6 +161,14 @@ describe("EvaluationConfigurationsPage", () => {
     ).toBeVisible();
     fireEvent.click(screen.getByRole("button", { name: "Descartar" }));
     expect(screen.queryByRole("dialog")).not.toBeInTheDocument();
+    expect(document.body.style.overflow).not.toBe("hidden");
+
+    fireEvent.click(
+      screen.getByRole("button", { name: "Nueva configuración" }),
+    );
+    expect(
+      screen.getByRole("dialog", { name: "Nueva configuración" }),
+    ).toBeVisible();
   });
 
   it("muestra y enfoca el código cuando ya existe otra configuración", async () => {

@@ -18,6 +18,7 @@ import { Button } from "../../components/ui/Button";
 import { ConfirmDialog } from "../../components/ui/ConfirmDialog";
 import { PaginationControls } from "../../components/ui/PaginationControls";
 import { LoadingState } from "../../components/ui/LoadingState";
+import { SearchableSelect } from "../../components/ui/SearchableSelect";
 import { getHttpErrorMessage } from "../../lib/http-error";
 import { showError, showSuccess } from "../../lib/toast";
 import { adminSchoolsService } from "../../services/admin-schools.service";
@@ -35,8 +36,9 @@ export function SchoolDetailPage() {
   const [eligibleUsers, setEligibleUsers] = useState(emptyAssignableUsers);
   const [userSearch, setUserSearch] = useState("");
   const [appliedUserSearch, setAppliedUserSearch] = useState("");
-  const [selectedUser, setSelectedUser] =
-    useState<SchoolUserSummary | null>(null);
+  const [selectedUser, setSelectedUser] = useState<SchoolUserSummary | null>(
+    null,
+  );
   const [loadingUsers, setLoadingUsers] = useState(false);
   const [saving, setSaving] = useState(false);
   const [statusDialogOpen, setStatusDialogOpen] = useState(false);
@@ -138,7 +140,11 @@ export function SchoolDetailPage() {
     }
   };
   if (!school)
-    return <main className="p-4 sm:p-8"><LoadingState label="Cargando detalle…" /></main>;
+    return (
+      <main className="p-4 sm:p-8">
+        <LoadingState label="Cargando detalle…" />
+      </main>
+    );
   return (
     <main className="p-4 sm:p-8">
       <div className="mx-auto max-w-7xl">
@@ -214,9 +220,8 @@ export function SchoolDetailPage() {
               <Datum
                 label="Niveles estructurados"
                 value={
-                  school.educationLevels
-                    .map(({ label }) => label)
-                    .join(", ") || "Sin informar"
+                  school.educationLevels.map(({ label }) => label).join(", ") ||
+                  "Sin informar"
                 }
               />
               <Datum label="Director/a" value={school.directorName} />
@@ -240,18 +245,12 @@ export function SchoolDetailPage() {
                     : school.enrollment.toLocaleString("es-AR")
                 }
               />
-              <Datum
-                label="Kiosco"
-                value={yesNoUnknown(school.hasKiosk)}
-              />
+              <Datum label="Kiosco" value={yesNoUnknown(school.hasKiosk)} />
               <Datum
                 label="Comedor o servicio alimentario"
                 value={yesNoUnknown(school.hasFoodService)}
               />
-              <Datum
-                label="Albergue"
-                value={yesNoUnknown(school.isBoarding)}
-              />
+              <Datum label="Albergue" value={yesNoUnknown(school.isBoarding)} />
               <Datum
                 label="Contacto"
                 value={
@@ -298,7 +297,10 @@ export function SchoolDetailPage() {
             </div>
             {school.users.length ? (
               school.users.map((user) => (
-                <div className="mt-4 rounded-xl bg-mendoza-background p-4" key={user.id}>
+                <div
+                  className="mt-4 rounded-xl bg-mendoza-background p-4"
+                  key={user.id}
+                >
                   <p className="font-semibold">
                     {user.firstName} {user.lastName}
                   </p>
@@ -319,9 +321,14 @@ export function SchoolDetailPage() {
               </p>
             )}
             <label className="mt-5 block text-sm font-semibold">
-              Buscar usuario disponible
+              Buscar usuario
               <span className="mt-2 flex gap-2">
-                <input className="min-w-0 flex-1 rounded-lg border border-mendoza-border px-3 py-2.5 font-normal" onChange={(event) => setUserSearch(event.target.value)} placeholder="Nombre o correo" value={userSearch} />
+                <input
+                  className="min-w-0 flex-1 rounded-lg border border-mendoza-border px-3 py-2.5 font-normal"
+                  onChange={(event) => setUserSearch(event.target.value)}
+                  placeholder="Nombre o correo"
+                  value={userSearch}
+                />
                 <Button
                   onClick={() => {
                     const nextSearch = userSearch.trim();
@@ -335,27 +342,29 @@ export function SchoolDetailPage() {
                 </Button>
               </span>
             </label>
-            <label className="mt-4 block text-sm font-semibold">
-              Asociar o reemplazar
-              <select
-                className="mt-2 w-full rounded-lg border border-mendoza-border px-3 py-2.5"
-                onChange={(event) =>
+            <div className="mt-4">
+              <SearchableSelect
+                allLabel="Sin usuario"
+                disabled={loadingUsers}
+                label="Asociar o reemplazar"
+                onChange={(userId) =>
                   setSelectedUser(
                     selectableUsers.find(
-                      (candidate) => candidate.id === event.target.value,
+                      (candidate) => candidate.id === userId,
                     ) ?? null,
                   )
                 }
+                options={selectableUsers.map((user) => ({
+                  value: user.id,
+                  label: `${user.lastName}, ${user.firstName} · ${user.email}${
+                    user.assignedSchool && user.assignedSchool.id !== school.id
+                      ? ` · Actualmente en ${user.assignedSchool.name}`
+                      : ""
+                  }`,
+                }))}
                 value={selectedUser?.id ?? ""}
-              >
-                <option value="">Sin usuario</option>
-                {selectableUsers.map((user) => (
-                  <option key={user.id} value={user.id}>
-                    {user.lastName}, {user.firstName} · {user.email}
-                  </option>
-                ))}
-              </select>
-            </label>
+              />
+            </div>
             <PaginationControls
               loading={loadingUsers}
               onPageChange={(page) => void loadEligibleUsers(page)}
@@ -370,8 +379,9 @@ export function SchoolDetailPage() {
               {saving ? "Guardando…" : "Guardar asociación"}
             </Button>
             <p className="mt-2 text-xs text-mendoza-muted">
-              Sólo se muestran usuarios activos con rol Colegio que no
-              pertenecen a otro establecimiento.
+              Se muestran usuarios activos con rol Colegio. Si elegís uno
+              asociado a otro establecimiento, se trasladará a este colegio y el
+              cambio quedará registrado en ambos historiales.
             </p>
           </section>
         </div>
@@ -475,7 +485,9 @@ function yesNoUnknown(value: boolean | null) {
   return value ? "Sí" : "No";
 }
 
-function snapshotSummary(snapshot: SchoolDetail["rectifications"][number]["snapshot"]) {
+function snapshotSummary(
+  snapshot: SchoolDetail["rectifications"][number]["snapshot"],
+) {
   const shift = snapshot.shiftCatalog?.label ?? snapshot.shift;
   const levels =
     snapshot.educationLevels?.map(({ label }) => label).join(", ") ||
@@ -508,8 +520,12 @@ function Timeline({
           {entries.map((entry) => (
             <li className="border-l-2 border-mendoza-sky pl-3" key={entry.id}>
               <p className="font-semibold text-mendoza-text">{entry.title}</p>
-              <p className="break-all text-sm text-mendoza-muted">{entry.detail}</p>
-              <time className="text-xs text-mendoza-muted">{date(entry.date)}</time>
+              <p className="break-all text-sm text-mendoza-muted">
+                {entry.detail}
+              </p>
+              <time className="text-xs text-mendoza-muted">
+                {date(entry.date)}
+              </time>
             </li>
           ))}
         </ul>

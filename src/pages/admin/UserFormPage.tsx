@@ -80,7 +80,7 @@ export function UserFormPage() {
         lastName: values.lastName,
         email: values.email,
         role: values.role,
-        schoolId: values.role === "school" ? values.schoolId : null,
+        schoolId: values.role === "school" ? values.schoolId || null : null,
         isActive: values.isActive,
       };
       if (id) {
@@ -119,7 +119,11 @@ export function UserFormPage() {
   });
 
   if (loading)
-    return <main className="p-4 sm:p-8"><LoadingState label="Cargando usuario…" /></main>;
+    return (
+      <main className="p-4 sm:p-8">
+        <LoadingState label="Cargando usuario…" />
+      </main>
+    );
   return (
     <main className="p-4 sm:p-8">
       <div className="mx-auto max-w-3xl">
@@ -178,17 +182,25 @@ export function UserFormPage() {
               name="schoolId"
               render={({ field }) => (
                 <SchoolCombobox
+                  allowClear={editing}
+                  clearLabel="Sin asignar"
                   disabled={role !== "school"}
                   error={errors.schoolId?.message}
                   onChange={(school) => {
-                    if (!school) return;
                     setSelectedSchool(school);
-                    field.onChange(school.id);
+                    field.onChange(school?.id ?? "");
                   }}
                   selectedSchool={selectedSchool}
                 />
               )}
             />
+            {editing && role === "school" && (
+              <p className="text-xs leading-5 text-mendoza-muted sm:col-start-2">
+                Podés dejar el usuario sin asignar. Si elegís un colegio que ya
+                tiene otro usuario, la asociación será reemplazada y el cambio
+                quedará registrado.
+              </p>
+            )}
             {!editing && (
               <Field
                 label="Contraseña temporal"

@@ -234,6 +234,11 @@ export type SchoolUserSummary = {
   role?: string;
   isActive?: boolean;
   lastLoginAt?: string | null;
+  assignedSchool?: {
+    id: string;
+    cue: string;
+    name: string;
+  } | null;
 };
 export type SchoolUserListResponse = {
   items: SchoolUserSummary[];

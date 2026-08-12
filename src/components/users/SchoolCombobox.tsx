@@ -1,9 +1,4 @@
-import {
-  Check,
-  ChevronsUpDown,
-  LoaderCircle,
-  Search,
-} from "lucide-react";
+import { Check, ChevronsUpDown, LoaderCircle, Search } from "lucide-react";
 import { useEffect, useId, useRef, useState } from "react";
 import { adminUsersService } from "../../services/admin-users.service";
 import type { SchoolOption } from "../../types/admin-user";
@@ -12,6 +7,7 @@ const PAGE_SIZE = 20;
 
 type SchoolComboboxProps = {
   allowClear?: boolean;
+  clearLabel?: string;
   disabled?: boolean;
   disableInactive?: boolean;
   error?: string;
@@ -23,6 +19,7 @@ type SchoolComboboxProps = {
 
 export function SchoolCombobox({
   allowClear = false,
+  clearLabel = "Todos los colegios",
   disabled = false,
   disableInactive = true,
   error,
@@ -215,7 +212,7 @@ export function SchoolCombobox({
                     className={`shrink-0 text-mendoza-blue ${selectedSchool ? "opacity-0" : "opacity-100"}`}
                     size={16}
                   />
-                  Todos los colegios
+                  {clearLabel}
                 </button>
               )}
               {loading ? (
@@ -250,9 +247,7 @@ export function SchoolCombobox({
                   {schools.map((school) => {
                     const selected = school.id === selectedSchool?.id;
                     const inactive =
-                      disableInactive &&
-                      school.isActive === false &&
-                      !selected;
+                      disableInactive && school.isActive === false && !selected;
                     return (
                       <button
                         aria-disabled={inactive}

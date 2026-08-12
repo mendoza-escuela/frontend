@@ -9,6 +9,24 @@ const sizeClassNames: Record<ModalSize, string> = {
   xl: "max-w-6xl",
 };
 
+let bodyScrollLockCount = 0;
+let bodyOverflowBeforeLock = "";
+
+function lockBodyScroll() {
+  if (bodyScrollLockCount === 0) {
+    bodyOverflowBeforeLock = document.body.style.overflow;
+  }
+  bodyScrollLockCount += 1;
+  document.body.style.overflow = "hidden";
+
+  return () => {
+    bodyScrollLockCount = Math.max(0, bodyScrollLockCount - 1);
+    if (bodyScrollLockCount === 0) {
+      document.body.style.overflow = bodyOverflowBeforeLock;
+    }
+  };
+}
+
 export function Modal({
   open,
   title,
@@ -29,14 +47,13 @@ export function Modal({
 
   useEffect(() => {
     if (!open) return;
-    const previousOverflow = document.body.style.overflow;
+    const unlockBodyScroll = lockBodyScroll();
     const closeOnEscape = (event: KeyboardEvent) => {
       if (event.key === "Escape") onClose();
     };
-    document.body.style.overflow = "hidden";
     document.addEventListener("keydown", closeOnEscape);
     return () => {
-      document.body.style.overflow = previousOverflow;
+      unlockBodyScroll();
       document.removeEventListener("keydown", closeOnEscape);
     };
   }, [onClose, open]);
