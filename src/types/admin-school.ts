@@ -184,6 +184,9 @@ export type SchoolWriteInput = Omit<
   }>;
   contacts: Array<Omit<SchoolContact, "id">>;
 };
+export type SchoolCreateResponse = SchoolDetail & {
+  responsibleUserInvitationEmailSent: boolean;
+};
 export type SchoolListItem = Pick<
   School,
   | "id"
@@ -291,7 +294,14 @@ export type SchoolImportPreview = {
 export type SchoolImportResult = {
   totalRows: number;
   importedCount: number;
+  invitationEmailSentCount: number;
+  invitationEmailPendingCount: number;
   errorCount: number;
-  imported: Array<{ line: number; id: string; cue: string }>;
+  imported: Array<{
+    line: number;
+    id: string;
+    cue: string;
+    invitationEmailSent: boolean;
+  }>;
   errors: Array<{ line: number; cue: string; errors: string[] }>;
 };

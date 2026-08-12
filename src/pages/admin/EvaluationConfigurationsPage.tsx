@@ -10,9 +10,21 @@ import {
   Plus,
   Settings2,
   ShieldCheck,
+  Star,
 } from "lucide-react";
-import { useCallback, useEffect, useState } from "react";
-import { useFieldArray, useForm } from "react-hook-form";
+import {
+  useCallback,
+  useEffect,
+  useState,
+  type ClipboardEvent,
+  type KeyboardEvent,
+} from "react";
+import {
+  Controller,
+  useFieldArray,
+  useForm,
+  type Control,
+} from "react-hook-form";
 import { z } from "zod";
 import { Button } from "../../components/ui/Button";
 import { Card } from "../../components/ui/Card";
@@ -74,6 +86,7 @@ const schema = z
       .optional(),
     mentalHealthCriticalThreshold: z
       .number("Ingresá un umbral válido.")
+      .int("El umbral debe ser un número entero.")
       .min(0, "El umbral no puede ser menor a 0.")
       .max(100, "El umbral no puede superar 100."),
     mentalHealthMaxStars: z
@@ -472,25 +485,25 @@ export function EvaluationConfigurationsPage() {
                   <div className="mb-1 flex items-center gap-2"><AlertTriangle aria-hidden="true" className="text-amber-700" size={19} /><h3 className="font-bold text-mendoza-text" id="critical-rule-title">Regla de criticidad</h3></div>
                   <p className="mb-4 text-sm leading-5 text-mendoza-muted">Si Salud Mental queda por debajo del umbral, las estrellas finales no podrán superar el máximo definido.</p>
                 <div className="grid gap-3 sm:grid-cols-2">
-                  <Field label="Umbral Salud Mental" hint="Puntaje de 0 a 100" error={form.formState.errors.mentalHealthCriticalThreshold?.message}>
+                  <Field label="Umbral Salud Mental" hint="Puntaje entero de 0 a 100" error={form.formState.errors.mentalHealthCriticalThreshold?.message}>
                     <input
                       className={inputClassName}
+                      inputMode="numeric"
+                      max="100"
+                      min="0"
+                      onKeyDown={preventNonIntegerKey}
+                      onPaste={preventNonIntegerPaste}
                       type="number"
-                      step="0.0001"
+                      step="1"
                       {...form.register("mentalHealthCriticalThreshold", {
                         valueAsNumber: true,
                       })}
                     />
                   </Field>
-                  <Field label="Máximo con criticidad" hint="Entre 1 y 5 estrellas" error={form.formState.errors.mentalHealthMaxStars?.message}>
-                    <input
-                      className={inputClassName}
-                      type="number"
-                      {...form.register("mentalHealthMaxStars", {
-                        valueAsNumber: true,
-                      })}
-                    />
-                  </Field>
+                  <StarRatingField
+                    control={form.control}
+                    error={form.formState.errors.mentalHealthMaxStars?.message}
+                  />
                 </div>
                 </section>
                 <fieldset className="rounded-2xl border border-mendoza-border p-4">
@@ -510,6 +523,11 @@ export function EvaluationConfigurationsPage() {
                           <input
                             aria-label={`Límite inferior ${index + 1} estrellas`}
                             className={inputClassName}
+                            inputMode="numeric"
+                            max="100"
+                            min="0"
+                            onKeyDown={preventNonIntegerKey}
+                            onPaste={preventNonIntegerPaste}
                             type="number"
                             step="1"
                             {...form.register(`starRanges.${index}.lowerBound`, {
@@ -521,6 +539,11 @@ export function EvaluationConfigurationsPage() {
                           <input
                             aria-label={`Límite superior ${index + 1} estrellas`}
                             className={inputClassName}
+                            inputMode="numeric"
+                            max="100"
+                            min="0"
+                            onKeyDown={preventNonIntegerKey}
+                            onPaste={preventNonIntegerPaste}
                             type="number"
                             step="1"
                             {...form.register(`starRanges.${index}.upperBound`, {
@@ -619,6 +642,83 @@ function ConfigurationOverview({ items, loading }: { items: EvaluationConfigurat
   ];
   return <section aria-label="Resumen de configuraciones" className="mt-6 grid gap-3 sm:grid-cols-2 xl:grid-cols-4">{summaries.map(({ label, value, detail, icon: Icon, tone }) => <Card as="article" className="relative overflow-hidden" key={label}><div className={`grid size-10 place-items-center rounded-xl ${tone}`}><Icon aria-hidden="true" size={20} /></div><p className="mt-4 text-xs font-bold uppercase tracking-wide text-mendoza-muted">{label}</p><p className="mt-1 truncate text-xl font-bold text-mendoza-text" title={value}>{value}</p><p className="mt-1 text-xs leading-5 text-mendoza-muted">{detail}</p></Card>)}</section>;
 }
+
+function StarRatingField({
+  control,
+  error,
+}: {
+  control: Control<EvaluationConfigurationInput>;
+  error?: string;
+}) {
+  const errorId = "mental-health-max-stars-error";
+  return (
+    <fieldset aria-describedby={error ? errorId : undefined} aria-invalid={Boolean(error)}>
+      <legend className="text-sm font-semibold text-mendoza-text">
+        Máximo con criticidad
+      </legend>
+      <Controller
+        control={control}
+        name="mentalHealthMaxStars"
+        render={({ field }) => (
+          <div className="mt-1.5 rounded-xl border border-amber-200 bg-white px-4 py-3 shadow-sm">
+            <div className="flex items-center gap-1" role="radiogroup">
+              {[1, 2, 3, 4, 5].map((stars) => {
+                const selected = stars <= field.value;
+                return (
+                  <label
+                    className="group relative cursor-pointer rounded-lg p-1.5 transition hover:scale-110 focus-within:ring-4 focus-within:ring-mendoza-gold/25 motion-reduce:hover:scale-100"
+                    key={stars}
+                    title={`${stars} ${stars === 1 ? "estrella" : "estrellas"}`}
+                  >
+                    <input
+                      checked={field.value === stars}
+                      className="sr-only"
+                      name={field.name}
+                      onBlur={field.onBlur}
+                      onChange={() => field.onChange(stars)}
+                      ref={field.ref}
+                      type="radio"
+                      value={stars}
+                    />
+                    <Star
+                      aria-hidden="true"
+                      className={`size-8 transition-colors ${selected ? "text-mendoza-gold" : "text-slate-300 group-hover:text-mendoza-gold/60"}`}
+                      fill={selected ? "currentColor" : "none"}
+                      strokeWidth={1.8}
+                    />
+                    <span className="sr-only">
+                      {stars} {stars === 1 ? "estrella" : "estrellas"}
+                    </span>
+                  </label>
+                );
+              })}
+            </div>
+            <p aria-live="polite" className="mt-1 text-xs font-semibold text-mendoza-muted">
+              {field.value} de 5 estrellas
+            </p>
+          </div>
+        )}
+      />
+      {error && (
+        <p className="mt-2 text-sm font-normal text-mendoza-error" id={errorId} role="alert">
+          {error}
+        </p>
+      )}
+    </fieldset>
+  );
+}
+
+const invalidIntegerKeys = new Set(["-", "+", ".", ",", "e", "E"]);
+
+function preventNonIntegerKey(event: KeyboardEvent<HTMLInputElement>) {
+  if (invalidIntegerKeys.has(event.key)) event.preventDefault();
+}
+
+function preventNonIntegerPaste(event: ClipboardEvent<HTMLInputElement>) {
+  if (!/^\d+$/.test(event.clipboardData.getData("text").trim()))
+    event.preventDefault();
+}
+
 function Field({
   label,
   error,

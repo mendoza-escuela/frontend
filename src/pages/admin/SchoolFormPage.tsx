@@ -1,6 +1,6 @@
 import { zodResolver } from "@hookform/resolvers/zod";
-import { ArrowLeft, Save } from "lucide-react";
-import { useEffect, useState } from "react";
+import { ArrowLeft, Check, Minus, Save, UserPlus, X } from "lucide-react";
+import { useEffect, useMemo, useState } from "react";
 import {
   Controller,
   type Control,
@@ -14,12 +14,12 @@ import { ErrorState } from "../../components/ui/ErrorState";
 import { LoadingState } from "../../components/ui/LoadingState";
 import { SearchableSelect } from "../../components/ui/SearchableSelect";
 import { checkboxClassName } from "../../components/ui/form-styles";
-import { getHttpErrorMessage } from "../../lib/http-error";
+import { getHttpErrorDetails, getHttpErrorMessage } from "../../lib/http-error";
 import {
-  schoolFormSchema,
+  createAdminSchoolFormSchema,
   type SchoolFormValues,
 } from "../../lib/school-form-schema";
-import { showError, showSuccess } from "../../lib/toast";
+import { showError, showSuccess, showWarning } from "../../lib/toast";
 import { adminSchoolsService } from "../../services/admin-schools.service";
 import type {
   SchoolCatalogOption,
@@ -59,11 +59,6 @@ const defaults: SchoolFormValues = {
   referentEmail: "",
   referentPhone: "",
   respondentPosition: "",
-  healthReferentFirstName: "",
-  healthReferentLastName: "",
-  healthReferentPosition: "",
-  healthReferentEmail: "",
-  healthReferentPhone: "",
   enrollment: null,
   isActive: true,
 };
@@ -78,6 +73,10 @@ type BooleanFieldName =
 export function SchoolFormPage() {
   const { id } = useParams();
   const editing = Boolean(id);
+  const schema = useMemo(
+    () => createAdminSchoolFormSchema(editing),
+    [editing],
+  );
   const navigate = useNavigate();
   const [catalogs, setCatalogs] = useState<SchoolRectificationCatalogs | null>(
     null,
@@ -91,11 +90,13 @@ export function SchoolFormPage() {
     register,
     handleSubmit,
     reset,
+    setError,
+    setFocus,
     setValue,
     watch,
     formState: { errors, isSubmitting },
   } = useForm<SchoolFormValues>({
-    resolver: zodResolver(schoolFormSchema),
+    resolver: zodResolver(schema),
     defaultValues: defaults,
   });
 
@@ -155,44 +156,20 @@ export function SchoolFormPage() {
       return;
     }
 
-    const contacts = [
-      {
-        type: "RESPONDENT" as const,
-        firstName: values.referentFirstName,
-        lastName: values.referentLastName,
-        position: values.respondentPosition || null,
-        email: values.referentEmail || null,
-        phone: values.referentPhone || null,
-      },
-      ...(values.healthReferentFirstName
-        ? [
-            {
-              type: "HEALTH_PROMOTION" as const,
-              firstName: values.healthReferentFirstName,
-              lastName: values.healthReferentLastName ?? "",
-              position: values.healthReferentPosition || null,
-              email: values.healthReferentEmail || null,
-              phone: values.healthReferentPhone || null,
-            },
-          ]
-        : []),
-    ];
+    const contacts = [{
+      type: "RESPONDENT" as const,
+      firstName: values.referentFirstName,
+      lastName: values.referentLastName,
+      position: values.respondentPosition || null,
+      email: values.referentEmail || null,
+      phone: values.referentPhone || null,
+    }];
     const {
       respondentPosition: _respondentPosition,
-      healthReferentFirstName: _healthFirstName,
-      healthReferentLastName: _healthLastName,
-      healthReferentPosition: _healthPosition,
-      healthReferentEmail: _healthEmail,
-      healthReferentPhone: _healthPhone,
       characteristics: _characteristics,
       ...schoolValues
     } = values;
     void _respondentPosition;
-    void _healthFirstName;
-    void _healthLastName;
-    void _healthPosition;
-    void _healthEmail;
-    void _healthPhone;
     void _characteristics;
     const characteristics = simpleCharacteristics(values.characteristics);
 
@@ -249,16 +226,29 @@ export function SchoolFormPage() {
           contacts,
         };
         await adminSchoolsService.updateAndRectify(id, rectificationInput);
+        showSuccess("Colegio actualizado y cambios auditados.");
       } else {
-        await adminSchoolsService.create(input);
+        const created = await adminSchoolsService.create(input);
+        if (created.responsibleUserInvitationEmailSent) {
+          showSuccess(
+            "Colegio y usuario responsable creados. Enviamos las credenciales por correo.",
+          );
+        } else {
+          showWarning(
+            "Colegio y usuario responsable creados, pero no se pudo enviar el correo. Verificá la configuración SMTP y restablecé la clave desde Usuarios.",
+          );
+        }
       }
-      showSuccess(
-        id
-          ? "Colegio actualizado y cambios auditados."
-          : "Colegio creado y alta auditada.",
-      );
       navigate(id ? `/admin/colegios/${id}` : "/admin/colegios");
     } catch (error) {
+      const details = getHttpErrorDetails(error);
+      if (details?.field === "referentEmail") {
+        setError("referentEmail", {
+          type: "server",
+          message: details.message,
+        });
+        setFocus("referentEmail");
+      }
       showError(getHttpErrorMessage(error));
     }
   });
@@ -446,7 +436,21 @@ export function SchoolFormPage() {
               <input className="field" {...register("phone")} />
             </Field>
 
-            <Section title="Referente respondente" />
+            <Section title="Referente responsable" />
+            {!editing && (
+              <div className="flex gap-3 rounded-xl border border-mendoza-sky/40 bg-mendoza-sky-soft p-4 text-sm leading-6 text-mendoza-text md:col-span-2">
+                <UserPlus
+                  aria-hidden="true"
+                  className="mt-0.5 shrink-0 text-mendoza-blue"
+                  size={20}
+                />
+                <p>
+                  Al guardar, se creará automáticamente una cuenta asociada
+                  al colegio. El responsable recibirá por correo una clave
+                  temporal aleatoria y deberá cambiarla en su primer ingreso.
+                </p>
+              </div>
+            )}
             <Field label="Nombre *" error={errors.referentFirstName?.message}>
               <input className="field" {...register("referentFirstName")} />
             </Field>
@@ -459,47 +463,14 @@ export function SchoolFormPage() {
             <Field label="Celular" error={errors.referentPhone?.message}>
               <input className="field" {...register("referentPhone")} />
             </Field>
-            <Field label="Correo" error={errors.referentEmail?.message}>
+            <Field
+              label={editing ? "Correo" : "Correo *"}
+              error={errors.referentEmail?.message}
+            >
               <input
                 className="field"
                 type="email"
                 {...register("referentEmail")}
-              />
-            </Field>
-
-            <Section title="Referente de promoción de la salud" />
-            <Field
-              label="Nombre"
-              error={errors.healthReferentFirstName?.message}
-            >
-              <input
-                className="field"
-                {...register("healthReferentFirstName")}
-              />
-            </Field>
-            <Field
-              label="Apellido"
-              error={errors.healthReferentLastName?.message}
-            >
-              <input
-                className="field"
-                {...register("healthReferentLastName")}
-              />
-            </Field>
-            <Field label="Cargo" error={errors.healthReferentPosition?.message}>
-              <input
-                className="field"
-                {...register("healthReferentPosition")}
-              />
-            </Field>
-            <Field label="Celular" error={errors.healthReferentPhone?.message}>
-              <input className="field" {...register("healthReferentPhone")} />
-            </Field>
-            <Field label="Correo" error={errors.healthReferentEmail?.message}>
-              <input
-                className="field"
-                type="email"
-                {...register("healthReferentEmail")}
               />
             </Field>
 
@@ -673,36 +644,46 @@ function BooleanField({
   return (
     <fieldset
       aria-invalid={Boolean(error)}
-      className="rounded-xl border border-mendoza-border p-4"
+      className={`rounded-2xl border bg-white p-4 transition ${error ? "border-mendoza-error" : "border-mendoza-border"}`}
     >
-      <legend className="px-1 text-sm font-semibold text-mendoza-text">
+      <legend className="px-2 text-sm font-bold text-mendoza-text">
         {label}
       </legend>
       <Controller
         control={control}
         name={name}
         render={({ field }) => (
-          <div className="mt-1 flex gap-4">
+          <div
+            className={`mt-2 grid gap-2 ${optional ? "grid-cols-1 sm:grid-cols-3" : "grid-cols-2"}`}
+          >
             {[
-              { label: "Sí", value: true },
-              { label: "No", value: false },
-              ...(optional ? [{ label: "Sin informar", value: null }] : []),
-            ].map((option) => (
-              <label
-                className="flex items-center gap-2 text-sm"
-                key={option.label}
-              >
-                <input
-                  checked={field.value === option.value}
-                  name={field.name}
-                  onBlur={field.onBlur}
-                  onChange={() => field.onChange(option.value)}
-                  ref={field.ref}
-                  type="radio"
-                />
-                {option.label}
-              </label>
-            ))}
+              { icon: Check, label: "Sí", value: true },
+              { icon: X, label: "No", value: false },
+              ...(optional
+                ? [{ icon: Minus, label: "Sin informar", value: null }]
+                : []),
+            ].map((option) => {
+              const selected = field.value === option.value;
+              const Icon = option.icon;
+              return (
+                <label
+                  className={`flex min-h-11 cursor-pointer items-center justify-center gap-2 rounded-xl border px-3 py-2 text-sm font-semibold transition focus-within:ring-4 focus-within:ring-mendoza-sky/15 ${selected ? "border-mendoza-blue bg-mendoza-blue-soft text-mendoza-blue shadow-sm" : "border-mendoza-border bg-white text-mendoza-muted hover:border-mendoza-sky hover:bg-mendoza-background"}`}
+                  key={option.label}
+                >
+                  <input
+                    checked={selected}
+                    className="sr-only"
+                    name={field.name}
+                    onBlur={field.onBlur}
+                    onChange={() => field.onChange(option.value)}
+                    ref={field.ref}
+                    type="radio"
+                  />
+                  <Icon aria-hidden="true" size={17} strokeWidth={2.5} />
+                  {option.label}
+                </label>
+              );
+            })}
           </div>
         )}
       />
@@ -720,9 +701,6 @@ function schoolFormValues(
   catalogs: SchoolRectificationCatalogs,
 ): SchoolFormValues {
   const respondent = school.contacts?.find(({ type }) => type === "RESPONDENT");
-  const health = school.contacts?.find(
-    ({ type }) => type === "HEALTH_PROMOTION",
-  );
   const shift = catalogs.shifts.items.find(
     (option) =>
       option.id === school.shiftCatalogId ||
@@ -771,11 +749,6 @@ function schoolFormValues(
     referentEmail: respondent?.email ?? school.referentEmail ?? "",
     referentPhone: respondent?.phone ?? school.referentPhone ?? "",
     respondentPosition: respondent?.position ?? "",
-    healthReferentFirstName: health?.firstName ?? "",
-    healthReferentLastName: health?.lastName ?? "",
-    healthReferentPosition: health?.position ?? "",
-    healthReferentEmail: health?.email ?? "",
-    healthReferentPhone: health?.phone ?? "",
     enrollment: school.enrollment ?? null,
     isActive: school.isActive,
   };

@@ -1,5 +1,6 @@
 import { describe, expect, it } from "vitest";
 import {
+  createAdminSchoolFormSchema,
   schoolFormSchema,
   schoolRectificationSchema,
 } from "./school-form-schema";
@@ -43,11 +44,6 @@ const valid = {
   referentEmail: "ana@ejemplo.edu.ar",
   referentPhone: "",
   respondentPosition: "Secretaria",
-  healthReferentFirstName: "",
-  healthReferentLastName: "",
-  healthReferentPosition: "",
-  healthReferentEmail: "",
-  healthReferentPhone: "",
   enrollment: 350,
   isActive: true,
 };
@@ -82,13 +78,19 @@ describe("schoolFormSchema", () => {
     }
   });
 
-  it("exige completar el referente de salud sólo cuando se empieza a informar", () => {
+  it("exige correo del responsable al crear pero no al editar datos históricos", () => {
     expect(
-      schoolFormSchema.safeParse({
+      createAdminSchoolFormSchema(false).safeParse({
         ...valid,
-        healthReferentEmail: "salud@escuela.edu.ar",
+        referentEmail: "",
       }).success,
     ).toBe(false);
+    expect(
+      createAdminSchoolFormSchema(true).safeParse({
+        ...valid,
+        referentEmail: "",
+      }).success,
+    ).toBe(true);
   });
 
   it("permite matrícula y cargos sin informar, pero valida cargos iniciados", () => {
@@ -97,23 +99,12 @@ describe("schoolFormSchema", () => {
         ...valid,
         enrollment: null,
         respondentPosition: "",
-        healthReferentFirstName: "Laura",
-        healthReferentLastName: "Gómez",
-        healthReferentPosition: "",
       }).success,
     ).toBe(true);
     expect(
       schoolFormSchema.safeParse({
         ...valid,
         respondentPosition: "X",
-      }).success,
-    ).toBe(false);
-    expect(
-      schoolFormSchema.safeParse({
-        ...valid,
-        healthReferentFirstName: "Laura",
-        healthReferentLastName: "Gómez",
-        healthReferentPosition: "X",
       }).success,
     ).toBe(false);
   });

@@ -169,7 +169,10 @@ describe("SchoolFormPage", () => {
       catalogs,
     );
     vi.mocked(adminSchoolsService.findOne).mockResolvedValue(school);
-    vi.mocked(adminSchoolsService.create).mockResolvedValue(school);
+    vi.mocked(adminSchoolsService.create).mockResolvedValue({
+      ...school,
+      responsibleUserInvitationEmailSent: true,
+    });
     vi.mocked(adminSchoolsService.updateAndRectify).mockResolvedValue(school);
   });
 
@@ -227,10 +230,7 @@ describe("SchoolFormPage", () => {
           isMultigrade: true,
           isInterculturalBilingual: false,
         },
-        contacts: expect.arrayContaining([
-          expect.objectContaining({ type: "RESPONDENT" }),
-          expect.objectContaining({ type: "HEALTH_PROMOTION" }),
-        ]),
+        contacts: [expect.objectContaining({ type: "RESPONDENT" })],
       }),
     );
     expect(adminSchoolsService.update).not.toHaveBeenCalled();
@@ -274,10 +274,6 @@ describe("SchoolFormPage", () => {
         },
         contacts: [
           expect.objectContaining({ type: "RESPONDENT", position: null }),
-          expect.objectContaining({
-            type: "HEALTH_PROMOTION",
-            position: null,
-          }),
         ],
       }),
     );
@@ -325,6 +321,9 @@ describe("SchoolFormPage", () => {
     fireEvent.change(names[1], { target: { value: "Ana" } });
     fireEvent.change(screen.getByLabelText("Apellido *"), {
       target: { value: "Pérez" },
+    });
+    fireEvent.change(screen.getByLabelText("Correo *"), {
+      target: { value: "ana@escuela.edu.ar" },
     });
 
     expect(

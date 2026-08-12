@@ -107,9 +107,6 @@ export function SchoolProfilePage() {
   const savedRespondent = school.contacts?.find(
     ({ type }) => type === "RESPONDENT",
   );
-  const savedHealthReferent = school.contacts?.find(
-    ({ type }) => type === "HEALTH_PROMOTION",
-  );
   const removeLevel = (levelId: string) => {
     setValue(
       "educationLevels",
@@ -278,40 +275,20 @@ export function SchoolProfilePage() {
 
           <ProfileCard icon={Mail} title="Contacto">
             <Definition
-              label="Referente respondente"
+              label="Referente responsable"
               value={`${savedRespondent?.firstName ?? school.referentFirstName} ${savedRespondent?.lastName ?? school.referentLastName}`}
             />
             <Definition
-              label="Cargo del respondente"
+              label="Cargo del responsable"
               value={savedRespondent?.position}
             />
             <Definition
-              label="Correo del respondente"
+              label="Correo del responsable"
               value={savedRespondent?.email ?? school.referentEmail}
             />
             <Definition
-              label="Celular del respondente"
+              label="Celular del responsable"
               value={savedRespondent?.phone ?? school.referentPhone}
-            />
-            <Definition
-              label="Referente de promoción de la salud"
-              value={
-                savedHealthReferent
-                  ? `${savedHealthReferent.firstName} ${savedHealthReferent.lastName}`
-                  : null
-              }
-            />
-            <Definition
-              label="Cargo de promoción de la salud"
-              value={savedHealthReferent?.position}
-            />
-            <Definition
-              label="Correo de promoción de la salud"
-              value={savedHealthReferent?.email}
-            />
-            <Definition
-              label="Celular de promoción de la salud"
-              value={savedHealthReferent?.phone}
             />
             <Definition label="Correo" value={school.email} icon={Mail} />
             <Definition label="Teléfono" value={school.phone} icon={Phone} />
@@ -407,37 +384,13 @@ export function SchoolProfilePage() {
               <div className="flex flex-wrap items-center justify-between gap-3">
                 <div>
                   <h3 className="font-bold text-mendoza-text">
-                    Referentes escolares
+                    Referente responsable
                   </h3>
                   <p className="mt-1 text-sm text-mendoza-muted">
                     Estos datos quedarán congelados en la rectificación y en la
                     presentación de la campaña.
                   </p>
                 </div>
-                {!contacts.some(({ type }) => type === "HEALTH_PROMOTION") && (
-                  <Button
-                    onClick={() =>
-                      setValue(
-                        "contacts",
-                        [
-                          ...contacts,
-                          {
-                            type: "HEALTH_PROMOTION",
-                            firstName: "",
-                            lastName: "",
-                            position: "",
-                            phone: "",
-                            email: "",
-                          },
-                        ],
-                        { shouldDirty: true },
-                      )
-                    }
-                    variant="outline"
-                  >
-                    Agregar referente de promoción
-                  </Button>
-                )}
               </div>
               <div className="mt-4 grid gap-4 lg:grid-cols-2">
                 {contacts.map((contact, index) => (
@@ -446,9 +399,7 @@ export function SchoolProfilePage() {
                     key={contact.type}
                   >
                     <legend className="px-2 font-bold text-mendoza-blue">
-                      {contact.type === "RESPONDENT"
-                        ? "Referente respondente"
-                        : "Promoción de la salud"}
+                      Referente responsable
                     </legend>
                     <input
                       type="hidden"
@@ -501,23 +452,6 @@ export function SchoolProfilePage() {
                         />
                       </RectificationField>
                     </div>
-                    {contact.type === "HEALTH_PROMOTION" && (
-                      <button
-                        className="mt-3 text-sm font-semibold text-mendoza-error"
-                        onClick={() =>
-                          setValue(
-                            "contacts",
-                            contacts.filter(
-                              (_, contactIndex) => contactIndex !== index,
-                            ),
-                            { shouldDirty: true },
-                          )
-                        }
-                        type="button"
-                      >
-                        Quitar este referente
-                      </button>
-                    )}
                   </fieldset>
                 ))}
               </div>
@@ -962,11 +896,10 @@ function SnapshotDetails({
           snapshotCharacteristic(snapshot, "isInterculturalBilingual"),
         )}
       />
-      {snapshot.contacts?.map((contact) => {
-        const contactLabel =
-          contact.type === "RESPONDENT"
-            ? "Referente respondente"
-            : "Referente de promoción de la salud";
+      {snapshot.contacts
+        ?.filter(({ type }) => type === "RESPONDENT")
+        .map((contact) => {
+        const contactLabel = "Referente responsable";
         return (
           <Fragment key={contact.type}>
             <Definition
@@ -1038,9 +971,6 @@ function rectificationValues(
     contacts: (() => {
       const saved = school.contacts ?? [];
       const respondent = saved.find(({ type }) => type === "RESPONDENT");
-      const healthPromotion = saved.find(
-        ({ type }) => type === "HEALTH_PROMOTION",
-      );
       return [
         {
           type: "RESPONDENT" as const,
@@ -1050,18 +980,6 @@ function rectificationValues(
           phone: respondent?.phone ?? school.referentPhone ?? "",
           email: respondent?.email ?? school.referentEmail ?? "",
         },
-        ...(healthPromotion
-          ? [
-              {
-                type: "HEALTH_PROMOTION" as const,
-                firstName: healthPromotion.firstName,
-                lastName: healthPromotion.lastName,
-                position: healthPromotion.position ?? "",
-                phone: healthPromotion.phone ?? "",
-                email: healthPromotion.email ?? "",
-              },
-            ]
-          : []),
       ];
     })(),
     expectedUpdatedAt: school.updatedAt,

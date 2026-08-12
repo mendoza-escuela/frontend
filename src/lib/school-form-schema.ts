@@ -111,15 +111,6 @@ const schoolFormBaseSchema = z.object({
     160,
     "El cargo debe tener al menos 2 caracteres.",
   ),
-  healthReferentFirstName: optionalText(100),
-  healthReferentLastName: optionalText(100),
-  healthReferentPosition: optionalTextWithMin(
-    2,
-    160,
-    "El cargo debe tener al menos 2 caracteres.",
-  ),
-  healthReferentEmail: optionalEmail,
-  healthReferentPhone: optionalText(40),
   enrollment: z
     .number()
     .int("Debe ser un número entero.")
@@ -129,32 +120,18 @@ const schoolFormBaseSchema = z.object({
   isActive: z.boolean(),
 });
 
-export const schoolFormSchema = schoolFormBaseSchema.superRefine(
-  (values, context) => {
-    const healthValues = [
-      values.healthReferentFirstName,
-      values.healthReferentLastName,
-      values.healthReferentPosition,
-      values.healthReferentEmail,
-      values.healthReferentPhone,
-    ];
-    if (!healthValues.some(Boolean)) return;
-    for (const [field, value, message] of [
-      [
-        "healthReferentFirstName",
-        values.healthReferentFirstName,
-        "Ingresá el nombre del referente de promoción de la salud.",
-      ],
-      [
-        "healthReferentLastName",
-        values.healthReferentLastName,
-        "Ingresá el apellido del referente de promoción de la salud.",
-      ],
-    ] as const)
-      if (!value || value.trim().length < 2)
-        context.addIssue({ code: "custom", path: [field], message });
-  },
-);
+export const schoolFormSchema = schoolFormBaseSchema;
+
+/** El correo es obligatorio al crear porque identifica la cuenta responsable. */
+export const createAdminSchoolFormSchema = (editing: boolean) =>
+  schoolFormBaseSchema.superRefine((values, context) => {
+    if (!editing && !values.referentEmail?.trim())
+      context.addIssue({
+        code: "custom",
+        path: ["referentEmail"],
+        message: "Ingresá el correo del referente responsable.",
+      });
+  });
 export type SchoolFormValues = z.infer<typeof schoolFormSchema>;
 
 const rectificationContactsSchema = z

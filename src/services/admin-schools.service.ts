@@ -2,6 +2,7 @@ import { api } from "../lib/api";
 import { downloadBlob } from "../lib/download";
 import type {
   SchoolDetail,
+  SchoolCreateResponse,
   SchoolFilterOptions,
   SchoolImportPreview,
   SchoolImportResult,
@@ -53,7 +54,7 @@ export const adminSchoolsService = {
     return (await api.get<SchoolDetail>(`/admin/schools/${id}`)).data;
   },
   async create(input: SchoolWriteInput) {
-    return (await api.post<SchoolDetail>("/admin/schools", input)).data;
+    return (await api.post<SchoolCreateResponse>("/admin/schools", input)).data;
   },
   async update(id: string, input: Partial<SchoolWriteInput>) {
     return (await api.patch<SchoolDetail>(`/admin/schools/${id}`, input)).data;

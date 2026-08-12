@@ -9,7 +9,7 @@ import { useState } from "react";
 import { Link } from "react-router-dom";
 import { Button } from "../../components/ui/Button";
 import { getHttpErrorMessage } from "../../lib/http-error";
-import { showError, showSuccess } from "../../lib/toast";
+import { showError, showSuccess, showWarning } from "../../lib/toast";
 import { adminSchoolsService } from "../../services/admin-schools.service";
 import type {
   SchoolImportPreview,
@@ -41,9 +41,15 @@ export function BulkSchoolImportPage() {
       const imported = await adminSchoolsService.import(file);
       setResult(imported);
       setPreview(null);
-      showSuccess(
-        `${imported.importedCount} colegios importados correctamente.`,
-      );
+      if (imported.invitationEmailPendingCount > 0) {
+        showWarning(
+          `${imported.importedCount} colegios importados. ${imported.invitationEmailPendingCount} correos de acceso no pudieron enviarse.`,
+        );
+      } else {
+        showSuccess(
+          `${imported.importedCount} colegios y usuarios responsables creados y notificados.`,
+        );
+      }
     } catch (error) {
       showError(getHttpErrorMessage(error));
     } finally {
@@ -192,6 +198,10 @@ export function BulkSchoolImportPage() {
             <p className="mt-2">
               Se importaron {result.importedCount} de {result.totalRows} filas.{" "}
               {result.errorCount} no fueron importadas.
+            </p>
+            <p className="mt-1 text-sm text-mendoza-muted">
+              Se enviaron {result.invitationEmailSentCount} correos de acceso.{" "}
+              {result.invitationEmailPendingCount} quedaron pendientes.
             </p>
             {result.errors.length > 0 && (
               <ul className="mt-4 space-y-2 text-sm text-mendoza-error">

@@ -259,11 +259,11 @@ export function SchoolDetailPage() {
                 }
               />
               <Datum
-                label="Referente"
+                label="Referente responsable"
                 value={`${school.referentFirstName} ${school.referentLastName}`}
               />
               <Datum
-                label="Contacto referente"
+                label="Contacto del responsable"
                 value={
                   [school.referentEmail, school.referentPhone]
                     .filter(Boolean)

@@ -116,6 +116,7 @@ export function SurveyFormPage() {
                       ? "No podrá cambiarse después de publicar una versión."
                       : "Identificador técnico estable, por ejemplo diagnostico-institucional."
                   }
+                  helpPlacement="below"
                   htmlFor="code"
                   label="Código"
                 >

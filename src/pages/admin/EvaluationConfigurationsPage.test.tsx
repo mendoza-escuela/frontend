@@ -104,6 +104,31 @@ describe("EvaluationConfigurationsPage", () => {
     expect(evaluationConfigurationsService.create).not.toHaveBeenCalled();
   });
 
+  it("limita los puntajes a enteros no negativos y permite elegir el máximo con estrellas", async () => {
+    render(<EvaluationConfigurationsPage />);
+    await screen.findByText("Versión activa");
+    fireEvent.click(
+      screen.getByRole("button", { name: "Nueva configuración" }),
+    );
+
+    const threshold = screen.getByLabelText(/Umbral Salud Mental/);
+    expect(threshold).toHaveAttribute("min", "0");
+    expect(threshold).toHaveAttribute("max", "100");
+    expect(threshold).toHaveAttribute("step", "1");
+    expect(fireEvent.keyDown(threshold, { key: "-" })).toBe(false);
+    expect(fireEvent.keyDown(threshold, { key: "." })).toBe(false);
+
+    const lowerBounds = screen.getAllByLabelText(/Límite inferior/i);
+    expect(lowerBounds[0]).toHaveAttribute("min", "0");
+    expect(lowerBounds[0]).toHaveAttribute("max", "100");
+    expect(lowerBounds[0]).toHaveAttribute("step", "1");
+
+    const fiveStars = screen.getByRole("radio", { name: "5 estrellas" });
+    fireEvent.click(fiveStars);
+    expect(fiveStars).toBeChecked();
+    expect(screen.getByText("5 de 5 estrellas")).toBeVisible();
+  });
+
   it("muestra las validaciones finales del formulario en español", async () => {
     render(<EvaluationConfigurationsPage />);
     await screen.findByText(/v1.0.0 · Inicial/);
