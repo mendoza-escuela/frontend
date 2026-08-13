@@ -35,11 +35,10 @@ La aplicación usa como valores predeterminados:
 
 - `/brand/official/mendoza/marca-gobierno-mendoza.png` para Gobierno de
   Mendoza;
-- `/brand/official/ops/ops-horizontal.avif` para OPS/OMS, con
-  `/brand/official/ops/oms-ops.jpg` como respaldo;
+- `/brand/official/ops/ops-logo.jpeg` para OPS;
 - `/brand/official/mendoza/simbolo-mendoza.png` como favicon.
 
-Las rutas de Mendoza y OPS/OMS pueden reemplazarse sin modificar código
+Las rutas de Mendoza y OPS pueden reemplazarse sin modificar código
 mediante `VITE_BRAND_MENDOZA_ON_LIGHT`, `VITE_BRAND_MENDOZA_ON_BLUE`,
 `VITE_BRAND_OPS_ON_LIGHT` y `VITE_BRAND_OPS_ON_BLUE`. Si una variante
 configurada falla, primero se intenta el asset provisorio versionado y, si

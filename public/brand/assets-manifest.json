@@ -21,20 +21,12 @@
       "usage": "Símbolo institucional y favicon"
     },
     {
-      "organization": "OPS/OMS",
-      "path": "/brand/official/ops/oms-ops.jpg",
-      "originalFilename": "OMS-OPS2-1.jpg",
+      "organization": "OPS",
+      "path": "/brand/official/ops/ops-logo.jpeg",
+      "originalFilename": "OpsLogo.jpeg",
       "surface": "light",
-      "sha256": "022476ce33a54bc1180e0f55aed3cda41775803f47caa47dc8ca3b43ee8c3948",
-      "usage": "Composición horizontal OPS/OMS"
-    },
-    {
-      "organization": "OPS/OMS",
-      "path": "/brand/official/ops/ops-horizontal.avif",
-      "originalFilename": "logo-es.avif",
-      "surface": "light",
-      "sha256": "31474b0f8961e05a4f615d0983377cb044dd7c6a36e471bd17bdb1ee06c92091",
-      "usage": "Variante horizontal alternativa"
+      "sha256": "c7fc1650fc14b5992db6dd9f0cf9c477b0996ca60aadb47aafe8df3bd7188152",
+      "usage": "Marca horizontal principal de OPS"
     },
     {
       "organization": "OPS",
