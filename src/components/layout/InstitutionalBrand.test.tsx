@@ -16,39 +16,22 @@ describe("InstitutionalBrand", () => {
       "/brand/official/mendoza/marca-gobierno-mendoza.png",
     );
     expect(
-      screen.getByAltText(
-        "Organización Panamericana de la Salud y Organización Mundial de la Salud",
-      ),
-    ).toHaveAttribute("src", "/brand/official/ops/ops-horizontal.avif");
+      screen.getByAltText("Organización Panamericana de la Salud"),
+    ).toHaveAttribute("src", "/brand/official/ops/ops-logo.jpeg");
     expect(screen.getByText("Salud")).toBeInTheDocument();
     expect(
       screen.getByText("Dirección General de Escuelas"),
     ).toBeInTheDocument();
   });
 
-  it("usa el JPG de OPS como respaldo y finalmente conserva su etiqueta", () => {
-    render(
-      <InstitutionalBrand compact organizationKeys={["ops"]} />,
-    );
+  it("conserva la identificación textual de OPS si el asset falla", () => {
+    render(<InstitutionalBrand compact organizationKeys={["ops"]} />);
 
-    const preferredAsset = screen.getByAltText(
-      "Organización Panamericana de la Salud y Organización Mundial de la Salud",
+    fireEvent.error(
+      screen.getByAltText("Organización Panamericana de la Salud"),
     );
-    fireEvent.error(preferredAsset);
-
-    const fallbackAsset = screen.getByAltText(
-      "Organización Panamericana de la Salud y Organización Mundial de la Salud",
-    );
-    expect(fallbackAsset).toHaveAttribute(
-      "src",
-      "/brand/official/ops/oms-ops.jpg",
-    );
-
-    fireEvent.error(fallbackAsset);
     expect(
-      screen.getByText(
-        "Organización Panamericana de la Salud y Organización Mundial de la Salud",
-      ),
+      screen.getByText("Organización Panamericana de la Salud"),
     ).toBeInTheDocument();
   });
 

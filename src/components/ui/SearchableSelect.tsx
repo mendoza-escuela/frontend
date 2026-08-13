@@ -14,6 +14,7 @@ type SearchableSelectProps = {
   disabled?: boolean;
   error?: string;
   selectedLabel?: string;
+  allowEmpty?: boolean;
 };
 
 export function SearchableSelect({
@@ -26,6 +27,7 @@ export function SearchableSelect({
   disabled = false,
   error,
   selectedLabel,
+  allowEmpty = true,
 }: SearchableSelectProps) {
   const labelId = useId();
   const listboxId = useId();
@@ -40,13 +42,15 @@ export function SearchableSelect({
   const selected = options.find((option) => option.value === value);
   const visibleOptions = useMemo(() => {
     const normalizedQuery = normalize(query.trim());
-    const available = [{ value: "", label: allLabel }, ...options];
+    const available = allowEmpty
+      ? [{ value: "", label: allLabel }, ...options]
+      : options;
     return normalizedQuery
       ? available.filter(({ label }) =>
           normalize(label).includes(normalizedQuery),
         )
       : available;
-  }, [allLabel, options, query]);
+  }, [allLabel, allowEmpty, options, query]);
 
   useEffect(() => {
     if (!open) return;

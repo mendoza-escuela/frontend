@@ -10,11 +10,13 @@ import { ErrorState } from "../../components/ui/ErrorState";
 import { FormField } from "../../components/ui/FormField";
 import { LoadingState } from "../../components/ui/LoadingState";
 import { PageHeader } from "../../components/ui/PageHeader";
+import { SearchableSelect } from "../../components/ui/SearchableSelect";
 import { inputClassName } from "../../components/ui/form-styles";
 import { getHttpErrorMessage } from "../../lib/http-error";
 import { showError, showSuccess } from "../../lib/toast";
 import { adminCampaignsService } from "../../services/admin-campaigns.service";
 import type {
+  CampaignWorkflowOption,
   PublishedSurveyVersionOption,
 } from "../../types/admin-campaign";
 
@@ -36,10 +38,32 @@ const schema = z
     endDate: z
       .string()
       .regex(datePattern, "Ingresá una fecha de cierre válida."),
+    workflowCycle: z.string().trim().max(120, "Ingresá hasta 120 caracteres."),
+    sequenceOrder: z.string(),
   })
   .refine((values) => values.endDate >= values.startDate, {
     message: "La fecha de cierre debe ser igual o posterior al inicio.",
     path: ["endDate"],
+  })
+  .superRefine((values, context) => {
+    const hasCycle = Boolean(values.workflowCycle);
+    const hasOrder = Boolean(values.sequenceOrder);
+    if (hasCycle !== hasOrder) {
+      context.addIssue({
+        code: "custom",
+        message: "Indicá el recorrido y el orden, o dejá ambos vacíos.",
+        path: hasCycle ? ["sequenceOrder"] : ["workflowCycle"],
+      });
+    }
+    if (hasOrder) {
+      const order = Number(values.sequenceOrder);
+      if (!Number.isInteger(order) || order < 1 || order > 100)
+        context.addIssue({
+          code: "custom",
+          message: "El orden debe ser un entero entre 1 y 100.",
+          path: ["sequenceOrder"],
+        });
+    }
   });
 
 type CampaignForm = z.infer<typeof schema>;
@@ -49,12 +73,16 @@ export function CampaignFormPage() {
   const isEditing = Boolean(id);
   const navigate = useNavigate();
   const [versions, setVersions] = useState<PublishedSurveyVersionOption[]>([]);
+  const [workflows, setWorkflows] = useState<CampaignWorkflowOption[]>([]);
+  const [creatingWorkflow, setCreatingWorkflow] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
   const [loadError, setLoadError] = useState("");
   const {
     register,
     handleSubmit,
     reset,
+    setValue,
+    watch,
     formState: { errors, isSubmitting },
   } = useForm<CampaignForm>({
     resolver: zodResolver(schema),
@@ -65,16 +93,56 @@ export function CampaignFormPage() {
       surveyVersionId: "",
       startDate: "",
       endDate: "",
+      workflowCycle: "",
+      sequenceOrder: "",
     },
   });
+  const workflowCycle = watch("workflowCycle");
+  const surveyVersionId = watch("surveyVersionId");
+  const campaignType = watch("type");
+  const selectedWorkflow = workflows.some(
+    ({ name }) => name === workflowCycle,
+  )
+    ? workflowCycle
+    : workflowCycle || creatingWorkflow
+      ? "__new__"
+      : "";
+
+  const selectWorkflow = (value: string) => {
+    if (!value || value === "__new__") {
+      setCreatingWorkflow(value === "__new__");
+      setValue("workflowCycle", "", {
+        shouldDirty: true,
+        shouldValidate: true,
+      });
+      setValue("sequenceOrder", "", {
+        shouldDirty: true,
+        shouldValidate: true,
+      });
+      return;
+    }
+    setCreatingWorkflow(false);
+    const workflow = workflows.find(({ name }) => name === value);
+    setValue("workflowCycle", value, {
+      shouldDirty: true,
+      shouldValidate: true,
+    });
+    if (workflow)
+      setValue("sequenceOrder", String(workflow.lastSequenceOrder + 1), {
+        shouldDirty: true,
+        shouldValidate: true,
+      });
+  };
 
   useEffect(() => {
     Promise.all([
       adminCampaignsService.publishedVersions(),
+      adminCampaignsService.workflowOptions(),
       id ? adminCampaignsService.findOne(id) : Promise.resolve(null),
     ])
-      .then(([availableVersions, campaign]) => {
+      .then(([availableVersions, availableWorkflows, campaign]) => {
         setVersions(availableVersions);
+        setWorkflows(availableWorkflows);
         if (campaign) {
           reset({
             name: campaign.name,
@@ -83,6 +151,8 @@ export function CampaignFormPage() {
             surveyVersionId: campaign.surveyVersion.id,
             startDate: campaign.startDate,
             endDate: campaign.endDate,
+            workflowCycle: campaign.workflowCycle ?? "",
+            sequenceOrder: campaign.sequenceOrder?.toString() ?? "",
           });
         }
       })
@@ -92,10 +162,17 @@ export function CampaignFormPage() {
 
   const submit = handleSubmit(async (values) => {
     try {
+      const input = {
+        ...values,
+        workflowCycle: values.workflowCycle || null,
+        sequenceOrder: values.sequenceOrder
+          ? Number(values.sequenceOrder)
+          : null,
+      };
       const campaign = id
-        ? await adminCampaignsService.update(id, values)
-        : await adminCampaignsService.create(values);
-      showSuccess(isEditing ? "Campaña actualizada." : "Campaña creada.");
+        ? await adminCampaignsService.update(id, input)
+        : await adminCampaignsService.create(input);
+      showSuccess(isEditing ? "Etapa actualizada." : "Etapa creada.");
       navigate(`/admin/campanas/${campaign.id}/escuelas`, { replace: true });
     } catch (error) {
       showError(getHttpErrorMessage(error));
@@ -106,11 +183,11 @@ export function CampaignFormPage() {
     <main className="p-4 sm:p-8">
       <div className="mx-auto max-w-4xl">
         <PageHeader
-          backLabel="Volver a campañas"
+          backLabel="Volver a etapas"
           backTo="/admin/campanas"
-          description="La campaña se crea como borrador. Al activarla, su período y la versión del cuestionario quedan protegidos."
-          eyebrow="Campañas"
-          title={isEditing ? "Editar campaña" : "Nueva campaña"}
+          description="La etapa se crea como borrador. Al activarla, su período y la versión del cuestionario quedan protegidos."
+          eyebrow="Etapas"
+          title={isEditing ? "Editar etapa" : "Nueva etapa"}
         />
 
         <div className="mt-8">
@@ -129,7 +206,7 @@ export function CampaignFormPage() {
                 No hay versiones publicadas
               </h2>
               <p className="mx-auto mt-2 max-w-xl text-sm leading-6 text-mendoza-muted">
-                Publicá una versión de cuestionario antes de crear la campaña.
+                Publicá una versión de cuestionario antes de crear la etapa.
                 Los borradores no pueden utilizarse para evaluar escuelas.
               </p>
               <Link
@@ -146,11 +223,74 @@ export function CampaignFormPage() {
                 noValidate
                 onSubmit={submit}
               >
+                <div>
+                  <SearchableSelect
+                    allLabel="Etapa independiente"
+                    label="Recorrido de etapas"
+                    onChange={selectWorkflow}
+                    options={[
+                      ...workflows.map((workflow) => ({
+                        value: workflow.name,
+                        label: `${workflow.name} · último paso ${workflow.lastSequenceOrder}`,
+                      })),
+                      {
+                        value: "__new__",
+                        label: "Crear un recorrido nuevo",
+                      },
+                    ]}
+                    selectedLabel={
+                      selectedWorkflow === "__new__"
+                        ? "Crear un recorrido nuevo"
+                        : undefined
+                    }
+                    value={selectedWorkflow}
+                  />
+                  <p className="mt-2 text-xs leading-5 text-mendoza-muted">
+                    Al elegir uno existente se sugiere automáticamente el
+                    siguiente orden.
+                  </p>
+                </div>
+
+                <FormField
+                  error={errors.workflowCycle?.message}
+                  help="Podés escribir un nombre nuevo aunque no aparezca en la lista."
+                  helpPlacement="below"
+                  htmlFor="workflowCycle"
+                  label="Nombre del recorrido"
+                >
+                  <input
+                    {...register("workflowCycle")}
+                    className={inputClassName}
+                    id="workflowCycle"
+                    placeholder="Programa 2026"
+                  />
+                </FormField>
+
+                <FormField
+                  className="sm:col-span-2"
+                  error={errors.sequenceOrder?.message}
+                  help="Los colegios deben enviar las etapas anteriores que tengan asignadas."
+                  helpPlacement="below"
+                  htmlFor="sequenceOrder"
+                  label="Orden dentro del recorrido"
+                >
+                  <input
+                    {...register("sequenceOrder")}
+                    className={inputClassName}
+                    id="sequenceOrder"
+                    inputMode="numeric"
+                    max={100}
+                    min={1}
+                    placeholder="1"
+                    type="number"
+                  />
+                </FormField>
+
                 <FormField
                   className="sm:col-span-2"
                   error={errors.name?.message}
                   htmlFor="name"
-                  label="Nombre de la campaña"
+                  label="Nombre de la etapa"
                 >
                   <input
                     {...register("name")}
@@ -160,41 +300,47 @@ export function CampaignFormPage() {
                   />
                 </FormField>
 
-                <FormField
+                <SearchableSelect
+                  allowEmpty={false}
                   error={errors.type?.message}
-                  htmlFor="type"
                   label="Periodicidad"
-                >
-                  <select
-                    {...register("type")}
-                    className={inputClassName}
-                    id="type"
-                  >
-                    <option value="annual">Anual</option>
-                    <option value="semiannual">Semestral</option>
-                  </select>
-                </FormField>
+                  onChange={(value) =>
+                    setValue("type", value as CampaignForm["type"], {
+                      shouldDirty: true,
+                      shouldTouch: true,
+                      shouldValidate: true,
+                    })
+                  }
+                  options={[
+                    { value: "annual", label: "Anual" },
+                    { value: "semiannual", label: "Semestral" },
+                  ]}
+                  value={campaignType}
+                />
 
-                <FormField
-                  error={errors.surveyVersionId?.message}
-                  help="Sólo se muestran versiones publicadas de cuestionarios activos."
-                  htmlFor="surveyVersionId"
-                  label="Versión del cuestionario"
-                >
-                  <select
-                    {...register("surveyVersionId")}
-                    className={inputClassName}
-                    id="surveyVersionId"
-                  >
-                    <option value="">Seleccionar versión</option>
-                    {versions.map((version) => (
-                      <option key={version.id} value={version.id}>
-                        {version.surveyName} · versión {version.versionNumber} ·{" "}
-                        {version.versionTitle}
-                      </option>
-                    ))}
-                  </select>
-                </FormField>
+                <div>
+                  <SearchableSelect
+                    allLabel="Seleccionar versión"
+                    error={errors.surveyVersionId?.message}
+                    label="Versión del cuestionario"
+                    onChange={(value) =>
+                      setValue("surveyVersionId", value, {
+                        shouldDirty: true,
+                        shouldTouch: true,
+                        shouldValidate: true,
+                      })
+                    }
+                    options={versions.map((version) => ({
+                      value: version.id,
+                      label: `${version.surveyName} · versión ${version.versionNumber} · ${version.versionTitle}`,
+                    }))}
+                    value={surveyVersionId}
+                  />
+                  <p className="mt-2 text-xs leading-5 text-mendoza-muted">
+                    Sólo se muestran versiones publicadas de cuestionarios
+                    activos.
+                  </p>
+                </div>
 
                 <FormField
                   error={errors.startDate?.message}
@@ -212,6 +358,7 @@ export function CampaignFormPage() {
                 <FormField
                   error={errors.endDate?.message}
                   help="El cierre se almacena a las 23:59:59 de esta fecha, hora de Mendoza."
+                  helpPlacement="below"
                   htmlFor="endDate"
                   label="Fecha de cierre"
                 >

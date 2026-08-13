@@ -64,25 +64,26 @@ describe("CampaignTrackingPage", () => {
     expect(screen.queryByText(/revisi[oó]n/i)).not.toBeInTheDocument();
   });
 
-  it("separa visualmente la etiqueta del selector de campaña", async () => {
+  it("usa el desplegable institucional para seleccionar la etapa", async () => {
     renderPage();
 
-    const campaignSelect = await screen.findByRole("combobox", {
-      name: "Campaña",
+    const campaignSelect = await screen.findByRole("button", {
+      name: "Etapa",
     });
 
-    expect(campaignSelect).toHaveAttribute("id", "campaign-tracking-campaign");
-    expect(campaignSelect).toHaveClass("block", "mt-2");
-    expect(screen.getByText(/Campaña activa/)).toHaveClass("mt-3");
+    expect(campaignSelect).toHaveTextContent("Etapa 2026");
+    fireEvent.click(campaignSelect);
+    expect(
+      screen.getByRole("combobox", { name: "Buscar en Etapa" }),
+    ).toBeVisible();
+    expect(screen.getByText(/Etapa activa/)).toHaveClass("mt-3");
   });
 
   it("sends state, search, ordering and pagination to the backend", async () => {
     renderPage();
     await screen.findByText("Avance general de envíos");
 
-    fireEvent.change(screen.getByLabelText("Estado"), {
-      target: { value: "submitted" },
-    });
+    chooseSelectOption("Estado", "Enviada");
     await waitFor(() =>
       expect(adminCampaignTrackingService.list).toHaveBeenLastCalledWith(
         campaign.id,
@@ -106,12 +107,8 @@ describe("CampaignTrackingPage", () => {
       ),
     );
 
-    fireEvent.change(screen.getByLabelText("Ordenar por"), {
-      target: { value: "submitted_at" },
-    });
-    fireEvent.change(screen.getByLabelText("Dirección"), {
-      target: { value: "desc" },
-    });
+    chooseSelectOption("Ordenar por", "Fecha de envío");
+    chooseSelectOption("Dirección", "Descendente");
     await waitFor(() =>
       expect(adminCampaignTrackingService.list).toHaveBeenLastCalledWith(
         campaign.id,
@@ -152,7 +149,7 @@ describe("CampaignTrackingPage", () => {
     renderPage();
 
     expect(
-      await screen.findByRole("heading", { name: "Campaña sin escuelas" }),
+      await screen.findByRole("heading", { name: "Etapa sin escuelas" }),
     ).toBeVisible();
     expect(
       screen.getByRole("progressbar", {
@@ -161,6 +158,11 @@ describe("CampaignTrackingPage", () => {
     ).toHaveAttribute("aria-valuenow", "0");
   });
 });
+
+function chooseSelectOption(label: string, option: string) {
+  fireEvent.click(screen.getByRole("button", { name: label }));
+  fireEvent.click(screen.getByRole("option", { name: option }));
+}
 
 function renderPage() {
   return render(
@@ -174,10 +176,12 @@ function renderPage() {
 
 const campaign: AdminCampaign = {
   id: "campaign-1",
-  name: "Campaña 2026",
+  name: "Etapa 2026",
   description: null,
   type: "annual",
   status: "active",
+  workflowCycle: null,
+  sequenceOrder: null,
   startDate: "2026-07-01",
   endDate: "2026-07-31",
   startsAt: "2026-07-01T03:00:00.000Z",

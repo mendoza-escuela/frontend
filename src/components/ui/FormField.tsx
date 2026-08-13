@@ -6,6 +6,7 @@ export function FormField({
   error,
   help,
   helpPlacement = "above",
+  alignControl = false,
   children,
   className = "",
 }: {
@@ -14,18 +15,19 @@ export function FormField({
   error?: string;
   help?: string;
   helpPlacement?: "above" | "below";
+  alignControl?: boolean;
   children: ReactNode;
   className?: string;
 }) {
   return (
-    <div className={className}>
+    <div className={`${alignControl ? "flex h-full flex-col" : ""} ${className}`.trim()}>
       <label className="block text-sm font-semibold text-mendoza-text" htmlFor={htmlFor}>
         {label}
       </label>
       {help && helpPlacement === "above" && (
         <p className="mt-1 text-xs text-mendoza-muted">{help}</p>
       )}
-      <div className="mt-2">{children}</div>
+      <div className={alignControl ? "mt-auto pt-2" : "mt-2"}>{children}</div>
       {help && helpPlacement === "below" && (
         <p className="mt-1 text-xs text-mendoza-muted">{help}</p>
       )}

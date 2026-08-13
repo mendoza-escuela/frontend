@@ -70,5 +70,19 @@ export type AdminHistoricalAnswer = {
 };
 
 export type AdminExcludedQuestion = Omit<AdminHistoricalAnswer, "answer" | "applicability"> & {
-  exclusion: { reasonCode: string; reason: string; relevantSchoolFacts: Record<string, unknown>; rules: Array<Record<string, unknown>> };
+  exclusion: {
+    reasonCode: string;
+    reason: string;
+    relevantSchoolFacts: Record<string, unknown>;
+    rules: Array<{
+      action: string;
+      defaultAction: string;
+      groupOperator: string;
+      conditions: Array<{
+        feature: string;
+        operator: string;
+        expectedValue: unknown;
+      }>;
+    }>;
+  };
 };

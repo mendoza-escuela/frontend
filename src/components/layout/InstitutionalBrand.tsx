@@ -13,10 +13,7 @@ type OrganizationKey = "mendoza" | "health" | "dge" | "ops";
 
 const MENDOZA_DEFAULT_ASSET =
   "/brand/official/mendoza/marca-gobierno-mendoza.png";
-const OPS_DEFAULT_ASSETS = [
-  "/brand/official/ops/ops-horizontal.avif",
-  "/brand/official/ops/oms-ops.jpg",
-] as const;
+const OPS_DEFAULT_ASSETS = ["/brand/official/ops/ops-logo.jpeg"] as const;
 
 function configuredSources(
   configuredSource: string | undefined,
@@ -83,8 +80,7 @@ const organizations = [
   },
   {
     key: "ops",
-    label:
-      "Organización Panamericana de la Salud y Organización Mundial de la Salud",
+    label: "Organización Panamericana de la Salud",
     onLight: configuredSources(
       import.meta.env.VITE_BRAND_OPS_ON_LIGHT,
       OPS_DEFAULT_ASSETS,

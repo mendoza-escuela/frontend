@@ -60,7 +60,7 @@ describe("SchoolResultsPage", () => {
       await screen.findByRole("heading", { name: "Resultado preliminar" }),
     ).toBeVisible();
     expect(screen.getByText("Escuela Histórica")).toBeVisible();
-    expect(screen.getByText("Campaña 2026")).toBeVisible();
+    expect(screen.getByText("Etapa 2026")).toBeVisible();
     expect(
       screen.getByText("Cuestionario institucional · versión 3"),
     ).toBeVisible();
@@ -161,7 +161,7 @@ describe("SchoolResultsPage", () => {
           submissionId: "submission-1",
           campaign: {
             id: "campaign-1",
-            name: "Campaña 2026",
+            name: "Etapa 2026",
             type: "annual",
           },
           schoolName: "Escuela Histórica",
@@ -373,7 +373,7 @@ function preliminaryResultFixture(
     },
     campaign: {
       id: "campaign-1",
-      name: "Campaña 2026",
+      name: "Etapa 2026",
       type: "annual",
     },
     survey: {

@@ -49,12 +49,12 @@ describe("SchoolSurveyPage expired drafts", () => {
     renderPage();
 
     expect(
-      await screen.findByRole("heading", { name: "No hay campañas abiertas" }),
+      await screen.findByRole("heading", { name: "No hay etapas abiertas" }),
     ).toBeVisible();
     expect(
       screen.getByRole("heading", { name: "Borradores vencidos" }),
     ).toBeVisible();
-    expect(screen.getByText("Campaña finalizada 2025")).toBeVisible();
+    expect(screen.getByText("Etapa finalizada 2025")).toBeVisible();
     expect(screen.getByText("18/30 respuestas (60%)")).toBeVisible();
     expect(screen.getByText("Vencida · sólo lectura")).toBeVisible();
     expect(
@@ -164,6 +164,77 @@ describe("SchoolSurveyPage expired drafts", () => {
       screen.queryByRole("link", { name: "Ir a la rectificación escolar" }),
     ).not.toBeInTheDocument();
   });
+
+  it("muestra una etapa simultáneamente activa pero bloqueada por el orden", async () => {
+    const lockedCampaign: AvailableSchoolCampaign = {
+      ...activeCampaign,
+      workflowCycle: "Programa 2026",
+      sequenceOrder: 2,
+      workflowStatus: "locked",
+      canStart: false,
+      blockedBy: {
+        id: "campaign-previous",
+        name: "Diagnóstico inicial",
+        sequenceOrder: 1,
+      },
+      blockingReason:
+        "Antes de continuar debés enviar la etapa anterior: Diagnóstico inicial.",
+      submission: null,
+    };
+    vi.mocked(schoolCampaignsService.list).mockResolvedValue({
+      ...campaignsFixture,
+      items: [lockedCampaign],
+      expiredDrafts: [],
+    });
+
+    renderPage();
+
+    expect(await screen.findByText("Bloqueada")).toBeVisible();
+    expect(screen.getByText(/Diagnóstico inicial/)).toBeVisible();
+    expect(
+      screen.getByRole("button", { name: "Comenzar evaluación" }),
+    ).toBeDisabled();
+    expect(schoolCampaignsService.start).not.toHaveBeenCalled();
+  });
+
+  it("usa el desplegable reutilizable para cambiar entre etapas", async () => {
+    const firstCampaign: AvailableSchoolCampaign = {
+      ...activeCampaign,
+      id: "campaign-first",
+      name: "Diagnóstico inicial",
+      workflowCycle: "Recorrido 2026",
+      sequenceOrder: 1,
+      submission: null,
+    };
+    const secondCampaign: AvailableSchoolCampaign = {
+      ...firstCampaign,
+      id: "campaign-second",
+      name: "Plan de mejora",
+      sequenceOrder: 2,
+    };
+    vi.mocked(schoolCampaignsService.list).mockResolvedValue({
+      ...campaignsFixture,
+      items: [firstCampaign, secondCampaign],
+      expiredDrafts: [],
+    });
+
+    renderPage();
+
+    const selector = await screen.findByRole("button", { name: "Etapa" });
+    expect(selector).toHaveTextContent("1. Diagnóstico inicial");
+    fireEvent.click(selector);
+    expect(
+      screen.getByRole("combobox", { name: "Buscar en Etapa" }),
+    ).toBeVisible();
+    fireEvent.click(
+      screen.getByRole("option", { name: "2. Plan de mejora" }),
+    );
+
+    expect(selector).toHaveTextContent("2. Plan de mejora");
+    expect(
+      screen.getByRole("heading", { name: "Plan de mejora" }),
+    ).toBeVisible();
+  });
 });
 
 function renderPage() {
@@ -176,10 +247,12 @@ function renderPage() {
 
 const expiredCampaign: AvailableSchoolCampaign = {
   id: "campaign-expired",
-  name: "Campaña finalizada 2025",
-  description: "Campaña conservada como antecedente.",
+  name: "Etapa finalizada 2025",
+  description: "Etapa conservada como antecedente.",
   type: "annual",
   status: "closed",
+  workflowCycle: null,
+  sequenceOrder: null,
   startsAt: "2025-03-01T03:00:00.000Z",
   endsAt: "2025-12-01T02:59:59.999Z",
   surveyVersion: {
@@ -192,8 +265,10 @@ const expiredCampaign: AvailableSchoolCampaign = {
     },
   },
   canStart: false,
+  workflowStatus: "available",
+  blockedBy: null,
   blockingReason:
-    "La campaña finalizó. El borrador está disponible en sólo lectura.",
+    "La etapa finalizó. El borrador está disponible en sólo lectura.",
   submission: {
     id: "submission-expired",
     status: "draft",
@@ -211,7 +286,7 @@ const expiredCampaign: AvailableSchoolCampaign = {
 const activeCampaign: AvailableSchoolCampaign = {
   ...expiredCampaign,
   id: "campaign-active",
-  name: "Campaña abierta 2026",
+  name: "Etapa abierta 2026",
   status: "active",
   startsAt: "2026-03-01T03:00:00.000Z",
   endsAt: "2026-12-01T02:59:59.999Z",
@@ -260,7 +335,7 @@ const workspaceFixture: SchoolSubmissionWorkspace = {
     editable: false,
     canSubmit: false,
     blockingReason:
-      "La campaña finalizó. El borrador está disponible en sólo lectura.",
+      "La etapa finalizó. El borrador está disponible en sólo lectura.",
     progress: {
       answered: 18,
       total: 30,

@@ -263,7 +263,7 @@ export function ParticipationDashboardPage() {
       <div className="mx-auto max-w-7xl">
         <PageHeader
           eyebrow="Seguimiento administrativo"
-          title="Participación por campaña"
+          title="Participación por etapa"
           description="Seguimiento de escuelas que iniciaron, guardaron o enviaron su presentación."
         />
         <Card
@@ -312,7 +312,7 @@ export function ParticipationDashboardPage() {
             <div id="participation-filters-content">
               <div className="grid gap-x-5 gap-y-5 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4">
             <SearchableSelect
-              label="Campaña"
+              label="Etapa"
               value={filters.campaignId}
               onChange={updateCampaign}
               options={options.campaigns.map(({ id, name, status }) => ({
@@ -403,7 +403,7 @@ export function ParticipationDashboardPage() {
                     <button className="inline-flex min-h-9 items-center gap-2 rounded-full bg-mendoza-sky/15 px-3 text-xs font-semibold text-mendoza-blue transition hover:bg-mendoza-sky/25 focus-visible:outline focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-mendoza-blue" key={`${filter.key}-${filter.value}`} onClick={() => updateMultiple(filter.key, selectedFilterValues(filters, filter.key).filter((value) => value !== filter.value))} title={`Quitar filtro ${filter.label}: ${filter.displayValue}`} type="button">
                       <span>{filter.label}: {filter.displayValue}</span><X aria-hidden="true" size={14} />
                     </button>
-                  )) : <p className="text-sm text-mendoza-muted">Mostrando todos los datos de la campaña.</p>}
+                  )) : <p className="text-sm text-mendoza-muted">Mostrando todos los datos de la etapa.</p>}
                 </div>
                 <Button
                   icon={<RotateCcw aria-hidden="true" size={17} />}
@@ -419,7 +419,7 @@ export function ParticipationDashboardPage() {
         </Card>
         {optionsLoading && !filters.campaignId ? (
           <State>
-            <LoadingState label="Cargando campañas y filtros…" />
+            <LoadingState label="Cargando etapas y filtros…" />
           </State>
         ) : error ? (
           <State>
@@ -431,8 +431,8 @@ export function ParticipationDashboardPage() {
         ) : !filters.campaignId ? (
           <State>
             <EmptyState
-              title="No hay campañas disponibles"
-              description="Creá o activá una campaña para comenzar el seguimiento."
+              title="No hay etapas disponibles"
+              description="Creá o activá una etapa para comenzar el seguimiento."
             />
           </State>
         ) : metricsLoading ? (

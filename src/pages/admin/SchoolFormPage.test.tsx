@@ -199,6 +199,22 @@ describe("SchoolFormPage", () => {
     expect(screen.getByRole("group", { name: "Plurogrado" })).toBeVisible();
   });
 
+  it("diferencia el correo general del colegio del correo de acceso del referente", async () => {
+    renderPage();
+
+    const schoolEmail = await screen.findByLabelText(
+      "Correo principal del colegio",
+    );
+    const referentEmail = screen.getByLabelText("Correo institucional *");
+
+    expect(schoolEmail).toHaveAccessibleDescription(
+      "Correo general para comunicaciones con el establecimiento. No se utiliza para ingresar a la aplicación.",
+    );
+    expect(referentEmail).toHaveAccessibleDescription(
+      "Este será el correo con el que el referente responsable ingresará a la aplicación.",
+    );
+  });
+
   it("actualiza y rectifica en una única llamada atómica", async () => {
     renderPage("/admin/colegios/school-1/editar");
 
@@ -368,7 +384,7 @@ describe("SchoolFormPage", () => {
     fireEvent.change(screen.getByLabelText("Apellido *"), {
       target: { value: "Pérez" },
     });
-    fireEvent.change(screen.getByLabelText("Correo *"), {
+    fireEvent.change(screen.getByLabelText("Correo institucional *"), {
       target: { value: "ana@escuela.edu.ar" },
     });
 

@@ -71,7 +71,43 @@ describe("CampaignSchoolsPage", () => {
     vi.clearAllMocks();
   });
 
-  it("permite incorporar una escuela durante una campaña activa con confirmación explícita", async () => {
+  it("no repite la carga completa cuando recibe los catálogos de filtros", async () => {
+    renderPage();
+
+    expect(await screen.findByText("Activa · admite incorporaciones")).toBeVisible();
+    await waitFor(() => {
+      expect(adminCampaignsService.findOne).toHaveBeenCalledTimes(1);
+      expect(adminCampaignsService.schoolOptions).toHaveBeenCalledTimes(1);
+      expect(adminCampaignsService.assignedSchools).toHaveBeenCalledTimes(1);
+      expect(adminSchoolsService.filters).toHaveBeenCalledTimes(1);
+    });
+  });
+
+  it("usa desplegables institucionales en todos los filtros", async () => {
+    renderPage();
+
+    await screen.findByText("Activa · admite incorporaciones");
+    for (const label of [
+      "Departamento",
+      "Localidad",
+      "Nivel",
+      "Gestión",
+      "Ámbito",
+      "Jornada",
+    ])
+      expect(screen.getByRole("button", { name: label })).toBeVisible();
+
+    fireEvent.click(screen.getByRole("button", { name: "Departamento" }));
+    fireEvent.click(screen.getByRole("option", { name: "Capital" }));
+    await waitFor(() =>
+      expect(adminCampaignsService.schoolOptions).toHaveBeenLastCalledWith(
+        activeCampaign.id,
+        expect.objectContaining({ department: "Capital", page: 1 }),
+      ),
+    );
+  });
+
+  it("permite incorporar una escuela durante una etapa activa con confirmación explícita", async () => {
     vi.mocked(adminCampaignsService.schoolOptions).mockResolvedValue({
       items: [availableSchool, inactiveSchool],
       pagination: { page: 1, limit: 20, total: 2, totalPages: 1 },
@@ -83,7 +119,7 @@ describe("CampaignSchoolsPage", () => {
       await screen.findByText("Activa · admite incorporaciones"),
     ).toBeVisible();
     expect(
-      screen.getByText(/incorporación durante campaña activa/i),
+      screen.getByText(/incorporación durante etapa activa/i),
     ).toBeVisible();
 
     const assignButton = screen.getByRole("button", {
@@ -111,7 +147,7 @@ describe("CampaignSchoolsPage", () => {
       }),
     ).toBeVisible();
     expect(
-      screen.getByText(/se incorporarán inmediatamente a la campaña activa/i),
+      screen.getByText(/se incorporarán inmediatamente a la etapa activa/i),
     ).toBeVisible();
     expect(
       screen.getAllByText(/demás requisitos vigentes/i).length,
@@ -178,7 +214,7 @@ describe("CampaignSchoolsPage", () => {
       screen.getByRole("button", { name: "Quitar Escuela Incorporada" }),
     ).toBeVisible();
     expect(
-      screen.queryByText(/incorporación durante campaña activa/i),
+      screen.queryByText(/incorporación durante etapa activa/i),
     ).not.toBeInTheDocument();
   });
 });
@@ -202,10 +238,12 @@ function renderPage() {
 
 const activeCampaign: AdminCampaign = {
   id: "campaign-1",
-  name: "Campaña 2026",
+  name: "Etapa 2026",
   description: null,
   type: "annual",
   status: "active",
+  workflowCycle: null,
+  sequenceOrder: null,
   startDate: "2026-07-01",
   endDate: "2026-08-31",
   startsAt: "2026-07-01T03:00:00.000Z",

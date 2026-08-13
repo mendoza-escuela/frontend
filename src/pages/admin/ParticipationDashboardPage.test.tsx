@@ -21,14 +21,14 @@ const options = {
   campaigns: [
     {
       id: "campaign-1",
-      name: "Campaña 2026",
+      name: "Etapa 2026",
       status: "active" as const,
       startsAt: "2026-01-01",
       endsAt: "2026-12-31",
     },
     {
       id: "campaign-2",
-      name: "Campaña 2025",
+      name: "Etapa 2025",
       status: "closed" as const,
       startsAt: "2025-01-01",
       endsAt: "2025-12-31",
@@ -51,7 +51,7 @@ const options = {
 const response = {
   campaign: {
     id: "campaign-1",
-    name: "Campaña 2026",
+    name: "Etapa 2026",
     status: "active" as const,
     startsAt: "2026-01-01",
     endsAt: "2026-12-31",
@@ -137,7 +137,7 @@ describe("ParticipationDashboardPage", () => {
   it("selects the active campaign and renders its indicators", async () => {
     renderPage();
     expect(
-      screen.getByText("Cargando campañas y filtros…"),
+      screen.getByText("Cargando etapas y filtros…"),
     ).toBeInTheDocument();
     expect(await screen.findByText("Total de escuelas")).toBeInTheDocument();
     expect(screen.getAllByText("40 %")).toHaveLength(2);
@@ -163,20 +163,20 @@ describe("ParticipationDashboardPage", () => {
     });
     expect(openFiltersButton).toHaveAttribute("aria-expanded", "false");
     expect(
-      screen.queryByRole("button", { name: "Campaña" }),
+      screen.queryByRole("button", { name: "Etapa" }),
     ).not.toBeInTheDocument();
 
     fireEvent.click(openFiltersButton);
     expect(
       screen.getByRole("button", { name: "Cerrar filtros de consulta" }),
     ).toHaveAttribute("aria-expanded", "true");
-    expect(screen.getByRole("button", { name: "Campaña" })).toBeVisible();
+    expect(screen.getByRole("button", { name: "Etapa" })).toBeVisible();
 
     fireEvent.click(
       screen.getByRole("button", { name: "Cerrar filtros de consulta" }),
     );
     expect(
-      screen.queryByRole("button", { name: "Campaña" }),
+      screen.queryByRole("button", { name: "Etapa" }),
     ).not.toBeInTheDocument();
   });
 
@@ -296,7 +296,7 @@ describe("ParticipationDashboardPage", () => {
     );
   });
 
-  it("filtra por estados, estrellas y áreas críticas y los limpia al cambiar campaña", async () => {
+  it("filtra por estados, estrellas y áreas críticas y los limpia al cambiar etapa", async () => {
     renderPage([
       "/admin/participacion?campaignId=campaign-1&comparisonCampaignIds=campaign-2",
     ]);
@@ -322,9 +322,9 @@ describe("ParticipationDashboardPage", () => {
       ),
     );
 
-    fireEvent.click(screen.getByRole("button", { name: "Campaña" }));
+    fireEvent.click(screen.getByRole("button", { name: "Etapa" }));
     fireEvent.click(
-      screen.getByRole("option", { name: "Campaña 2025 · Cerrada" }),
+      screen.getByRole("option", { name: "Etapa 2025 · Cerrada" }),
     );
     await waitFor(() => {
       const params = currentLocationParams();
@@ -367,7 +367,7 @@ describe("ParticipationDashboardPage", () => {
     );
   });
 
-  it("restablece la campaña predeterminada y limpia todos los filtros", async () => {
+  it("restablece la etapa predeterminada y limpia todos los filtros", async () => {
     renderPage([
       "/admin/participacion?campaignId=campaign-2&departments=Capital&submissionStatuses=submitted&stars=5",
     ]);
@@ -393,7 +393,7 @@ describe("ParticipationDashboardPage", () => {
       screen.getByRole("button", { name: "Períodos a comparar" }),
     );
     fireEvent.click(
-      screen.getByRole("option", { name: "Campaña 2025 · Cerrada" }),
+      screen.getByRole("option", { name: "Etapa 2025 · Cerrada" }),
     );
 
     await waitFor(() => {

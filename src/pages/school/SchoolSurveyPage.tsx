@@ -17,7 +17,7 @@ import { Card } from "../../components/ui/Card";
 import { ConfirmDialog } from "../../components/ui/ConfirmDialog";
 import { ErrorState } from "../../components/ui/ErrorState";
 import { LoadingState } from "../../components/ui/LoadingState";
-import { inputClassName } from "../../components/ui/form-styles";
+import { SearchableSelect } from "../../components/ui/SearchableSelect";
 import { formatDateTime } from "../../lib/format";
 import { getHttpErrorMessage } from "../../lib/http-error";
 import { showError, showSuccess } from "../../lib/toast";
@@ -203,7 +203,7 @@ export function SchoolSurveyPage() {
   if (isLoading)
     return (
       <main className="p-4 sm:p-8">
-        <LoadingState label="Buscando campañas activas…" />
+        <LoadingState label="Buscando etapas activas…" />
       </main>
     );
 
@@ -221,10 +221,10 @@ export function SchoolSurveyPage() {
           Evaluación institucional
         </p>
         <h1 className="mt-2 text-3xl font-bold text-mendoza-text">
-          Campañas disponibles
+          Etapas disponibles
         </h1>
         <p className="mt-2 text-mendoza-muted">
-          Seleccioná una campaña para iniciar o continuar la presentación de tu
+          Seleccioná una etapa para iniciar o continuar la presentación de tu
           establecimiento.
         </p>
 
@@ -236,32 +236,30 @@ export function SchoolSurveyPage() {
               size={38}
             />
             <h2 className="mt-4 text-xl font-bold text-mendoza-text">
-              No hay campañas abiertas
+              No hay etapas abiertas
             </h2>
             <p className="mt-2 text-sm text-mendoza-muted">
-              Las campañas aparecerán aquí cuando estén activas y dentro de su
+              Las etapas aparecerán aquí cuando estén activas y dentro de su
               período de carga.
             </p>
           </section>
         ) : (
           <>
             {available.items.length > 1 && (
-              <label className="mt-6 block max-w-xl text-sm font-semibold text-mendoza-text">
-                Campaña
-                <select
-                  className={`${inputClassName} mt-2`}
-                  onChange={(event) =>
-                    setSelectedCampaignId(event.target.value)
-                  }
+              <div className="mt-6 max-w-xl">
+                <SearchableSelect
+                  allLabel="Seleccionar etapa"
+                  label="Etapa"
+                  onChange={setSelectedCampaignId}
+                  options={available.items.map((campaign) => ({
+                    value: campaign.id,
+                    label: campaign.sequenceOrder
+                      ? `${campaign.sequenceOrder}. ${campaign.name}`
+                      : campaign.name,
+                  }))}
                   value={selectedCampaignId}
-                >
-                  {available.items.map((campaign) => (
-                    <option key={campaign.id} value={campaign.id}>
-                      {campaign.name}
-                    </option>
-                  ))}
-                </select>
-              </label>
+                />
+              </div>
             )}
 
             {selectedCampaign && (
@@ -393,7 +391,7 @@ function ExpiredDraftsSection({
             Borradores vencidos
           </h2>
           <p className="mt-1 max-w-3xl text-sm leading-6 text-mendoza-muted">
-            Estas campañas ya finalizaron. Podés consultar las respuestas que
+            Estas etapas ya finalizaron. Podés consultar las respuestas que
             quedaron guardadas, pero no modificarlas ni enviarlas.
           </p>
         </div>
@@ -420,8 +418,8 @@ function ExpiredDraftsSection({
                     </span>
                     <span className="text-xs font-semibold text-mendoza-muted">
                       {campaign.type === "annual"
-                        ? "Campaña anual"
-                        : "Campaña semestral"}
+                        ? "Etapa anual"
+                        : "Etapa semestral"}
                     </span>
                   </div>
                   <h3 className="mt-3 text-xl font-bold text-mendoza-text">
@@ -510,7 +508,7 @@ function ExpiredDraftsSection({
                     <div>
                       <h4 className="font-bold">Vista de sólo lectura</h4>
                       <p className="mt-1 text-mendoza-muted">
-                        El plazo de esta campaña terminó. Las respuestas se
+                        El plazo de esta etapa terminó. Las respuestas se
                         conservan como historial y no pueden modificarse ni
                         enviarse.
                       </p>
@@ -639,7 +637,10 @@ function CampaignIntroduction({
         <div>
           <div className="flex flex-wrap items-center gap-2 text-sm font-semibold text-mendoza-blue">
             <CalendarDays aria-hidden="true" size={18} />
-            {campaign.type === "annual" ? "Campaña anual" : "Campaña semestral"}
+            {campaign.type === "annual" ? "Etapa anual" : "Etapa semestral"}
+            {campaign.workflowCycle && campaign.sequenceOrder && (
+              <span>· {campaign.workflowCycle} · Paso {campaign.sequenceOrder}</span>
+            )}
           </div>
           <h2 className="mt-2 text-2xl font-bold text-mendoza-text">
             {campaign.name}
@@ -661,7 +662,9 @@ function CampaignIntroduction({
         >
           {submitted
             ? "Enviada"
-            : campaign.submission
+            : campaign.workflowStatus === "locked"
+              ? "Bloqueada"
+              : campaign.submission
               ? "Borrador iniciado"
               : "Sin iniciar"}
         </span>
@@ -696,13 +699,13 @@ function CampaignIntroduction({
         </div>
       )}
 
-      {!workspace && !campaign.submission && campaign.blockingReason && (
+      {!workspace && campaign.blockingReason && (
         <div className="mt-4 flex flex-wrap items-center justify-between gap-3 rounded-xl bg-amber-50 p-4 text-sm text-amber-900">
           <span className="flex gap-3">
             <AlertCircle aria-hidden="true" className="shrink-0" size={19} />
             {campaign.blockingReason}
           </span>
-          {schoolActive && (
+          {schoolActive && !campaign.blockedBy && (
             <Link
               className="font-semibold text-mendoza-blue hover:underline"
               to="/colegio/establecimiento"
@@ -728,7 +731,7 @@ function CampaignIntroduction({
       {!workspace && campaign.submission?.status === "draft" && (
         <div className="mt-5 flex justify-end">
           <Button
-            disabled={isOpening}
+            disabled={!campaign.canStart || isOpening}
             icon={<PlayCircle aria-hidden="true" size={18} />}
             onClick={onOpen}
           >

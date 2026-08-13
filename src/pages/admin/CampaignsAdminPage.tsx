@@ -20,6 +20,7 @@ import { ErrorState } from "../../components/ui/ErrorState";
 import { LoadingState } from "../../components/ui/LoadingState";
 import { PageHeader } from "../../components/ui/PageHeader";
 import { PaginationControls } from "../../components/ui/PaginationControls";
+import { SearchableSelect } from "../../components/ui/SearchableSelect";
 import { CampaignStatusBadge } from "../../components/ui/StatusBadge";
 import { inputClassName } from "../../components/ui/form-styles";
 import { formatDateTime } from "../../lib/format";
@@ -101,7 +102,7 @@ export function CampaignsAdminPage() {
     try {
       if (pendingAction.kind === "delete") {
         await adminCampaignsService.remove(pendingAction.campaign.id);
-        showSuccess("La campaña borrador fue eliminada.");
+        showSuccess("La etapa borrador fue eliminada.");
       } else {
         await adminCampaignsService.setStatus(
           pendingAction.campaign.id,
@@ -127,12 +128,12 @@ export function CampaignsAdminPage() {
               icon={<Plus aria-hidden="true" size={18} />}
               onClick={() => navigate("/admin/campanas/nueva")}
             >
-              Nueva campaña
+              Nueva etapa
             </Button>
           }
           description="Configurá los períodos de evaluación y vinculalos con una versión publicada e inmutable del cuestionario."
           eyebrow="Administración"
-          title="Campañas"
+          title="Etapas"
         />
 
         <form
@@ -149,40 +150,32 @@ export function CampaignsAdminPage() {
             <input
               className={`${inputClassName} mt-1`}
               onChange={(event) => setSearch(event.target.value)}
-              placeholder="Campaña o cuestionario"
+              placeholder="Etapa o cuestionario"
               value={search}
             />
           </label>
-          <label className="text-sm font-semibold text-mendoza-text">
-            Estado
-            <select
-              className={`${inputClassName} mt-1`}
-              onChange={(event) =>
-                setStatus(event.target.value as CampaignStatus | "")
-              }
-              value={status}
-            >
-              <option value="">Todos</option>
-              <option value="draft">Borrador</option>
-              <option value="active">Activa</option>
-              <option value="closed">Cerrada</option>
-              <option value="archived">Archivada</option>
-            </select>
-          </label>
-          <label className="text-sm font-semibold text-mendoza-text">
-            Periodicidad
-            <select
-              className={`${inputClassName} mt-1`}
-              onChange={(event) =>
-                setType(event.target.value as CampaignType | "")
-              }
-              value={type}
-            >
-              <option value="">Todas</option>
-              <option value="annual">Anual</option>
-              <option value="semiannual">Semestral</option>
-            </select>
-          </label>
+          <SearchableSelect
+            allLabel="Todos"
+            label="Estado"
+            onChange={(value) => setStatus(value as CampaignStatus | "")}
+            options={[
+              { value: "draft", label: "Borrador" },
+              { value: "active", label: "Activa" },
+              { value: "closed", label: "Cerrada" },
+              { value: "archived", label: "Archivada" },
+            ]}
+            value={status}
+          />
+          <SearchableSelect
+            allLabel="Todas"
+            label="Periodicidad"
+            onChange={(value) => setType(value as CampaignType | "")}
+            options={[
+              { value: "annual", label: "Anual" },
+              { value: "semiannual", label: "Semestral" },
+            ]}
+            value={type}
+          />
           <Button
             className="self-end"
             icon={<Search aria-hidden="true" size={17} />}
@@ -194,7 +187,7 @@ export function CampaignsAdminPage() {
 
         <div className="mt-8">
           {isLoading ? (
-            <LoadingState label="Cargando campañas…" />
+            <LoadingState label="Cargando etapas…" />
           ) : error ? (
             <ErrorState message={error} onRetry={() => void load()} />
           ) : campaigns.items.length === 0 ? (
@@ -204,12 +197,12 @@ export function CampaignsAdminPage() {
                   icon={<Plus aria-hidden="true" size={18} />}
                   onClick={() => navigate("/admin/campanas/nueva")}
                 >
-                  Crear campaña
+                  Crear etapa
                 </Button>
               }
-              description="Necesitás al menos una versión publicada para crear una campaña."
+              description="Necesitás al menos una versión publicada para crear una etapa."
               icon={CalendarRange}
-              title="Todavía no hay campañas"
+              title="Todavía no hay etapas"
             />
           ) : (
             <div className="grid gap-5 xl:grid-cols-2">
@@ -269,6 +262,11 @@ function CampaignCard({
           <h2 className="mt-3 text-xl font-bold text-mendoza-text">
             {campaign.name}
           </h2>
+          {campaign.workflowCycle && campaign.sequenceOrder && (
+            <p className="mt-1 text-xs font-semibold text-mendoza-muted">
+              {campaign.workflowCycle} · Paso {campaign.sequenceOrder}
+            </p>
+          )}
         </div>
         <CalendarRange
           aria-hidden="true"
@@ -383,31 +381,31 @@ function formatCivilDate(value: string) {
 }
 
 function actionLabel(action: PendingAction) {
-  if (action.kind === "delete") return "Eliminar campaña";
-  if (action.status === "active") return "Activar campaña";
-  if (action.status === "closed") return "Cerrar campaña";
-  return "Archivar campaña";
+  if (action.kind === "delete") return "Eliminar etapa";
+  if (action.status === "active") return "Activar etapa";
+  if (action.status === "closed") return "Cerrar etapa";
+  return "Archivar etapa";
 }
 
 function actionTitle(action: PendingAction) {
-  if (action.kind === "delete") return "¿Eliminar campaña?";
-  if (action.status === "active") return "¿Activar campaña?";
-  if (action.status === "closed") return "¿Cerrar campaña ahora?";
-  return "¿Archivar campaña?";
+  if (action.kind === "delete") return "¿Eliminar etapa?";
+  if (action.status === "active") return "¿Activar etapa?";
+  if (action.status === "closed") return "¿Cerrar etapa ahora?";
+  return "¿Archivar etapa?";
 }
 
 function actionDescription(action: PendingAction) {
   if (action.kind === "delete")
-    return "La eliminación sólo está disponible mientras la campaña sea un borrador.";
+    return "La eliminación sólo está disponible mientras la etapa sea un borrador.";
   if (action.status === "active")
     return "Una vez activa, la configuración quedará protegida y no podrá volver a borrador.";
   if (action.status === "closed")
-    return "El cierre manual es irreversible. La campaña dejará de admitir nuevas cargas cuando se implemente el módulo de presentaciones.";
-  return "La campaña quedará conservada como antecedente histórico de sólo lectura.";
+    return "El cierre manual es irreversible. La etapa dejará de admitir nuevas cargas cuando se implemente el módulo de presentaciones.";
+  return "La etapa quedará conservada como antecedente histórico de sólo lectura.";
 }
 
 function statusSuccessMessage(status: CampaignStatus) {
-  if (status === "active") return "La campaña fue activada.";
-  if (status === "closed") return "La campaña fue cerrada.";
-  return "La campaña fue archivada.";
+  if (status === "active") return "La etapa fue activada.";
+  if (status === "closed") return "La etapa fue cerrada.";
+  return "La etapa fue archivada.";
 }

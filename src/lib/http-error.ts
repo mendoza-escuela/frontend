@@ -30,6 +30,9 @@ export function getHttpErrorMessage(error: unknown): string {
     if (!error.response) {
       return "No pudimos comunicarnos con el servidor. Revisá tu conexión e intentá nuevamente.";
     }
+    if (error.response.status === 429) {
+      return "Se realizaron demasiadas solicitudes en poco tiempo. Esperá unos segundos e intentá nuevamente.";
+    }
     return safeMessage(error.response.data?.message) ?? FALLBACK_MESSAGE;
   }
   return FALLBACK_MESSAGE;

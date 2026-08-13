@@ -14,14 +14,14 @@ vi.mock("../../services/admin-dashboard.service", () => ({
 const campaigns = [
   {
     id: "campaign-2026",
-    name: "Campaña 2026",
+    name: "Etapa 2026",
     status: "active" as const,
     startsAt: "2026-01-01T03:00:00.000Z",
     endsAt: "2026-09-01T02:59:59.999Z",
   },
   {
     id: "campaign-2025",
-    name: "Campaña 2025",
+    name: "Etapa 2025",
     status: "closed" as const,
     startsAt: "2025-01-01T03:00:00.000Z",
     endsAt: "2026-01-01T02:59:59.999Z",
@@ -61,8 +61,8 @@ const response: CampaignComparisonResponse = {
   },
   commonDimensions: dimensions,
   periods: [
-    comparisonPeriod("campaign-2026", "Campaña 2026", 82, 5),
-    comparisonPeriod("campaign-2025", "Campaña 2025", 70, 4),
+    comparisonPeriod("campaign-2026", "Etapa 2026", 82, 5),
+    comparisonPeriod("campaign-2025", "Etapa 2025", 70, 4),
   ],
 };
 

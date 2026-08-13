@@ -36,10 +36,9 @@ clasificación y certificación. El rojo sólo representa alertas críticas.
 ## Marcas y assets
 
 `InstitutionalBrand` admite una variante por organismo para fondo claro y otra
-para fondo azul. Gobierno de Mendoza y OPS/OMS utilizan por defecto los assets
-provisorios versionados bajo `public/brand/official/`. OPS/OMS prioriza AVIF y
-usa el JPG entregado como respaldo. El símbolo de Mendoza se utiliza como
-favicon.
+para fondo azul. Gobierno de Mendoza y OPS utilizan por defecto los assets
+provisorios versionados bajo `public/brand/official/`. OPS utiliza únicamente
+el JPEG entregado por el cliente. El símbolo de Mendoza se utiliza como favicon.
 
 Las rutas pueden reemplazarse sin modificar código mediante las variables
 `VITE_BRAND_MENDOZA_ON_LIGHT`, `VITE_BRAND_MENDOZA_ON_BLUE`,
@@ -58,7 +57,7 @@ SHA-256. No se admite:
 - deformar variantes para adaptarlas a otro fondo;
 - presentar la marca propia de la aplicación como logo de un organismo.
 
-Los archivos de Gobierno de Mendoza y OPS/OMS fueron entregados por el cliente
+Los archivos de Gobierno de Mendoza y OPS fueron entregados por el cliente
 para uso provisorio y están documentados en `public/brand/assets-manifest.json`.
 Todavía no se recibieron logos específicos de Salud ni DGE, que conservan su
 fallback textual. Tampoco se recibieron variantes autorizadas para fondos

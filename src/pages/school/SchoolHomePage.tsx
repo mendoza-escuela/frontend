@@ -94,7 +94,7 @@ export function SchoolHomePage() {
             {campaigns && campaigns.items.length > 0 ? (
               <>
                 <p className="mt-2 text-sm leading-6 text-mendoza-muted">
-                  Hay {campaigns.items.length} campaña
+                  Hay {campaigns.items.length} etapa
                   {campaigns.items.length === 1 ? "" : "s"} abierta
                   {campaigns.items.length === 1 ? "" : "s"} para tu
                   establecimiento.
@@ -110,7 +110,7 @@ export function SchoolHomePage() {
               <>
                 <div className="mt-4 flex gap-3 rounded-xl bg-mendoza-background p-4 text-sm text-mendoza-muted">
                   <Info aria-hidden="true" className="shrink-0" size={19} />
-                  No hay campañas abiertas, pero tenés borradores vencidos
+                  No hay etapas abiertas, pero tenés borradores vencidos
                   disponibles para consultar en sólo lectura.
                 </div>
                 <Link
@@ -123,7 +123,7 @@ export function SchoolHomePage() {
             ) : (
               <div className="mt-4 flex gap-3 rounded-xl bg-mendoza-background p-4 text-sm text-mendoza-muted">
                 <Info aria-hidden="true" className="shrink-0" size={19} />
-                Todavía no hay campañas abiertas. El portal las mostrará cuando
+                Todavía no hay etapas abiertas. El portal las mostrará cuando
                 estén activas y dentro de su período de carga.
               </div>
             )}

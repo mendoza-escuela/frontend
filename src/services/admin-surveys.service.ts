@@ -136,6 +136,20 @@ export const adminSurveysService = {
     ).data;
   },
 
+  async createApplicabilityRuleBulk(
+    surveyId: string,
+    versionId: string,
+    questionIds: string[],
+    input: Omit<ApplicabilityRule, "id" | "questionId" | "question">,
+  ) {
+    return (
+      await api.post<ApplicabilityRule[]>(
+        `/admin/surveys/${surveyId}/versions/${versionId}/applicability-rules/bulk`,
+        { questionIds, rule: input },
+      )
+    ).data;
+  },
+
   async updateApplicabilityRule(
     surveyId: string,
     versionId: string,

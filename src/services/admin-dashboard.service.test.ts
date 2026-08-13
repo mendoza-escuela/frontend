@@ -97,7 +97,7 @@ describe("adminDashboardService", () => {
     expect(exportParams.get("format")).toBe("xlsx");
   });
 
-  it("compara campañas con claves repetidas y omite filtros de resultado sesgados", async () => {
+  it("compara etapas con claves repetidas y omite filtros de resultado sesgados", async () => {
     await adminDashboardService.comparison(
       ["campaign-2026", "campaign-2025", "campaign-2024"],
       {

@@ -9,6 +9,8 @@ export type SchoolCampaignSummary = {
   description: string | null;
   type: "annual" | "semiannual";
   status: "draft" | "active" | "closed" | "archived";
+  workflowCycle: string | null;
+  sequenceOrder: number | null;
   startsAt: string;
   endsAt: string;
   surveyVersion: {
@@ -34,6 +36,12 @@ export type AvailableSchoolCampaign = SchoolCampaignSummary & {
   canStart: boolean;
   readOnly?: boolean;
   blockingReason: string | null;
+  workflowStatus: "available" | "locked" | "completed";
+  blockedBy: {
+    id: string;
+    name: string;
+    sequenceOrder: number;
+  } | null;
   submission: {
     id: string;
     status: SchoolSubmissionStatus;
@@ -53,7 +61,7 @@ export type AvailableSchoolCampaignsResponse = {
   };
   rectification: Omit<SchoolRectificationStatus, "rectifiedBy">;
   items: AvailableSchoolCampaign[];
-  /** Borradores de campañas finalizadas, disponibles únicamente para consulta. */
+  /** Borradores de etapas finalizadas, disponibles únicamente para consulta. */
   expiredDrafts: AvailableSchoolCampaign[];
 };
 
