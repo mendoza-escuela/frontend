@@ -99,6 +99,7 @@ export function CampaignFormPage() {
   });
   const workflowCycle = watch("workflowCycle");
   const surveyVersionId = watch("surveyVersionId");
+  const campaignType = watch("type");
   const selectedWorkflow = workflows.some(
     ({ name }) => name === workflowCycle,
   )
@@ -299,20 +300,23 @@ export function CampaignFormPage() {
                   />
                 </FormField>
 
-                <FormField
+                <SearchableSelect
+                  allowEmpty={false}
                   error={errors.type?.message}
-                  htmlFor="type"
                   label="Periodicidad"
-                >
-                  <select
-                    {...register("type")}
-                    className={inputClassName}
-                    id="type"
-                  >
-                    <option value="annual">Anual</option>
-                    <option value="semiannual">Semestral</option>
-                  </select>
-                </FormField>
+                  onChange={(value) =>
+                    setValue("type", value as CampaignForm["type"], {
+                      shouldDirty: true,
+                      shouldTouch: true,
+                      shouldValidate: true,
+                    })
+                  }
+                  options={[
+                    { value: "annual", label: "Anual" },
+                    { value: "semiannual", label: "Semestral" },
+                  ]}
+                  value={campaignType}
+                />
 
                 <div>
                   <SearchableSelect

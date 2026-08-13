@@ -32,6 +32,8 @@ Las etapas pueden integrar recorridos ordenados. Aunque el administrador manteng
 
 El panel `/admin/cuestionarios` incorpora el ABM de cuestionarios y versiones. Permite crear versiones con las seis dimensiones oficiales, vacías o clonadas; editar la estructura y los puntajes; validar antes de publicar; consultar auditoría; comparar versiones, incluido el puntaje; y abrir una vista previa administrativa que muestra los puntos sin exponerlos en el portal escolar. Las versiones publicadas son de sólo lectura.
 
+El editor de reglas conserva el trabajo sobre una pregunta y suma el modo “Varias preguntas”. En este modo el administrador marca dos o más preguntas con un selector buscable y aplica la misma regla sin reemplazar sus reglas existentes. La prioridad se agrega independientemente al final de cada pregunta; las tareas posteriores de edición, eliminación, orden y prueba se realizan desde el modo individual.
+
 El panel `/admin/campanas` permite crear etapas anuales o semestrales, asociarlas a una versión publicada, buscarlas y filtrarlas. Los borradores pueden editarse o eliminarse y luego recorren el ciclo irreversible Activa, Cerrada y Archivada. La interfaz informa que la fecha final cierra a las 23:59:59 de Mendoza.
 
 Al crear o editar un borrador, el administrador puede dejarlo independiente o indicar un nombre de recorrido y un orden entre 1 y 100. El formulario reutiliza los recorridos existentes y el listado identifica visualmente el ciclo y el paso configurados.

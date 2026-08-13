@@ -15,6 +15,7 @@ import { ErrorState } from "../../components/ui/ErrorState";
 import { LoadingState } from "../../components/ui/LoadingState";
 import { PageHeader } from "../../components/ui/PageHeader";
 import { PaginationControls } from "../../components/ui/PaginationControls";
+import { SearchableSelect } from "../../components/ui/SearchableSelect";
 import { inputClassName } from "../../components/ui/form-styles";
 import { getHttpErrorMessage } from "../../lib/http-error";
 import { formatDateTime } from "../../lib/format";
@@ -378,7 +379,7 @@ function Metric({ label, value }: { label: string; value: number | string }) {
 }
 
 function FilterSelect({ label, options, value, onChange }: { label: string; options: string[]; value: string; onChange: (value: string) => void }) {
-  return <label className="text-sm font-semibold">{label}<select className={`${inputClassName} mt-1`} onChange={(event) => onChange(event.target.value)} value={value}><option value="">Todos</option>{options.map((option) => <option key={option} value={option}>{option}</option>)}</select></label>;
+  return <SearchableSelect allLabel="Todos" label={label} onChange={onChange} options={options.map((option) => ({ value: option, label: option }))} value={value} />;
 }
 
 const assignmentSourceLabels: Record<

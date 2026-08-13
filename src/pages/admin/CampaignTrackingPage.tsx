@@ -23,6 +23,7 @@ import { ErrorState } from "../../components/ui/ErrorState";
 import { LoadingState } from "../../components/ui/LoadingState";
 import { PageHeader } from "../../components/ui/PageHeader";
 import { PaginationControls } from "../../components/ui/PaginationControls";
+import { SearchableSelect } from "../../components/ui/SearchableSelect";
 import { inputClassName } from "../../components/ui/form-styles";
 import { formatDateTime } from "../../lib/format";
 import { getHttpErrorMessage } from "../../lib/http-error";
@@ -193,24 +194,19 @@ export function CampaignTrackingPage() {
           <>
             <Card className="mt-7">
               <div className="max-w-2xl">
-                <label
-                  className="block text-sm font-semibold text-mendoza-text"
-                  htmlFor="campaign-tracking-campaign"
-                >
-                  Etapa
-                </label>
-                <select
-                  className={`${inputClassName} mt-2 block`}
-                  id="campaign-tracking-campaign"
-                  onChange={(event) => selectCampaign(event.target.value)}
+                <SearchableSelect
+                  allowEmpty={false}
+                  allLabel="Seleccionar etapa"
+                  label="Etapa"
+                  onChange={selectCampaign}
+                  options={campaigns.map((campaign) => ({
+                    value: campaign.id,
+                    label: campaign.sequenceOrder
+                      ? `${campaign.sequenceOrder}. ${campaign.name}`
+                      : campaign.name,
+                  }))}
                   value={campaignId}
-                >
-                  {campaigns.map((campaign) => (
-                    <option key={campaign.id} value={campaign.id}>
-                      {campaign.name}
-                    </option>
-                  ))}
-                </select>
+                />
                 {selectedCampaign && (
                   <p className="mt-3 text-sm leading-6 text-mendoza-muted">
                     {selectedCampaign.status === "draft"
@@ -257,54 +253,45 @@ export function CampaignTrackingPage() {
                       value={search}
                     />
                   </label>
-                  <label className="text-sm font-semibold text-mendoza-text">
-                    Estado
-                    <select
-                      className={`${inputClassName} mt-1`}
-                      onChange={(event) =>
-                        setStatus(
-                          event.target
-                            .value as CampaignParticipationStatus | "",
-                        )
-                      }
-                      value={status}
-                    >
-                      <option value="">Todos</option>
-                      <option value="not_started">No iniciada</option>
-                      <option value="draft">Borrador</option>
-                      <option value="submitted">Enviada</option>
-                    </select>
-                  </label>
-                  <label className="text-sm font-semibold text-mendoza-text">
-                    Ordenar por
-                    <select
-                      className={`${inputClassName} mt-1`}
-                      onChange={(event) =>
-                        setSortBy(event.target.value as CampaignTrackingSort)
-                      }
-                      value={sortBy}
-                    >
-                      <option value="school">Escuela</option>
-                      <option value="status">Estado</option>
-                      <option value="last_saved_at">Último guardado</option>
-                      <option value="submitted_at">Fecha de envío</option>
-                    </select>
-                  </label>
-                  <label className="text-sm font-semibold text-mendoza-text">
-                    Dirección
-                    <select
-                      className={`${inputClassName} mt-1`}
-                      onChange={(event) =>
-                        setSortDirection(
-                          event.target.value as "asc" | "desc",
-                        )
-                      }
-                      value={sortDirection}
-                    >
-                      <option value="asc">Ascendente</option>
-                      <option value="desc">Descendente</option>
-                    </select>
-                  </label>
+                  <SearchableSelect
+                    allLabel="Todos"
+                    label="Estado"
+                    onChange={(value) =>
+                      setStatus(value as CampaignParticipationStatus | "")
+                    }
+                    options={[
+                      { value: "not_started", label: "No iniciada" },
+                      { value: "draft", label: "Borrador" },
+                      { value: "submitted", label: "Enviada" },
+                    ]}
+                    value={status}
+                  />
+                  <SearchableSelect
+                    allowEmpty={false}
+                    label="Ordenar por"
+                    onChange={(value) =>
+                      setSortBy(value as CampaignTrackingSort)
+                    }
+                    options={[
+                      { value: "school", label: "Escuela" },
+                      { value: "status", label: "Estado" },
+                      { value: "last_saved_at", label: "Último guardado" },
+                      { value: "submitted_at", label: "Fecha de envío" },
+                    ]}
+                    value={sortBy}
+                  />
+                  <SearchableSelect
+                    allowEmpty={false}
+                    label="Dirección"
+                    onChange={(value) =>
+                      setSortDirection(value as "asc" | "desc")
+                    }
+                    options={[
+                      { value: "asc", label: "Ascendente" },
+                      { value: "desc", label: "Descendente" },
+                    ]}
+                    value={sortDirection}
+                  />
                   <Button
                     className="self-end"
                     icon={<Search aria-hidden="true" size={17} />}

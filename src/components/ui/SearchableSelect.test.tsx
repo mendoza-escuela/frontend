@@ -25,4 +25,24 @@ describe("SearchableSelect", () => {
     fireEvent.keyDown(input, { key: "Enter" });
     expect(onChange).toHaveBeenCalledWith("primario");
   });
+
+  it("puede ocultar la opción vacía en selectores obligatorios", () => {
+    render(
+      <SearchableSelect
+        allowEmpty={false}
+        label="Dirección"
+        onChange={vi.fn()}
+        options={[
+          { value: "asc", label: "Ascendente" },
+          { value: "desc", label: "Descendente" },
+        ]}
+        value="asc"
+      />,
+    );
+    fireEvent.click(screen.getByRole("button", { name: "Dirección" }));
+    expect(screen.getAllByRole("option")).toHaveLength(2);
+    expect(
+      screen.queryByRole("option", { name: "Todos" }),
+    ).not.toBeInTheDocument();
+  });
 });

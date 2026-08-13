@@ -25,6 +25,7 @@ vi.mock("../../services/admin-surveys.service", () => ({
     applicabilityMetadata: vi.fn(),
     listApplicabilityRules: vi.fn(),
     createApplicabilityRule: vi.fn(),
+    createApplicabilityRuleBulk: vi.fn(),
     updateApplicabilityRule: vi.fn(),
     removeApplicabilityRule: vi.fn(),
     reorderApplicabilityRules: vi.fn(),
@@ -277,6 +278,56 @@ describe("SurveyApplicabilityRulesPage", () => {
         name: "Para aplicar la regla deben cumplirse",
       }),
     ).toHaveTextContent("Al menos una condición");
+  });
+
+  it("aplica una misma regla a varias preguntas sin quitar el modo individual", async () => {
+    vi.mocked(
+      adminSurveysService.createApplicabilityRuleBulk,
+    ).mockResolvedValue([]);
+    renderPage("?questionId=question-1");
+
+    expect(
+      await screen.findByRole("button", { name: "Una pregunta" }),
+    ).toHaveAttribute("aria-pressed", "true");
+    fireEvent.click(screen.getByRole("button", { name: "Varias preguntas" }));
+
+    const selector = screen.getByRole("button", {
+      name: "Preguntas que recibirán la regla",
+    });
+    expect(selector).toHaveTextContent("Acta compromiso");
+    fireEvent.click(selector);
+    fireEvent.click(
+      screen.getByRole("option", {
+        name: /p002 · Referente institucional/,
+      }),
+    );
+    fireEvent.click(screen.getByRole("button", { name: "Listo" }));
+
+    expect(selector).toHaveTextContent("2 seleccionados");
+    fireEvent.click(
+      screen.getByRole("button", { name: "Aplicar a 2 preguntas" }),
+    );
+
+    await waitFor(() =>
+      expect(
+        adminSurveysService.createApplicabilityRuleBulk,
+      ).toHaveBeenCalledWith(
+        "survey-1",
+        "version-1",
+        ["question-1", "question-2"],
+        expect.objectContaining({
+          action: "omit",
+          defaultAction: "show",
+          conditions: [
+            expect.objectContaining({
+              feature: "has_kiosk",
+              expectedValue: true,
+            }),
+          ],
+        }),
+      ),
+    );
+    expect(adminSurveysService.createApplicabilityRule).not.toHaveBeenCalled();
   });
 });
 

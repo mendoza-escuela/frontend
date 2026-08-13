@@ -20,6 +20,7 @@ import { ErrorState } from "../../components/ui/ErrorState";
 import { LoadingState } from "../../components/ui/LoadingState";
 import { PageHeader } from "../../components/ui/PageHeader";
 import { PaginationControls } from "../../components/ui/PaginationControls";
+import { SearchableSelect } from "../../components/ui/SearchableSelect";
 import { CampaignStatusBadge } from "../../components/ui/StatusBadge";
 import { inputClassName } from "../../components/ui/form-styles";
 import { formatDateTime } from "../../lib/format";
@@ -153,36 +154,28 @@ export function CampaignsAdminPage() {
               value={search}
             />
           </label>
-          <label className="text-sm font-semibold text-mendoza-text">
-            Estado
-            <select
-              className={`${inputClassName} mt-1`}
-              onChange={(event) =>
-                setStatus(event.target.value as CampaignStatus | "")
-              }
-              value={status}
-            >
-              <option value="">Todos</option>
-              <option value="draft">Borrador</option>
-              <option value="active">Activa</option>
-              <option value="closed">Cerrada</option>
-              <option value="archived">Archivada</option>
-            </select>
-          </label>
-          <label className="text-sm font-semibold text-mendoza-text">
-            Periodicidad
-            <select
-              className={`${inputClassName} mt-1`}
-              onChange={(event) =>
-                setType(event.target.value as CampaignType | "")
-              }
-              value={type}
-            >
-              <option value="">Todas</option>
-              <option value="annual">Anual</option>
-              <option value="semiannual">Semestral</option>
-            </select>
-          </label>
+          <SearchableSelect
+            allLabel="Todos"
+            label="Estado"
+            onChange={(value) => setStatus(value as CampaignStatus | "")}
+            options={[
+              { value: "draft", label: "Borrador" },
+              { value: "active", label: "Activa" },
+              { value: "closed", label: "Cerrada" },
+              { value: "archived", label: "Archivada" },
+            ]}
+            value={status}
+          />
+          <SearchableSelect
+            allLabel="Todas"
+            label="Periodicidad"
+            onChange={(value) => setType(value as CampaignType | "")}
+            options={[
+              { value: "annual", label: "Anual" },
+              { value: "semiannual", label: "Semestral" },
+            ]}
+            value={type}
+          />
           <Button
             className="self-end"
             icon={<Search aria-hidden="true" size={17} />}

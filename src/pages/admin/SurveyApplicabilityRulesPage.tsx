@@ -10,6 +10,7 @@ import {
   ListChecks,
   PlayCircle,
   Save,
+  SquareCheckBig,
   Trash2,
 } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
@@ -26,6 +27,7 @@ import { QuestionCombobox } from "../../components/surveys/QuestionCombobox";
 import { SchoolCombobox } from "../../components/users/SchoolCombobox";
 import { inputClassName } from "../../components/ui/form-styles";
 import { SearchableSelect } from "../../components/ui/SearchableSelect";
+import { SearchableMultiSelect } from "../../components/ui/SearchableMultiSelect";
 import { getHttpErrorMessage } from "../../lib/http-error";
 import { showError, showSuccess } from "../../lib/toast";
 import { adminSurveysService } from "../../services/admin-surveys.service";
@@ -60,6 +62,10 @@ export function SurveyApplicabilityRulesPage() {
   const [metadata, setMetadata] = useState<ApplicabilityMetadata | null>(null);
   const [rules, setRules] = useState<ApplicabilityRule[]>([]);
   const [questionId, setQuestionId] = useState("");
+  const [selectionMode, setSelectionMode] = useState<"single" | "multiple">(
+    "single",
+  );
+  const [selectedQuestionIds, setSelectedQuestionIds] = useState<string[]>([]);
   const [editingRuleId, setEditingRuleId] = useState<string | null>(null);
   const [previewSchool, setPreviewSchool] = useState<SchoolOption | null>(null);
   const [preview, setPreview] = useState<ApplicabilityDecision | null>(null);
@@ -154,6 +160,9 @@ export function SurveyApplicabilityRulesPage() {
         : (questions[0]?.value ?? "");
 
     setQuestionId(nextQuestionId);
+    setSelectedQuestionIds((current) =>
+      current.length ? current : nextQuestionId ? [nextQuestionId] : [],
+    );
     if (nextQuestionId && requestedQuestionId !== nextQuestionId)
       setSearchParams(
         (current) => {
@@ -208,6 +217,13 @@ export function SurveyApplicabilityRulesPage() {
       },
       { replace: true },
     );
+  };
+
+  const changeSelectionMode = (mode: "single" | "multiple") => {
+    setSelectionMode(mode);
+    const primaryQuestionId = questionId || questions[0]?.value || "";
+    setSelectedQuestionIds(primaryQuestionId ? [primaryQuestionId] : []);
+    if (mode === "single" || editingRuleId) resetNew();
   };
 
   const edit = (rule: ApplicabilityRule) => {
@@ -270,13 +286,31 @@ export function SurveyApplicabilityRulesPage() {
           input,
         );
       else
-        await adminSurveysService.createApplicabilityRule(
-          surveyId,
-          versionId,
-          questionId,
-          input,
-        );
-      showSuccess(editingRuleId ? "Regla actualizada." : "Regla creada.");
+        if (selectionMode === "multiple") {
+          if (selectedQuestionIds.length < 2) {
+            showError("Seleccioná al menos dos preguntas para aplicar la regla.");
+            return;
+          }
+          await adminSurveysService.createApplicabilityRuleBulk(
+            surveyId,
+            versionId,
+            selectedQuestionIds,
+            input,
+          );
+        } else
+          await adminSurveysService.createApplicabilityRule(
+            surveyId,
+            versionId,
+            questionId,
+            input,
+          );
+      showSuccess(
+        editingRuleId
+          ? "Regla actualizada."
+          : selectionMode === "multiple"
+            ? `Regla aplicada a ${selectedQuestionIds.length} preguntas.`
+            : "Regla creada.",
+      );
       resetNew();
       setRules(
         await adminSurveysService.listApplicabilityRules(surveyId, versionId),
@@ -424,19 +458,64 @@ export function SurveyApplicabilityRulesPage() {
               1
             </span>
             <div>
-              <h2 className="font-bold text-mendoza-text">Elegí la pregunta</h2>
+              <h2 className="font-bold text-mendoza-text">
+                Elegí las preguntas
+              </h2>
               <p className="text-sm text-mendoza-muted">
-                Las reglas se guardan únicamente para la pregunta seleccionada.
+                Trabajá sobre una pregunta o aplicá una nueva regla a varias.
               </p>
             </div>
           </div>
-          <QuestionCombobox
-            label="Pregunta"
-            onChange={selectQuestion}
-            options={questions}
-            value={questionId}
-          />
-          {selectedQuestion && (
+          {!readonly && !editingRuleId && (
+            <div
+              aria-label="Modo de selección"
+              className="mb-4 grid gap-2 rounded-xl bg-mendoza-background p-1.5 sm:inline-grid sm:grid-cols-2"
+              role="group"
+            >
+              <button
+                aria-pressed={selectionMode === "single"}
+                className={`min-h-10 rounded-lg px-4 text-sm font-semibold transition ${selectionMode === "single" ? "bg-white text-mendoza-blue shadow-sm" : "text-mendoza-muted hover:bg-white/60"}`}
+                onClick={() => changeSelectionMode("single")}
+                type="button"
+              >
+                Una pregunta
+              </button>
+              <button
+                aria-pressed={selectionMode === "multiple"}
+                className={`min-h-10 rounded-lg px-4 text-sm font-semibold transition ${selectionMode === "multiple" ? "bg-white text-mendoza-blue shadow-sm" : "text-mendoza-muted hover:bg-white/60"}`}
+                onClick={() => changeSelectionMode("multiple")}
+                type="button"
+              >
+                Varias preguntas
+              </button>
+            </div>
+          )}
+          {selectionMode === "multiple" && !editingRuleId ? (
+            <>
+              <SearchableMultiSelect
+                allLabel="Seleccionar preguntas"
+                label="Preguntas que recibirán la regla"
+                onChange={setSelectedQuestionIds}
+                options={questions.map((question) => ({
+                  value: question.value,
+                  label: `${question.code} · ${question.prompt}`,
+                }))}
+                values={selectedQuestionIds}
+              />
+              <p className="mt-2 text-xs leading-5 text-mendoza-muted">
+                La regla se agregará al final de la prioridad de cada pregunta
+                seleccionada. Las reglas existentes no se reemplazan.
+              </p>
+            </>
+          ) : (
+            <QuestionCombobox
+              label="Pregunta"
+              onChange={selectQuestion}
+              options={questions}
+              value={questionId}
+            />
+          )}
+          {selectionMode === "single" && selectedQuestion && (
             <div
               aria-label="Pregunta seleccionada"
               className="mt-4 rounded-xl border border-mendoza-border bg-mendoza-background/60 p-4 sm:p-5"
@@ -511,7 +590,15 @@ export function SurveyApplicabilityRulesPage() {
                 </p>
               </div>
             </div>
-            {!selectedRules.length ? (
+            {selectionMode === "multiple" && !editingRuleId ? (
+              <div className="mt-4">
+                <EmptyState
+                  description="La nueva regla se agregará a cada pregunta marcada sin reemplazar ni reordenar sus reglas actuales. Para revisar o editar prioridades, volvé al modo de una pregunta."
+                  icon={SquareCheckBig}
+                  title="Aplicación a varias preguntas"
+                />
+              </div>
+            ) : !selectedRules.length ? (
               <div className="mt-4">
                 <EmptyState
                   description="Creá la primera regla en el panel siguiente. Mientras no haya reglas, esta pregunta se mostrará para todos los colegios."
@@ -622,7 +709,9 @@ export function SurveyApplicabilityRulesPage() {
                       : "Definí una nueva regla"}
                   </h2>
                   <p className="mt-1 text-sm leading-5 text-mendoza-muted">
-                    Completá la frase: “Cuando se cumpla esto, entonces…”
+                    {selectionMode === "multiple" && !editingRuleId
+                      ? `La regla se aplicará a ${selectedQuestionIds.length} preguntas seleccionadas.`
+                      : "Completá la frase: “Cuando se cumpla esto, entonces…”"}
                   </p>
                 </div>
               </div>
@@ -806,8 +895,25 @@ export function SurveyApplicabilityRulesPage() {
                         Cancelar edición
                       </Button>
                     )}
-                    <Button icon={<Save size={16} />} type="submit">
-                      {editingRuleId ? "Guardar cambios" : "Guardar regla"}
+                    <Button
+                      disabled={
+                        selectionMode === "multiple" &&
+                        selectedQuestionIds.length < 2
+                      }
+                      icon={
+                        selectionMode === "multiple" ? (
+                          <SquareCheckBig size={16} />
+                        ) : (
+                          <Save size={16} />
+                        )
+                      }
+                      type="submit"
+                    >
+                      {editingRuleId
+                        ? "Guardar cambios"
+                        : selectionMode === "multiple"
+                          ? `Aplicar a ${selectedQuestionIds.length} preguntas`
+                          : "Guardar regla"}
                     </Button>
                   </div>
                 </div>
