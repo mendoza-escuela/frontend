@@ -463,8 +463,19 @@ export function SchoolFormPage() {
             />
 
             <Section title="Contacto institucional" />
-            <Field label="Correo institucional" error={errors.email?.message}>
-              <input className="field" type="email" {...register("email")} />
+            <Field
+              label="Correo principal del colegio"
+              hint="Correo general para comunicaciones con el establecimiento. No se utiliza para ingresar a la aplicación."
+              hintId="school-email-help"
+              error={errors.email?.message}
+            >
+              <input
+                aria-describedby="school-email-help"
+                aria-label="Correo principal del colegio"
+                className="field"
+                type="email"
+                {...register("email")}
+              />
             </Field>
             <Field label="Teléfono institucional">
               <input className="field" {...register("phone")} />
@@ -498,10 +509,16 @@ export function SchoolFormPage() {
               <input className="field" {...register("referentPhone")} />
             </Field>
             <Field
-              label={editing ? "Correo" : "Correo *"}
+              label={editing ? "Correo institucional" : "Correo institucional *"}
+              hint="Este será el correo con el que el referente responsable ingresará a la aplicación."
+              hintId="referent-email-help"
               error={errors.referentEmail?.message}
             >
               <input
+                aria-describedby="referent-email-help"
+                aria-label={
+                  editing ? "Correo institucional" : "Correo institucional *"
+                }
                 className="field"
                 type="email"
                 {...register("referentEmail")}
@@ -860,11 +877,15 @@ function Section({ title }: { title: string }) {
 
 function Field({
   label,
+  hint,
+  hintId,
   error,
   wide,
   children,
 }: {
   label: string;
+  hint?: string;
+  hintId?: string;
   error?: string;
   wide?: boolean;
   children: React.ReactNode;
@@ -877,6 +898,14 @@ function Field({
       <span className="mt-2 block [&_.field]:w-full [&_.field]:rounded-lg [&_.field]:border [&_.field]:border-mendoza-border [&_.field]:px-3 [&_.field]:py-2.5 [&_.field]:outline-none focus-within:[&_.field]:border-mendoza-sky">
         {children}
       </span>
+      {hint && (
+        <span
+          className="mt-1 block text-xs font-normal leading-5 text-mendoza-muted"
+          id={hintId}
+        >
+          {hint}
+        </span>
+      )}
       {error && (
         <span
           className="mt-1 block text-sm font-normal text-mendoza-error"
