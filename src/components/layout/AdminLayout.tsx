@@ -81,7 +81,7 @@ export function AdminLayout() {
             <InstitutionalBrand
               className="min-w-0 max-w-full flex-1"
               compact
-              organizationKeys={["mendoza", "ops"]}
+              organizationKeys={["ops", "eps", "mendoza"]}
             />
             <LogoutButton />
           </div>

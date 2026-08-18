@@ -9,11 +9,9 @@ capturas, redibujos ni aproximaciones.
 ```text
 brand/
 ├── README.md
-├── assets-manifest.example.json
+├── assets-manifest.json
 └── official/
     ├── mendoza/
-    ├── salud/
-    ├── dge/
     └── ops/
 ```
 
@@ -26,16 +24,18 @@ Cada organismo debe aportar, cuando corresponda:
 - responsable y fecha de entrega;
 - condiciones de uso y licencia.
 
-Los archivos actualmente versionados fueron entregados por el cliente y están
-autorizados de manera provisoria. Su procedencia, uso y SHA-256 se registran en
-`assets-manifest.json`; deberán reemplazarse cuando el cliente entregue las
-variantes definitivas.
+Los archivos actualmente versionados fueron entregados por el cliente. Su
+procedencia, uso y SHA-256 se registran en `assets-manifest.json`.
 
 La aplicación usa como valores predeterminados:
 
 - `/brand/official/mendoza/marca-gobierno-mendoza.png` para Gobierno de
   Mendoza;
-- `/brand/official/ops/ops-logo.jpeg` para OPS;
+- `/brand/official/eps/eps-mendoza.jpg` para Escuelas Promotoras de Salud
+  Mendoza en login y cabeceras del portal;
+- `/brand/official/ops/ops-blue-horizontal.png` para OPS sobre fondos claros;
+- `/brand/official/ops/ops-white-stacked.png` para OPS en espacios angostos
+  sobre fondos azules u oscuros;
 - `/brand/official/mendoza/simbolo-mendoza.png` como favicon.
 
 Las rutas de Mendoza y OPS pueden reemplazarse sin modificar código
@@ -44,16 +44,15 @@ mediante `VITE_BRAND_MENDOZA_ON_LIGHT`, `VITE_BRAND_MENDOZA_ON_BLUE`,
 configurada falla, primero se intenta el asset provisorio versionado y, si
 tampoco carga, se muestra la identificación textual.
 
-Todavía no se recibieron assets específicos de Salud ni de la Dirección
-General de Escuelas; ambos organismos conservan su fallback textual. Como no
-hay variantes autorizadas para fondos azules, los logos disponibles se
-presentan dentro de un contenedor claro, sin recolorearlos ni deformarlos.
+Las seis variantes autorizadas de OPS —horizontal y apilada en azul, blanco y
+negro— están disponibles en `official/ops/`. La interfaz selecciona la variante
+adecuada sin recolorearla ni deformarla.
 
 Antes de incorporar futuros archivos se debe actualizar
 `assets-manifest.json`, registrar su SHA-256 y completar procedencia,
 responsable, fecha y condiciones de uso. No reemplazar los fallbacks con una
 recreación.
 
-Los archivos `src/assets/eps-icon.svg` y `eps-logo-horizontal.svg` corresponden
-a la identificación visual propia de la aplicación existente; no son ni deben
-presentarse como escudos o logos oficiales de los organismos.
+El asset autorizado de Escuelas Promotoras conserva el formato JPEG provisto
+por el cliente y se muestra sobre las superficies claras del diseño sin
+recortes, recoloreados ni deformaciones.

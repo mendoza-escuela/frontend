@@ -12,8 +12,8 @@ export function AuthCard({ title, description, children }: { title: string; desc
       </div>
 
       <div className="relative flex min-h-screen items-center justify-center px-4 py-8 sm:px-6">
-        <section className="w-full max-w-md overflow-hidden rounded-3xl border border-mendoza-border bg-white shadow-xl shadow-black/10">
-          <div className="border-b border-mendoza-border bg-white px-5 py-5 sm:px-8">
+        <section className="w-full max-w-lg overflow-hidden rounded-3xl border border-mendoza-border bg-white shadow-xl shadow-black/10">
+          <div className="border-b border-mendoza-border bg-white px-5 py-6 sm:px-8 sm:py-7">
             <AuthBrandMarks />
           </div>
           <div className="p-6 sm:p-8">

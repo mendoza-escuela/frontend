@@ -9,11 +9,15 @@ type InstitutionalBrandProps = {
   surface?: BrandSurface;
 };
 
-type OrganizationKey = "mendoza" | "health" | "dge" | "ops";
+type OrganizationKey = "mendoza" | "eps" | "ops";
 
 const MENDOZA_DEFAULT_ASSET =
   "/brand/official/mendoza/marca-gobierno-mendoza.png";
-const OPS_DEFAULT_ASSETS = ["/brand/official/ops/ops-logo.jpeg"] as const;
+const EPS_DEFAULT_ASSET = "/brand/official/eps/eps-mendoza.jpg";
+const OPS_DEFAULT_ASSETS = {
+  light: ["/brand/official/ops/ops-blue-horizontal.png"],
+  blue: ["/brand/official/ops/ops-white-stacked.png"],
+} as const;
 
 function configuredSources(
   configuredSource: string | undefined,
@@ -59,36 +63,22 @@ const organizations = [
     ),
   },
   {
-    key: "health",
-    label: "Salud",
-    onLight: configuredSources(import.meta.env.VITE_BRAND_HEALTH_ON_LIGHT, []),
-    onBlue: blueSurfaceSources(
-      import.meta.env.VITE_BRAND_HEALTH_ON_BLUE,
-      import.meta.env.VITE_BRAND_HEALTH_ON_LIGHT,
-      [],
-    ),
-  },
-  {
-    key: "dge",
-    label: "Dirección General de Escuelas",
-    onLight: configuredSources(import.meta.env.VITE_BRAND_DGE_ON_LIGHT, []),
-    onBlue: blueSurfaceSources(
-      import.meta.env.VITE_BRAND_DGE_ON_BLUE,
-      import.meta.env.VITE_BRAND_DGE_ON_LIGHT,
-      [],
-    ),
+    key: "eps",
+    label: "Escuelas Promotoras de Salud Mendoza",
+    onLight: [EPS_DEFAULT_ASSET],
+    onBlue: [EPS_DEFAULT_ASSET],
   },
   {
     key: "ops",
     label: "Organización Panamericana de la Salud",
     onLight: configuredSources(
       import.meta.env.VITE_BRAND_OPS_ON_LIGHT,
-      OPS_DEFAULT_ASSETS,
+      OPS_DEFAULT_ASSETS.light,
     ),
     onBlue: blueSurfaceSources(
       import.meta.env.VITE_BRAND_OPS_ON_BLUE,
       import.meta.env.VITE_BRAND_OPS_ON_LIGHT,
-      OPS_DEFAULT_ASSETS,
+      OPS_DEFAULT_ASSETS.blue,
     ),
   },
 ] as const;
@@ -108,9 +98,12 @@ export function InstitutionalBrand({
   const [sourceIndexes, setSourceIndexes] = useState<Record<string, number>>({});
   const textColor = surface === "blue" ? "text-white/85" : "text-mendoza-muted";
   const visibleOrganizations = organizationKeys
-    ? organizations.filter((organization) =>
-        organizationKeys.includes(organization.key),
-      )
+    ? organizationKeys.flatMap((organizationKey) => {
+        const organization = organizations.find(
+          ({ key }) => key === organizationKey,
+        );
+        return organization ? [organization] : [];
+      })
     : organizations;
 
   return (
@@ -129,7 +122,9 @@ export function InstitutionalBrand({
           <span
             className={`inline-flex max-w-full shrink-0 items-center justify-center ${
               surface === "blue"
-                ? "rounded-md bg-white px-2 py-1 shadow-sm ring-1 ring-white/25"
+                ? organization.key === "ops"
+                  ? "px-1 py-1"
+                  : "rounded-md bg-white px-2 py-1 shadow-sm ring-1 ring-white/25"
                 : ""
             }`}
             key={organization.key}
@@ -138,9 +133,17 @@ export function InstitutionalBrand({
               alt={organization.label}
               className={
                 organization.key === "ops"
-                  ? compact
-                    ? "h-14 w-44 max-w-full object-contain"
-                    : "h-20 w-56 max-w-full object-contain"
+                  ? surface === "blue"
+                    ? compact
+                      ? "h-24 w-40 max-w-full object-contain"
+                      : "h-28 w-48 max-w-full object-contain"
+                    : compact
+                      ? "h-12 w-52 max-w-full object-contain"
+                      : "h-16 w-64 max-w-full object-contain"
+                  : organization.key === "eps"
+                    ? compact
+                      ? "h-16 w-32 max-w-full object-contain sm:w-36"
+                      : "h-20 w-40 max-w-full object-contain sm:w-44"
                   : compact
                     ? "h-auto max-h-7 max-w-full object-contain sm:max-w-28"
                     : "h-auto max-h-10 max-w-full object-contain sm:max-w-40"

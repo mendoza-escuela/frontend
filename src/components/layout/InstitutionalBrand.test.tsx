@@ -8,7 +8,7 @@ import { InstitutionalBrand } from "./InstitutionalBrand";
 describe("InstitutionalBrand", () => {
   afterEach(() => cleanup());
 
-  it("usa los assets versionados y conserva los organismos sin asset como texto", () => {
+  it("usa los assets versionados de OPS, Escuelas Promotoras y Mendoza", () => {
     render(<InstitutionalBrand compact />);
 
     expect(screen.getByAltText("Gobierno de Mendoza")).toHaveAttribute(
@@ -17,11 +17,11 @@ describe("InstitutionalBrand", () => {
     );
     expect(
       screen.getByAltText("Organización Panamericana de la Salud"),
-    ).toHaveAttribute("src", "/brand/official/ops/ops-logo.jpeg");
-    expect(screen.getByText("Salud")).toBeInTheDocument();
+    ).toHaveAttribute("src", "/brand/official/ops/ops-blue-horizontal.png");
     expect(
-      screen.getByText("Dirección General de Escuelas"),
-    ).toBeInTheDocument();
+      screen.getByAltText("Escuelas Promotoras de Salud Mendoza"),
+    ).toHaveAttribute("src", "/brand/official/eps/eps-mendoza.jpg");
+    expect(screen.getAllByRole("img")).toHaveLength(3);
   });
 
   it("conserva la identificación textual de OPS si el asset falla", () => {
@@ -35,7 +35,7 @@ describe("InstitutionalBrand", () => {
     ).toBeInTheDocument();
   });
 
-  it("protege los logos con un contenedor claro sobre la superficie azul", () => {
+  it("usa la variante blanca de OPS directamente sobre la superficie azul", () => {
     render(
       <InstitutionalBrand
         compact
@@ -44,10 +44,15 @@ describe("InstitutionalBrand", () => {
       />,
     );
 
-    for (const image of screen.getAllByRole("img")) {
-      expect(image).toHaveClass("object-contain");
-      expect(image.parentElement).toHaveClass("bg-white");
-    }
+    expect(
+      screen.getByAltText("Organización Panamericana de la Salud"),
+    ).toHaveAttribute("src", "/brand/official/ops/ops-white-stacked.png");
+    expect(
+      screen.getByAltText("Organización Panamericana de la Salud").parentElement,
+    ).not.toHaveClass("bg-white");
+    expect(screen.getByAltText("Gobierno de Mendoza").parentElement).toHaveClass(
+      "bg-white",
+    );
   });
 
   it("muestra texto si el asset de Mendoza no se puede cargar", () => {
@@ -58,5 +63,17 @@ describe("InstitutionalBrand", () => {
     fireEvent.error(screen.getByAltText("Gobierno de Mendoza"));
     expect(screen.getByText("Gobierno de Mendoza")).toBeInTheDocument();
     expect(screen.queryByRole("img")).not.toBeInTheDocument();
+  });
+
+  it("respeta el orden solicitado para la composición institucional", () => {
+    render(
+      <InstitutionalBrand organizationKeys={["ops", "eps", "mendoza"]} />,
+    );
+
+    expect(screen.getAllByRole("img").map((image) => image.getAttribute("alt"))).toEqual([
+      "Organización Panamericana de la Salud",
+      "Escuelas Promotoras de Salud Mendoza",
+      "Gobierno de Mendoza",
+    ]);
   });
 });
