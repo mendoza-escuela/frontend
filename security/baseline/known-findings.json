@@ -1,67 +1,12 @@
 {
   "_comment": [
     "Hallazgos YA CONOCIDOS y aceptados como deuda registrada, no ocultados.",
-    "Siguen apareciendo en summary.md con su severidad real; lo unico que cambia",
-    "es que no bloquean un PR que no los introdujo. Un hallazgo que NO este en",
-    "esta lista bloquea el pipeline: asi se detecta lo NUEVO.",
-    "",
-    "Para dar de baja una entrada: corregir el hallazgo y borrarla. Nunca agregar",
-    "una entrada para 'poner el build en verde' sin una decision documentada."
+    "Un hallazgo que no esté en esta lista bloquea el pipeline.",
+    "Los CVE de la imagen detectados el 2026-08-28 fueron corregidos y retirados."
   ],
   "generated": "2026-08-28",
   "project": "frontend",
   "review_before": "2026-09-30",
-  "known_findings": [
-    "CVE-2026-14456",
-    "CVE-2026-33630",
-    "CVE-2026-45186",
-    "CVE-2026-45447",
-    "CVE-2026-56408",
-    "CVE-2026-5773",
-    "CVE-2026-6276",
-    "CVE-2026-6732"
-  ],
-  "details": {
-    "_imagen_base": {
-      "imagen": "nginxinc/nginx-unprivileged:1.29-alpine (alpine 3.23.4)",
-      "severidad": "HIGH",
-      "paquetes_afectados": [
-        "c-ares",
-        "libexpat",
-        "libxml2",
-        "musl",
-        "libcrypto3",
-        "libssl3"
-      ],
-      "finding": [
-        "Vulnerabilidades en paquetes del sistema operativo de la imagen base de",
-        "nginx. NO provienen del codigo de la aplicacion ni de sus dependencias:",
-        "el frontend compilado son archivos estaticos servidos por nginx."
-      ],
-      "status": "ESPERANDO_IMAGEN_BASE",
-      "por_que_no_se_corrige_ahora": [
-        "Los parches existen en Alpine, pero la imagen oficial de nginx todavia",
-        "no los incorporo. No se puede actualizar un paquete del sistema sin",
-        "reconstruir la imagen base, y hacerlo a mano (apk upgrade en el",
-        "Dockerfile) rompe la reproducibilidad: cada build daria una imagen",
-        "distinta y se perderia el pinning de version."
-      ],
-      "trabajo_ya_realizado": [
-        "Se migro de nginx:1.29.3-alpine (alpine 3.22.2) a",
-        "nginxinc/nginx-unprivileged:1.29-alpine (alpine 3.23.4).",
-        "Resultado medido: CRITICAL 2 -> 0, HIGH 26 -> 12."
-      ],
-      "compensating_control": [
-        "El contenedor corre como usuario no privilegiado (UID 101), con",
-        "read_only, cap_drop ALL y no-new-privileges. No publica puertos: solo",
-        "es alcanzable desde el reverse proxy. Sirve archivos estaticos y no",
-        "procesa entrada de usuario, por lo que la superficie de explotacion de",
-        "estas bibliotecas es minima.",
-        "El escaneo nocturno vuelve a analizar la imagen todos los dias: en",
-        "cuanto se publique una imagen base parcheada, los hallazgos",
-        "desapareceran solos y habra que borrar esta entrada."
-      ],
-      "revision": "Revisar antes del 2026-09-30. Si para esa fecha la imagen base sigue sin parche, evaluar una base alternativa."
-    }
-  }
+  "known_findings": [],
+  "details": {}
 }

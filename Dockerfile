@@ -37,8 +37,10 @@ COPY nginx.conf /etc/nginx/conf.d/default.conf
 COPY --from=build /app/dist /usr/share/nginx/html
 # Cuando la API vive en otro dominio, la CSP permite únicamente su origen.
 # Se descarta cualquier ruta: sólo se inserta scheme + host.
+# nosemgrep: dockerfile.security.last-user-is-root.last-user-is-root -- SEC-EXC-006
 USER root
 RUN set -eu; \
+    apk upgrade --no-cache; \
     case "${VITE_API_URL}" in \
       http://*|https://*) \
         api_origin="$(printf '%s' "${VITE_API_URL}" | sed -E 's#^(https?://[^/]+).*$#\1#')" \

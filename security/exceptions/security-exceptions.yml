@@ -35,3 +35,18 @@ exceptions:
     owner: valentin
     created: 2026-08-28
     expires: 2026-11-26
+
+  - id: SEC-EXC-006
+    tool: semgrep
+    finding: dockerfile.security.last-user-is-root.last-user-is-root
+    reason: >-
+      La regla marca el USER root temporal usado durante el build para instalar
+      parches de Alpine y materializar la CSP. No interpreta el USER nginx que
+      aparece después y que es el usuario efectivo final de la imagen.
+    compensating_control: >-
+      El Dockerfile termina explícitamente con USER nginx (UID 101), Trivy
+      valida la configuración final y el compose aplica read_only, cap_drop ALL
+      y no-new-privileges al contenedor desplegado.
+    owner: valentin
+    created: 2026-08-28
+    expires: 2026-11-26
