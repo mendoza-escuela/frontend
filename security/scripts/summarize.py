@@ -46,9 +46,17 @@ def read_json(path: Path) -> Any | None:
 
 
 def read_jsonl(path: Path) -> list[dict] | None:
-    """Nuclei escribe una linea JSON por hallazgo."""
-    if not path.is_file() or path.stat().st_size == 0:
+    """Nuclei escribe una linea JSON por hallazgo.
+
+    Un archivo que EXISTE pero esta vacio significa "se ejecuto y no encontro
+    nada", que es distinto de "no se ejecuto". Devolver None en ese caso hacia
+    que un escaneo limpio apareciera como NOT_EXECUTED y subestimara la
+    cobertura real del pipeline.
+    """
+    if not path.is_file():
         return None
+    if path.stat().st_size == 0:
+        return []
     rows: list[dict] = []
     for line in path.read_text(encoding="utf-8", errors="replace").splitlines():
         line = line.strip()
@@ -409,6 +417,17 @@ def main() -> int:
         action="store_true",
         help="Trata cualquier HIGH como bloqueante, no solo los nuevos.",
     )
+    parser.add_argument(
+        "--partial",
+        action="store_true",
+        help=(
+            "El informe cubre solo una parte de la suite (un job de CI que "
+            "ejecuta algunas herramientas). Las ausentes se marcan como "
+            "'fuera de alcance' en lugar de NOT_EXECUTED, para no dar a "
+            "entender que una herramienta fallo cuando simplemente no le "
+            "tocaba correr en ese job."
+        ),
+    )
     args = parser.parse_args()
 
     reports_dir = Path(args.reports)
@@ -538,7 +557,15 @@ def main() -> int:
         lines.append("")
 
     not_executed = [result.name for result in results.values() if not result.executed]
-    if not_executed:
+    if not_executed and args.partial:
+        lines += [
+            "## Fuera del alcance de este job",
+            "",
+            "Estas herramientas no corresponden a este job del pipeline. El "
+            "veredicto consolidado se calcula al final, con todos los informes.",
+            "",
+        ]
+    elif not_executed:
         lines += [
             "## No ejecutado",
             "",

@@ -29,8 +29,8 @@ jobs:
     name: Calidad y tests
     runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
-      - uses: actions/setup-node@39370e3970a6d050c480ffad4ff0ed4d3fdee5af # v4.1.0
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
           node-version: '22'
           cache: npm
@@ -49,7 +49,7 @@ jobs:
       contents: read
       security-events: write
     steps:
-      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
         with:
           # Historial completo para que Gitleaks vea los commits anteriores.
           fetch-depth: 0
@@ -62,14 +62,14 @@ jobs:
 
       - name: Subir SARIF a Code Scanning
         if: always() && hashFiles('security/reports/semgrep.sarif') != ''
-        uses: github/codeql-action/upload-sarif@f09c1c0a94de965c15400f5634aa42fac8fb8f88 # v3.27.5
+        uses: github/codeql-action/upload-sarif@cdf488f595d80d6e07e03d4674febd5ab45fa938 # v4.37.9
         with:
           sarif_file: security/reports/semgrep.sarif
           category: semgrep
 
       - name: Consolidar resultados
         if: always()
-        run: bash security/scripts/create-summary.sh
+        run: bash security/scripts/create-summary.sh --partial
 
       - name: Publicar resumen en el PR
         if: always()
@@ -77,7 +77,7 @@ jobs:
 
       - name: Guardar SBOM y resumen
         if: always()
-        uses: actions/upload-artifact@b4b15b8c7c6ac21ea08fcf65892d2ee8f75cf882 # v4.4.3
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
         with:
           name: security-summary-${{ github.sha }}
           path: |
@@ -89,8 +89,8 @@ jobs:
     name: El bundle no debe contener secretos
     runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
-      - uses: actions/setup-node@39370e3970a6d050c480ffad4ff0ed4d3fdee5af # v4.1.0
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
           node-version: '22'
           cache: npm
@@ -137,7 +137,7 @@ jobs:
     name: Build y escaneo de la imagen
     runs-on: ubuntu-24.04
     steps:
-      - uses: actions/checkout@11bd71901bbe5b1630ceea73d27597364c9af683 # v4.2.2
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
       - name: Construir la imagen con el SHA del commit
         run: docker build --build-arg VITE_API_URL=/api -t "app-frontend:${GITHUB_SHA::12}" .
@@ -169,7 +169,7 @@ jobs:
 
       - name: Consolidar resultados
         if: always()
-        run: bash security/scripts/create-summary.sh
+        run: bash security/scripts/create-summary.sh --partial
 
       - name: Publicar resumen
         if: always()
