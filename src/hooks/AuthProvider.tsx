@@ -22,23 +22,29 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [authenticationErrorStatus, setAuthenticationErrorStatus] =
     useState<AppHttpErrorStatus | null>(null);
   const authenticationOperation = useRef(0);
+  const currentUser = useRef<AuthUser | null>(null);
+
+  const updateUser = useCallback((nextUser: AuthUser | null) => {
+    currentUser.current = nextUser;
+    setUser(nextUser);
+  }, []);
 
   const refreshUser = useCallback(async () => {
     const operation = ++authenticationOperation.current;
     try {
       const authenticatedUser = await authService.me();
       if (operation !== authenticationOperation.current) return;
-      setUser(authenticatedUser);
+      updateUser(authenticatedUser);
       setSessionExpired(false);
       setAuthenticationErrorStatus(null);
     } catch (error) {
       if (operation !== authenticationOperation.current) return;
-      setUser(null);
+      updateUser(null);
       setAuthenticationErrorStatus(
         getAppHttpErrorDetail(error)?.statusCode ?? null,
       );
     }
-  }, []);
+  }, [updateUser]);
 
   useEffect(() => {
     void refreshUser().finally(() => setIsLoading(false));
@@ -48,8 +54,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const clearInvalidSession = () => {
       authenticationOperation.current += 1;
       setAuthenticationErrorStatus(null);
-      if (user) setSessionExpired(true);
-      setUser(null);
+      if (currentUser.current) setSessionExpired(true);
+      updateUser(null);
     };
     window.addEventListener(AUTH_UNAUTHORIZED_EVENT, clearInvalidSession);
     return () =>
@@ -57,7 +63,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         AUTH_UNAUTHORIZED_EVENT,
         clearInvalidSession,
       );
-  }, [user]);
+  }, [updateUser]);
 
   const value = useMemo<AuthContextValue>(
     () => ({
@@ -70,7 +76,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         const authenticatedUser = await authService.login(email, password);
         if (operation !== authenticationOperation.current)
           return authenticatedUser;
-        setUser(authenticatedUser);
+        updateUser(authenticatedUser);
         setSessionExpired(false);
         setAuthenticationErrorStatus(null);
         return authenticatedUser;
@@ -80,14 +86,21 @@ export function AuthProvider({ children }: { children: ReactNode }) {
         try {
           await authService.logout();
         } finally {
-          setUser(null);
+          updateUser(null);
           setSessionExpired(false);
           setAuthenticationErrorStatus(null);
         }
       },
       refreshUser,
     }),
-    [authenticationErrorStatus, isLoading, refreshUser, sessionExpired, user],
+    [
+      authenticationErrorStatus,
+      isLoading,
+      refreshUser,
+      sessionExpired,
+      updateUser,
+      user,
+    ],
   );
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>;

@@ -23,6 +23,9 @@ concurrency:
 
 env:
   ARTIFACT_RETENTION_DAYS: 7
+  # Configuración pública del bundle y de los tests. La SPA y la API se
+  # publican bajo el mismo origen a través del proxy de seguridad.
+  VITE_API_URL: /api
 
 jobs:
   quality:

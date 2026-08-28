@@ -14,6 +14,11 @@ concurrency:
   group: security-main-${{ github.ref }}
   cancel-in-progress: false
 
+env:
+  # Evita depender de un .env local ignorado durante build y tests en CI.
+  # VITE_* es siempre información pública incluida en el bundle.
+  VITE_API_URL: /api
+
 jobs:
   full-suite:
     name: Suite completa de seguridad
