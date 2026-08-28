@@ -1,0 +1,179 @@
+name: Seguridad (Pull Request)
+
+# Puerta de seguridad del repositorio frontend.
+#
+# ALCANCE: este repositorio no tiene base de datos ni API propia, así que el
+# DAST completo (entorno efímero + ZAP autenticado) vive en el repositorio
+# backend, que es el que puede levantar el stack entero. Acá se ejecuta el
+# análisis estático, el escaneo de la imagen y una verificación de que el bundle
+# compilado no filtre secretos.
+#
+# Se usa `pull_request` y NUNCA `pull_request_target`.
+
+on:
+  pull_request:
+    branches: [main, develop]
+
+permissions:
+  contents: read
+
+concurrency:
+  group: security-pr-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+env:
+  ARTIFACT_RETENTION_DAYS: 7
+  # Configuración pública del bundle y de los tests. La SPA y la API se
+  # publican bajo el mismo origen a través del proxy de seguridad.
+  VITE_API_URL: /api
+
+jobs:
+  quality:
+    name: Calidad y tests
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci
+      - name: Lint
+        run: npm run lint
+      - name: Compilación (incluye typecheck)
+        run: npm run build
+      - name: Tests
+        run: npm test
+
+  static-analysis:
+    name: SAST, SCA, secretos y SBOM
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+      security-events: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          # Historial completo para que Gitleaks vea los commits anteriores.
+          fetch-depth: 0
+
+      - name: Validar excepciones de seguridad
+        run: python3 security/scripts/validate-exceptions.py
+
+      - name: Análisis estático completo
+        run: bash security/scripts/run-static.sh
+
+      - name: Subir SARIF a Code Scanning
+        if: always() && hashFiles('security/reports/semgrep.sarif') != ''
+        uses: github/codeql-action/upload-sarif@cdf488f595d80d6e07e03d4674febd5ab45fa938 # v4.37.9
+        with:
+          sarif_file: security/reports/semgrep.sarif
+          category: semgrep
+
+      - name: Consolidar resultados
+        if: always()
+        run: bash security/scripts/create-summary.sh --partial
+
+      - name: Publicar resumen en el PR
+        if: always()
+        run: cat security/reports/summary.md >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Guardar SBOM y resumen
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: security-summary-${{ github.sha }}
+          path: |
+            security/reports/summary.md
+            security/reports/sbom.cyclonedx.json
+          retention-days: ${{ env.ARTIFACT_RETENTION_DAYS }}
+
+  bundle-secrets:
+    name: El bundle no debe contener secretos
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version: '22'
+          cache: npm
+      - run: npm ci
+
+      - name: Compilar como en producción
+        env:
+          VITE_API_URL: /api
+        run: npm run build
+
+      - name: Verificar el contenido del bundle
+        run: |
+          set -euo pipefail
+          echo "Toda variable VITE_* queda incrustada en el bundle y es visible"
+          echo "para cualquier visitante. Se comprueba que no haya secretos."
+
+          fallo=0
+
+          # 1. Patrones de credenciales en los archivos servidos al navegador.
+          if grep -rIEn "(JWT_SECRET|POSTGRES_PASSWORD|DATABASE_PASSWORD|SMTP_PASSWORD|BEGIN [A-Z ]*PRIVATE KEY)" dist/; then
+            echo "::error::El bundle contiene lo que parece una credencial."
+            fallo=1
+          fi
+
+          # 2. Cadenas de conexión a base de datos.
+          if grep -rIEn "postgres(ql)?://[^:]+:[^@]+@" dist/; then
+            echo "::error::El bundle contiene una cadena de conexión con credenciales."
+            fallo=1
+          fi
+
+          # 3. Los source maps exponen el código original: no deben publicarse.
+          if find dist -name "*.map" | grep -q .; then
+            echo "::error::El build de producción generó source maps (.map)."
+            find dist -name "*.map"
+            fallo=1
+          fi
+
+          if [ "$fallo" -ne 0 ]; then
+            exit 1
+          fi
+          echo "Bundle verificado: sin secretos ni source maps."
+
+  container-scan:
+    name: Build y escaneo de la imagen
+    runs-on: ubuntu-24.04
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+
+      - name: Construir la imagen con el SHA del commit
+        run: docker build --build-arg VITE_API_URL=/api -t "app-frontend:${GITHUB_SHA::12}" .
+
+      - name: Verificar que la imagen NO corre como root
+        run: |
+          set -euo pipefail
+          usuario="$(docker run --rm --entrypoint sh "app-frontend:${GITHUB_SHA::12}" -c 'id -u')"
+          echo "UID del contenedor: $usuario"
+          if [ "$usuario" = "0" ]; then
+            echo "::error::La imagen corre como root (hallazgo H-07)."
+            exit 1
+          fi
+
+      - name: Trivy sobre la imagen
+        run: |
+          set -euo pipefail
+          mkdir -p security/reports
+          docker run --rm \
+            -v /var/run/docker.sock:/var/run/docker.sock \
+            -v "$PWD/security/reports:/reports" \
+            -v "$PWD/security/config:/config:ro" \
+            aquasec/trivy:0.67.2 image \
+            --config /config/trivy.yaml \
+            --scanners vuln,secret \
+            --format json \
+            --output /reports/trivy-frontend-image.json \
+            "app-frontend:${GITHUB_SHA::12}"
+
+      - name: Consolidar resultados
+        if: always()
+        run: bash security/scripts/create-summary.sh --partial
+
+      - name: Publicar resumen
+        if: always()
+        run: cat security/reports/summary.md >> "$GITHUB_STEP_SUMMARY"
