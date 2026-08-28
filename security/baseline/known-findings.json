@@ -1,0 +1,49 @@
+{
+  "_comment": [
+    "Hallazgos YA CONOCIDOS y aceptados como deuda registrada, no ocultados.",
+    "Siguen apareciendo en summary.md con su severidad real; lo unico que cambia",
+    "es que no bloquean un PR que no los introdujo. Un hallazgo que NO este en",
+    "esta lista bloquea el pipeline: asi se detecta lo NUEVO.",
+    "",
+    "Para dar de baja una entrada: corregir el hallazgo y borrarla. Nunca agregar",
+    "una entrada para 'poner el build en verde' sin una decision documentada."
+  ],
+  "generated": "2026-08-28",
+  "project": "frontend",
+  "commit": "62e5ac2d52e24204bfc0220364746f3dbef1efd3",
+  "known_findings": [
+    "dockerfile.security.missing-user.missing-user",
+    "DS002"
+  ],
+  "details": {
+    "dockerfile.security.missing-user.missing-user": {
+      "tool": "semgrep",
+      "severity": "HIGH",
+      "location": "Dockerfile:23",
+      "finding": "La imagen final de nginx corre como root (hallazgo H-07 de la Fase 1).",
+      "status": "REQUIERE_VALIDACION",
+      "recommendation": [
+        "Cambiar a nginxinc/nginx-unprivileged:1.29-alpine, o bien mantener",
+        "nginx:1.29.3-alpine ajustando permisos y moviendo el listen de 80 a 8080.",
+        "",
+        "NO se aplico automaticamente porque cambia el puerto interno del",
+        "contenedor: cualquier compose, chart o proxy que hoy apunte al puerto 80",
+        "dejaria de encontrarlo. Requiere validar contra el despliegue real antes",
+        "de aplicarlo."
+      ],
+      "compensating_control": [
+        "El contenedor se ejecuta con read_only: true, cap_drop: ALL y",
+        "no-new-privileges (verificado con docker inspect en la Fase 2), y no",
+        "publica puertos: solo es alcanzable desde el proxy."
+      ]
+    },
+    "DS002": {
+      "tool": "trivy",
+      "severity": "HIGH",
+      "location": "Dockerfile",
+      "finding": "Mismo hallazgo que el anterior, detectado por la otra herramienta.",
+      "status": "REQUIERE_VALIDACION",
+      "note": "Se conserva por separado para no perder la trazabilidad de cada herramienta."
+    }
+  }
+}

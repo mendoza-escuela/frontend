@@ -1,0 +1,26 @@
+# =============================================================================
+# Excepciones de seguridad temporalmente aceptadas — repositorio frontend
+#
+# REGLAS (las valida security/scripts/validate-exceptions.py y el pipeline
+# falla si no se cumplen):
+#
+#   1. Toda excepción DEBE tener los ocho campos completos.
+#   2. `expires` es obligatorio y no puede superar los 90 días desde `created`.
+#      Una excepción vencida rompe el build: es deliberado.
+#   3. Prohibido `ignore` con comodines, patrones abiertos y excepciones sin
+#      justificación.
+#   4. `compensating_control` debe describir un control real y verificable.
+#   5. `owner` es una persona identificable, no un equipo genérico.
+#
+# RELACIÓN CON LOS ARCHIVOS NATIVOS DE CADA HERRAMIENTA:
+#   Este archivo es la ÚNICA fuente de verdad. Las supresiones en formatos
+#   propios (.trivyignore, reglas ZAP, `paths.ignore` de Semgrep) se derivan de
+#   acá y deben citar el `id` correspondiente en un comentario.
+#
+# Campos: id · tool · finding · reason · compensating_control · owner ·
+#         created · expires
+# =============================================================================
+
+# Sin excepciones activas: al cierre de la Fase 3 el repositorio no registra
+# hallazgos que requieran aceptación temporal.
+exceptions:
