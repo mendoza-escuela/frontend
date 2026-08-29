@@ -1,18 +1,18 @@
 name: Seguridad (nocturno)
 
-# Reanálisis diario de dependencias e imagen.
+# Reanálisis semanal de dependencias e imagen.
 #
 # POR QUÉ EXISTE: una vulnerabilidad puede publicarse sin que cambie el código.
 # Sin un escaneo programado, un CVE aparecido después del último merge no se
-# detecta hasta el siguiente PR.
+# detecta hasta el siguiente PR o escaneo semanal.
 #
-# CRON: 03:47 UTC = 00:47 en Argentina (UTC-3). Se corre 30 minutos después del
-# nocturno del backend para no competir por runners.
+# CRON: lunes 03:47 UTC = lunes 00:47 en Argentina (UTC-3). Se corre 30 minutos
+# después del nocturno del backend para no competir por runners.
 # Para cambiar el horario, editar la expresión de abajo (siempre en UTC).
 
 on:
   schedule:
-    - cron: '47 3 * * *'
+    - cron: '47 3 * * 1'
   workflow_dispatch:
     inputs:
       staging_url:
