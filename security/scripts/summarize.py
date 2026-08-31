@@ -8,11 +8,11 @@ Un informe ausente NO se cuenta como aprobado: se marca NOT_EXECUTED. La
 diferencia importa, porque "no se ejecuto" y "no encontro nada" son cosas
 distintas ante una revision formal.
 
-Politica (documentada en docs/security/SECURITY_TESTING.md):
+Política (documentada en security/README.md):
 
   FAIL                  secretos reales; CRITICAL sin excepcion vigente;
-                        HIGH nuevos respecto del baseline; ZAP High;
-                        excepciones vencidas; herramienta que debia correr y fallo.
+                        HIGH nuevos respecto del baseline; excepciones vencidas;
+                        informes o artefactos requeridos ausentes.
   PASS WITH WARNINGS    MEDIUM/LOW; HIGH ya presentes en el baseline;
                         hallazgos informativos.
   PASS                  nada de lo anterior.
@@ -20,6 +20,7 @@ Politica (documentada en docs/security/SECURITY_TESTING.md):
 Uso:
   python3 security/scripts/summarize.py [--reports DIR] [--baseline ARCHIVO]
                                         [--project NOMBRE] [--strict-high]
+                                        [--partial --require-group GRUPO]
 """
 from __future__ import annotations
 
@@ -35,6 +36,24 @@ from typing import Any
 
 SEVERITIES = ("CRITICAL", "HIGH", "MEDIUM", "LOW")
 
+# El frontend sólo consolida el análisis estático y su propia imagen. El DAST y
+# el stack efímero pertenecen al repositorio backend. Un job parcial debe
+# declarar qué grupo tenía que ejecutar para que `--partial` nunca transforme
+# un directorio vacío en PASS.
+RESULT_GROUPS: dict[str, tuple[str, ...]] = {
+    "static": ("semgrep", "trivy_fs", "osv", "gitleaks"),
+    "container": ("trivy_frontend",),
+}
+
+# Artefactos de cobertura que no necesitan parser de hallazgos.
+ARTIFACT_GROUPS: dict[str, tuple[str, ...]] = {
+    "static": ("sbom.cyclonedx.json",),
+    "container": (
+        "container-scan-metadata.json",
+        "sbom-frontend-image.cyclonedx.json",
+    ),
+}
+
 
 def read_json(path: Path) -> Any | None:
     if not path.is_file() or path.stat().st_size == 0:
@@ -43,30 +62,6 @@ def read_json(path: Path) -> Any | None:
         return json.loads(path.read_text(encoding="utf-8", errors="replace"))
     except json.JSONDecodeError:
         return None
-
-
-def read_jsonl(path: Path) -> list[dict] | None:
-    """Nuclei escribe una linea JSON por hallazgo.
-
-    Un archivo que EXISTE pero esta vacio significa "se ejecuto y no encontro
-    nada", que es distinto de "no se ejecuto". Devolver None en ese caso hacia
-    que un escaneo limpio apareciera como NOT_EXECUTED y subestimara la
-    cobertura real del pipeline.
-    """
-    if not path.is_file():
-        return None
-    if path.stat().st_size == 0:
-        return []
-    rows: list[dict] = []
-    for line in path.read_text(encoding="utf-8", errors="replace").splitlines():
-        line = line.strip()
-        if not line:
-            continue
-        try:
-            rows.append(json.loads(line))
-        except json.JSONDecodeError:
-            continue
-    return rows
 
 
 def empty_counts() -> dict[str, int]:
@@ -250,62 +245,6 @@ def parse_gitleaks(path: Path) -> ToolResult:
     return result
 
 
-def parse_zap(path: Path) -> ToolResult:
-    result = ToolResult("OWASP ZAP")
-    data = read_json(path)
-    if data is None:
-        return result
-    result.executed = True
-
-    risk_map = {"3": "HIGH", "2": "MEDIUM", "1": "LOW", "0": "LOW"}
-    for site in data.get("site", []):
-        for alert in site.get("alerts", []):
-            bucket = risk_map.get(str(alert.get("riskcode", "0")), "LOW")
-            instances = len(alert.get("instances", [])) or 1
-            result.counts[bucket] += instances
-            result.total += instances
-            result.findings.append(
-                {
-                    "id": alert.get("pluginid", "?"),
-                    "severity": bucket,
-                    "location": site.get("@name", "?"),
-                    "message": f"{alert.get('alert', '')} ({instances} instancia/s)",
-                }
-            )
-    return result
-
-
-def parse_nuclei(path: Path) -> ToolResult:
-    result = ToolResult("Nuclei")
-    rows = read_jsonl(path)
-    if rows is None:
-        return result
-    result.executed = True
-
-    mapping = {
-        "critical": "CRITICAL",
-        "high": "HIGH",
-        "medium": "MEDIUM",
-        "low": "LOW",
-        "info": "LOW",
-        "unknown": "LOW",
-    }
-    for row in rows:
-        info = row.get("info", {})
-        bucket = mapping.get(str(info.get("severity", "info")).lower(), "LOW")
-        result.counts[bucket] += 1
-        result.total += 1
-        result.findings.append(
-            {
-                "id": row.get("template-id", "?"),
-                "severity": bucket,
-                "location": row.get("matched-at", row.get("host", "?")),
-                "message": (info.get("name") or "")[:160],
-            }
-        )
-    return result
-
-
 # ---------------------------------------------------------------------------
 # Excepciones y baseline
 # ---------------------------------------------------------------------------
@@ -391,7 +330,9 @@ def tool_versions(config_dir: Path) -> list[str]:
     return versions
 
 
-def severity_row(name: str, result: ToolResult) -> str:
+def severity_row(name: str, result: ToolResult, in_scope: bool = True) -> str:
+    if not in_scope:
+        return f"| {name} | FUERA_DE_ALCANCE | - | - | - | - |"
     if not result.executed:
         return f"| {name} | NOT_EXECUTED | - | - | - | - |"
     return (
@@ -428,25 +369,46 @@ def main() -> int:
             "tocaba correr en ese job."
         ),
     )
+    parser.add_argument(
+        "--require-group",
+        action="append",
+        choices=sorted(RESULT_GROUPS),
+        default=[],
+        help=(
+            "Grupo que este job parcial debía ejecutar. Es repetible y "
+            "obligatorio cuando se usa --partial."
+        ),
+    )
     args = parser.parse_args()
+
+    if args.partial and not args.require_group:
+        parser.error("--partial requiere al menos un --require-group")
+    if not args.partial and args.require_group:
+        parser.error("--require-group sólo puede usarse junto con --partial")
 
     reports_dir = Path(args.reports)
     repo_root = reports_dir.parent.parent
     project = args.project or repo_root.resolve().name
+    required_groups = (
+        set(args.require_group) if args.partial else set(RESULT_GROUPS)
+    )
+    required_result_keys = {
+        key for group in required_groups for key in RESULT_GROUPS[group]
+    }
+    required_artifacts = {
+        artifact
+        for group in required_groups
+        for artifact in ARTIFACT_GROUPS[group]
+    }
 
     results = {
         "semgrep": parse_semgrep(reports_dir / "semgrep.json"),
         "trivy_fs": parse_trivy(reports_dir / "trivy-fs.json", "Trivy FS"),
         "osv": parse_osv(reports_dir / "osv.json"),
         "gitleaks": parse_gitleaks(reports_dir / "gitleaks.json"),
-        "trivy_backend": parse_trivy(
-            reports_dir / "trivy-backend-image.json", "Trivy imagen backend"
-        ),
         "trivy_frontend": parse_trivy(
             reports_dir / "trivy-frontend-image.json", "Trivy imagen frontend"
         ),
-        "zap": parse_zap(reports_dir / "zap-report.json"),
-        "nuclei": parse_nuclei(reports_dir / "nuclei.json"),
     }
 
     active_exceptions, expired_exceptions, covered = load_exceptions(Path(args.exceptions))
@@ -456,14 +418,36 @@ def main() -> int:
     blocking: list[str] = []
     warnings: list[str] = []
 
+    missing_results = [
+        results[key].name
+        for key in required_result_keys
+        if not results[key].executed
+    ]
+    missing_artifacts = [
+        artifact
+        for artifact in sorted(required_artifacts)
+        if not (reports_dir / artifact).is_file()
+        or (reports_dir / artifact).stat().st_size == 0
+    ]
+    if missing_results:
+        blocking.append(
+            "Herramientas requeridas sin informe válido: "
+            + ", ".join(sorted(missing_results))
+        )
+    if missing_artifacts:
+        blocking.append(
+            "Artefactos requeridos ausentes o vacíos: "
+            + ", ".join(missing_artifacts)
+        )
+
     secrets = results["gitleaks"]
-    if secrets.executed and secrets.total > 0:
+    if "gitleaks" in required_result_keys and secrets.executed and secrets.total > 0:
         blocking.append(
             f"{secrets.total} secreto(s) detectado(s) por Gitleaks en el historial"
         )
 
     for key, result in results.items():
-        if key == "gitleaks" or not result.executed:
+        if key not in required_result_keys or key == "gitleaks" or not result.executed:
             continue
         criticals = [
             finding
@@ -494,9 +478,6 @@ def main() -> int:
         if medium_low:
             warnings.append(f"{result.name}: {medium_low} hallazgo(s) MEDIUM/LOW")
 
-    if results["zap"].executed and results["zap"].counts["HIGH"]:
-        blocking.append(f"ZAP: {results['zap'].counts['HIGH']} alerta(s) de riesgo alto")
-
     if expired_exceptions:
         blocking.append(f"{expired_exceptions} excepcion(es) de seguridad VENCIDA(s)")
 
@@ -519,18 +500,15 @@ def main() -> int:
         "",
         "| Herramienta | Estado | Critical | High | Medium | Low |",
         "| --- | --- | --- | --- | --- | --- |",
-        severity_row("Semgrep (SAST)", results["semgrep"]),
-        severity_row("Trivy FS (dependencias)", results["trivy_fs"]),
-        severity_row("OSV-Scanner (dependencias)", results["osv"]),
-        severity_row("Trivy imagen backend", results["trivy_backend"]),
-        severity_row("Trivy imagen frontend", results["trivy_frontend"]),
-        severity_row("OWASP ZAP (DAST)", results["zap"]),
-        severity_row("Nuclei (DAST)", results["nuclei"]),
+        severity_row("Semgrep (SAST)", results["semgrep"], "semgrep" in required_result_keys),
+        severity_row("Trivy FS (dependencias)", results["trivy_fs"], "trivy_fs" in required_result_keys),
+        severity_row("OSV-Scanner (dependencias)", results["osv"], "osv" in required_result_keys),
+        severity_row("Trivy imagen frontend", results["trivy_frontend"], "trivy_frontend" in required_result_keys),
         "",
         "## Secretos",
         "",
-        f"- Estado: {results['gitleaks'].status}",
-        f"- Hallazgos: {results['gitleaks'].total}",
+        f"- Estado: {results['gitleaks'].status if 'gitleaks' in required_result_keys else 'FUERA_DE_ALCANCE'}",
+        f"- Hallazgos: {results['gitleaks'].total if 'gitleaks' in required_result_keys else '-'}",
         "- Los secretos nunca se imprimen: sólo se listan archivo, línea y commit.",
         "",
         "## Excepciones",
@@ -556,8 +534,15 @@ def main() -> int:
         lines += [f"- {warning}" for warning in warnings]
         lines.append("")
 
-    not_executed = [result.name for result in results.values() if not result.executed]
-    if not_executed and args.partial:
+    not_executed = [
+        results[key].name
+        for key in required_result_keys
+        if not results[key].executed
+    ]
+    out_of_scope = [
+        result.name for key, result in results.items() if key not in required_result_keys
+    ]
+    if out_of_scope and args.partial:
         lines += [
             "## Fuera del alcance de este job",
             "",
@@ -565,7 +550,9 @@ def main() -> int:
             "veredicto consolidado se calcula al final, con todos los informes.",
             "",
         ]
-    elif not_executed:
+        lines += [f"- {name}" for name in out_of_scope]
+        lines.append("")
+    if not_executed:
         lines += [
             "## No ejecutado",
             "",
@@ -578,7 +565,8 @@ def main() -> int:
 
     top = [
         finding
-        for result in results.values()
+        for key, result in results.items()
+        if key in required_result_keys
         for finding in result.findings
         if finding["severity"] in ("CRITICAL", "HIGH")
     ][:25]

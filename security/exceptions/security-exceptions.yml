@@ -26,12 +26,10 @@ exceptions:
       herramienta, no un hallazgo de seguridad, y hacia fallar el job entero de
       SAST en GitHub Actions.
     compensating_control: >-
-      La configuracion de nginx sigue cubierta por otras dos vias: Trivy con el
-      scanner misconfig la analiza estaticamente, y OWASP ZAP verifica las
-      cabeceras que realmente entrega el servidor en ejecucion (CSP,
-      X-Frame-Options, X-Content-Type-Options, Referrer-Policy y
-      Permissions-Policy). El resto del repositorio se sigue analizando con el
-      pack completo.
+      Trivy mantiene el analisis estatico de nginx con el scanner misconfig. El
+      DAST integrado del repositorio backend levanta la pareja frontend/API y
+      verifica las cabeceras que entrega el servidor real. El resto del
+      repositorio frontend se sigue analizando con el pack completo.
     owner: valentin
     created: 2026-08-28
     expires: 2026-11-26
@@ -45,8 +43,8 @@ exceptions:
       aparece después y que es el usuario efectivo final de la imagen.
     compensating_control: >-
       El Dockerfile termina explícitamente con USER nginx (UID 101), Trivy
-      valida la configuración final y el compose aplica read_only, cap_drop ALL
-      y no-new-privileges al contenedor desplegado.
+      valida la configuración final y el compose de seguridad del backend aplica
+      read_only, cap_drop ALL y no-new-privileges al contenedor integrado.
     owner: valentin
     created: 2026-08-28
     expires: 2026-11-26

@@ -42,7 +42,7 @@ jobs:
       - run: npm test
 
       - name: Análisis estático y escaneo de imagen
-        run: bash security/scripts/run-all.sh --static-only
+        run: bash security/scripts/run-all.sh
 
       - name: Subir SARIF a Code Scanning
         if: always() && hashFiles('security/reports/semgrep.sarif') != ''

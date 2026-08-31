@@ -1,6 +1,7 @@
 name: Seguridad (nocturno)
 
-# Reanálisis semanal de dependencias e imagen.
+# Reanálisis semanal del código, las dependencias y la imagen frontend. El DAST
+# integrado se programa desde el repositorio backend.
 #
 # POR QUÉ EXISTE: una vulnerabilidad puede publicarse sin que cambie el código.
 # Sin un escaneo programado, un CVE aparecido después del último merge no se
@@ -14,11 +15,6 @@ on:
   schedule:
     - cron: '47 3 * * 1'
   workflow_dispatch:
-    inputs:
-      staging_url:
-        description: 'URL de staging para ZAP baseline y TLS (opcional)'
-        type: string
-        required: false
 
 permissions:
   contents: read
@@ -46,28 +42,7 @@ jobs:
       - run: npm ci
 
       - name: Análisis estático y escaneo de imagen
-        run: bash security/scripts/run-all.sh --static-only
-
-      - name: Resolver el destino del DAST
-        id: target
-        env:
-          INPUT_URL: ${{ inputs.staging_url }}
-          SECRET_URL: ${{ secrets.SECURITY_STAGING_URL }}
-        run: |
-          url="${INPUT_URL:-$SECRET_URL}"
-          if [ -z "$url" ]; then
-            echo "staging=" >> "$GITHUB_OUTPUT"
-            echo "::notice::Sin staging configurado: se omiten ZAP y testssl.sh (SKIPPED, no es un fallo)."
-          else
-            echo "staging=$url" >> "$GITHUB_OUTPUT"
-          fi
-
-      - name: ZAP baseline y TLS contra staging
-        # Sólo corre si hay una URL declarada: nunca contra producción.
-        if: steps.target.outputs.staging != ''
-        env:
-          SECURITY_STAGING_URL: ${{ steps.target.outputs.staging }}
-        run: bash security/scripts/run-dast.sh
+        run: bash security/scripts/run-all.sh
 
       - name: Subir SARIF a Code Scanning
         if: always() && hashFiles('security/reports/semgrep.sarif') != ''
@@ -75,10 +50,6 @@ jobs:
         with:
           sarif_file: security/reports/semgrep.sarif
           category: semgrep-nightly
-
-      - name: Consolidar resultados
-        if: always()
-        run: bash security/scripts/create-summary.sh
 
       - name: Publicar resumen
         if: always()
@@ -92,7 +63,6 @@ jobs:
           path: |
             security/reports/*.json
             security/reports/*.sarif
-            security/reports/*.html
             security/reports/*.md
           retention-days: 14
 
