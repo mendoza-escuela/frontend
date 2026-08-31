@@ -11,16 +11,38 @@ export type AppHttpErrorDetail = {
   correlationId: string | null;
 };
 
-const apiUrl = import.meta.env.VITE_API_URL;
+const API_URL_CONTRACT_ERROR =
+  'VITE_API_URL must be "/api" or an HTTP(S) URL ending in "/api".';
 
-if (!apiUrl) {
-  throw new Error('Missing VITE_API_URL environment variable.');
+export function normalizeApiBaseUrl(value: string | undefined) {
+  const normalizedValue = value?.trim().replace(/\/+$/, '');
+  if (!normalizedValue) {
+    throw new Error('Missing VITE_API_URL environment variable.');
+  }
+  if (normalizedValue === '/api') return normalizedValue;
+
+  let parsedUrl: URL;
+  try {
+    parsedUrl = new URL(normalizedValue);
+  } catch {
+    throw new Error(API_URL_CONTRACT_ERROR);
+  }
+
+  if (
+    !['http:', 'https:'].includes(parsedUrl.protocol) ||
+    parsedUrl.username ||
+    parsedUrl.password ||
+    parsedUrl.search ||
+    parsedUrl.hash ||
+    !parsedUrl.pathname.endsWith('/api')
+  ) {
+    throw new Error(API_URL_CONTRACT_ERROR);
+  }
+
+  return parsedUrl.toString();
 }
 
-const normalizedApiUrl = apiUrl.replace(/\/+$/, '');
-const apiBaseUrl = /\/api$/i.test(normalizedApiUrl)
-  ? normalizedApiUrl
-  : `${normalizedApiUrl}/api`;
+const apiBaseUrl = normalizeApiBaseUrl(import.meta.env.VITE_API_URL);
 
 export const api = axios.create({
   baseURL: apiBaseUrl,

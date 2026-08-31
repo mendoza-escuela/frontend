@@ -1,4 +1,6 @@
-FROM node:22-alpine AS build
+ARG VITE_API_URL=/api
+
+FROM node:22.23.2-alpine3.24 AS build
 WORKDIR /app
 RUN npm install -g npm@11.6.1
 ARG VITE_API_URL

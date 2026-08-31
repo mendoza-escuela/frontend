@@ -2,11 +2,32 @@
 
 Aplicación web React, TypeScript, Vite y Tailwind CSS.
 
+## Requisitos
+
+- Node.js `22.23.2` (declarado en `.nvmrc`).
+- npm `11.6.1`.
+
 ## Desarrollo
 
 1. Copiar `.env.example` a `.env`.
-2. Configurar `VITE_API_URL` con la URL base de la API, incluido el prefijo `/api` (por ejemplo, `http://localhost:4000/api`).
-3. Ejecutar `npm install` y `npm run dev`.
+2. Configurar `VITE_API_URL` como `/api` para mismo origen o con una URL
+   HTTP(S) terminada en `/api` (por ejemplo, `http://localhost:4000/api`). El
+   cliente no agrega ese prefijo automáticamente.
+3. Preparar el toolchain e instalar exactamente el lockfile:
+
+   ```bash
+   nvm use
+   npm install --global npm@11.6.1
+   npm ci
+   npm run dev
+   ```
+
+Las variables `VITE_*` son configuración pública: Vite las incorpora al bundle
+durante la compilación y no deben contener secretos. Cambiarlas en un contenedor
+ya construido no modifica la aplicación; requiere generar una imagen nueva. El
+Dockerfile usa `/api` como valor predeterminado de `VITE_API_URL`. Las cuatro
+variables `VITE_BRAND_MENDOZA_*` y `VITE_BRAND_OPS_*` son overrides opcionales
+de assets institucionales y también se definen mediante argumentos de build.
 
 La autenticación usa cookies `HttpOnly`; por eso las solicitudes Axios se realizan con credenciales y el token no se guarda en `localStorage`.
 
@@ -56,6 +77,10 @@ La paleta institucional se centraliza mediante tokens `mendoza-*` en `src/styles
 
 ```bash
 npm run lint
+npm run typecheck
 npm test
 npm run build
 ```
+
+`npm run lint` sólo informa hallazgos. Para aplicar correcciones automáticas de
+Oxlint de forma explícita se usa `npm run lint:fix`.

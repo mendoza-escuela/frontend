@@ -44,7 +44,9 @@ Las rutas pueden reemplazarse sin modificar código mediante las variables
 `VITE_BRAND_MENDOZA_ON_LIGHT`, `VITE_BRAND_MENDOZA_ON_BLUE`,
 `VITE_BRAND_OPS_ON_LIGHT` y `VITE_BRAND_OPS_ON_BLUE`. Si una imagen configurada
 falla, se intenta el asset autorizado disponible y, en última instancia, se
-muestra el nombre textual del organismo.
+muestra el nombre textual del organismo. Estas variables son públicas y Vite
+las incorpora durante el build; cambiar una imagen configurada requiere volver
+a compilar y desplegar el frontend.
 
 Los assets oficiales deben ubicarse bajo `public/brand/official/` y contar con
 un manifiesto que registre fuente, responsable, fecha, licencia, aprobación y

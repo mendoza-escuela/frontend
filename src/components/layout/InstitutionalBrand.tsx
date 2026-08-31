@@ -84,7 +84,7 @@ const organizations = [
 ] as const;
 
 /**
- * Muestra los assets institucionales provisorios o sus reemplazos configurados.
+ * Muestra los assets institucionales autorizados o sus reemplazos configurados.
  * Cada archivo ausente o inválido conserva la identificación textual del
  * organismo correspondiente.
  */
