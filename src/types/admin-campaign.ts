@@ -64,7 +64,7 @@ export type CampaignWorkflowOption = {
   lastSequenceOrder: number;
 };
 
-export type CampaignSchoolAssignmentSource = "manual" | "filter" | "bulk";
+type CampaignSchoolAssignmentSource = "manual" | "filter" | "bulk";
 
 export type CampaignSchoolFilters = {
   search?: string;
@@ -79,7 +79,7 @@ export type CampaignSchoolFilters = {
   limit?: number;
 };
 
-export type CampaignSchoolOption = {
+type CampaignSchoolOption = {
   id: string;
   cue: string;
   name: string;

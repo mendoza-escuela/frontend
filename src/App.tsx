@@ -3,7 +3,7 @@ import { AppErrorBoundary } from './components/errors/AppErrorBoundary';
 import { AppRouter } from './routes/AppRouter';
 import { AuthProvider } from './hooks/AuthProvider';
 
-export function App() {
+function App() {
   return (
     <>
       <AppErrorBoundary>

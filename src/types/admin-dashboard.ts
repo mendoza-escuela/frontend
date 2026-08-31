@@ -22,7 +22,7 @@ export type ParticipationSubmissionStatus =
 
 export type ParticipationStar = "1" | "2" | "3" | "4" | "5";
 
-export type ParticipationCatalogOption = {
+type ParticipationCatalogOption = {
   value: string;
   label: string;
 };

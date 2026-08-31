@@ -82,14 +82,14 @@ export type SurveyWriteInput = {
   isActive: boolean;
 };
 
-export type SurveyOptionWriteInput = {
+type SurveyOptionWriteInput = {
   value: string;
   label: string;
   helpText?: string | null;
   score?: number | null;
 };
 
-export type SurveyQuestionWriteInput = {
+type SurveyQuestionWriteInput = {
   code: string;
   type: SurveyQuestionType;
   prompt: string;
@@ -99,14 +99,14 @@ export type SurveyQuestionWriteInput = {
   options: SurveyOptionWriteInput[];
 };
 
-export type SurveySectionWriteInput = {
+type SurveySectionWriteInput = {
   code: string;
   title: string;
   description?: string | null;
   questions: SurveyQuestionWriteInput[];
 };
 
-export type SurveyDimensionWriteInput = {
+type SurveyDimensionWriteInput = {
   code: string;
   title: string;
   description?: string | null;
@@ -194,7 +194,7 @@ export type SurveyImportPreview = {
   }>;
 };
 
-export type ApplicabilityAction = "show" | "omit";
+type ApplicabilityAction = "show" | "omit";
 export type ApplicabilityRule = {
   id: string;
   questionId: string;

@@ -16,7 +16,7 @@ export type SurveyQuestionValidation = {
   placeholder?: string;
 };
 
-export type SurveyOption = {
+type SurveyOption = {
   id: string;
   value: string;
   label: string;
@@ -37,7 +37,7 @@ export type SurveyQuestion = {
   options: SurveyOption[];
 };
 
-export type SurveySection = {
+type SurveySection = {
   id: string;
   code: string;
   title: string;
@@ -53,15 +53,6 @@ export type SurveyDimension = {
   description: string | null;
   order: number;
   sections: SurveySection[];
-};
-
-export type AvailableSurvey = {
-  code: string;
-  name: string;
-  description: string | null;
-  versionNumber: number;
-  versionTitle: string;
-  publishedAt: string;
 };
 
 export type PublishedSurvey = {
