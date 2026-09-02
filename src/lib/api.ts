@@ -1,4 +1,5 @@
 import axios from 'axios';
+import { getPublicRuntimeConfig } from '../config/runtime-config';
 
 export const AUTH_UNAUTHORIZED_EVENT = 'auth:unauthorized';
 export const APP_HTTP_ERROR_EVENT = 'app:http-error';
@@ -58,7 +59,9 @@ export function normalizeApiBaseUrl(value: string | undefined) {
   return parsedUrl.toString();
 }
 
-const apiBaseUrl = normalizeApiBaseUrl(import.meta.env.VITE_API_URL);
+const apiBaseUrl = normalizeApiBaseUrl(
+  getPublicRuntimeConfig('VITE_API_URL'),
+);
 
 export const api = axios.create({
   baseURL: apiBaseUrl,

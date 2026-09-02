@@ -22,12 +22,29 @@ Aplicación web React, TypeScript, Vite y Tailwind CSS.
    npm run dev
    ```
 
-Las variables `VITE_*` son configuración pública: Vite las incorpora al bundle
-durante la compilación y no deben contener secretos. Cambiarlas en un contenedor
-ya construido no modifica la aplicación; requiere generar una imagen nueva. El
-Dockerfile usa `/api` como valor predeterminado de `VITE_API_URL`. Las cuatro
-variables `VITE_BRAND_MENDOZA_*` y `VITE_BRAND_OPS_*` son overrides opcionales
-de assets institucionales y también se definen mediante argumentos de build.
+Las variables `VITE_*` son configuración pública y no deben contener secretos.
+En desarrollo se leen desde Vite. La imagen Docker genera `runtime-config.js`
+al iniciar, por lo que estos valores pueden cambiarse con variables de entorno
+sin recompilar la aplicación. `VITE_API_URL` usa `/api` por defecto y las cuatro
+variables `VITE_BRAND_MENDOZA_*` y `VITE_BRAND_OPS_*` son opcionales.
+
+## Imagen Docker de develop
+
+Cada push a `develop` publica en Docker Hub las etiquetas `develop` y
+`develop-<sha>`. El repositorio de GitHub debe definir las variables
+`DOCKERHUB_USERNAME` y `DOCKERHUB_IMAGE_NAME`, y el secreto
+`DOCKERHUB_TOKEN`. Ejemplo con una API en otro origen:
+
+```bash
+docker run --rm -p 8080:8080 \
+  -e VITE_API_URL=https://api.example.org/api \
+  <docker-id>/<nombre-imagen-frontend>:develop
+```
+
+Si se conserva `VITE_API_URL=/api`, el proxy externo debe enrutar `/api` hacia
+el backend en el mismo origen. La URL absoluta permite ejecutar el frontend de
+forma independiente; el backend debe recibir en `FRONTEND_URL` el origen exacto
+desde el que se abre esta aplicación.
 
 La autenticación usa cookies `HttpOnly`; por eso las solicitudes Axios se realizan con credenciales y el token no se guarda en `localStorage`.
 

@@ -1,4 +1,5 @@
 import { useState } from "react";
+import { getPublicRuntimeConfig } from "../../config/runtime-config";
 
 type BrandSurface = "light" | "blue";
 
@@ -53,12 +54,13 @@ const organizations = [
   {
     key: "mendoza",
     label: "Gobierno de Mendoza",
-    onLight: configuredSources(import.meta.env.VITE_BRAND_MENDOZA_ON_LIGHT, [
-      MENDOZA_DEFAULT_ASSET,
-    ]),
+    onLight: configuredSources(
+      getPublicRuntimeConfig("VITE_BRAND_MENDOZA_ON_LIGHT"),
+      [MENDOZA_DEFAULT_ASSET],
+    ),
     onBlue: blueSurfaceSources(
-      import.meta.env.VITE_BRAND_MENDOZA_ON_BLUE,
-      import.meta.env.VITE_BRAND_MENDOZA_ON_LIGHT,
+      getPublicRuntimeConfig("VITE_BRAND_MENDOZA_ON_BLUE"),
+      getPublicRuntimeConfig("VITE_BRAND_MENDOZA_ON_LIGHT"),
       [MENDOZA_DEFAULT_ASSET],
     ),
   },
@@ -72,12 +74,12 @@ const organizations = [
     key: "ops",
     label: "Organización Panamericana de la Salud",
     onLight: configuredSources(
-      import.meta.env.VITE_BRAND_OPS_ON_LIGHT,
+      getPublicRuntimeConfig("VITE_BRAND_OPS_ON_LIGHT"),
       OPS_DEFAULT_ASSETS.light,
     ),
     onBlue: blueSurfaceSources(
-      import.meta.env.VITE_BRAND_OPS_ON_BLUE,
-      import.meta.env.VITE_BRAND_OPS_ON_LIGHT,
+      getPublicRuntimeConfig("VITE_BRAND_OPS_ON_BLUE"),
+      getPublicRuntimeConfig("VITE_BRAND_OPS_ON_LIGHT"),
       OPS_DEFAULT_ASSETS.blue,
     ),
   },
