@@ -19,6 +19,10 @@ set -uo pipefail
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "${SCRIPT_DIR}/../.." && pwd)"
 
+# Expone PYTHON_IMAGE para el fallback que corre dentro de `bash -c`.
+# shellcheck source=load-tool-versions.sh
+. "${SCRIPT_DIR}/load-tool-versions.sh" || exit $?
+
 for arg in "$@"; do
   case "${arg}" in
     --static-only)
@@ -57,7 +61,7 @@ stage "Excepciones de seguridad" bash -c '
   if python3 -c "import sys" >/dev/null 2>&1; then
     python3 security/scripts/validate-exceptions.py
   else
-    docker run --rm -v "$(pwd)":/src -w /src python:3.13-alpine \
+    docker run --rm -v "$(pwd)":/src -w /src "${PYTHON_IMAGE}" \
       python security/scripts/validate-exceptions.py
   fi'
 

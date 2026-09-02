@@ -40,9 +40,6 @@ VALID_TOOLS = {
     "trivy",
     "osv",
     "gitleaks",
-    "zap",
-    "nuclei",
-    "testssl",
     "codeql",
 }
 MAX_WINDOW_DAYS = 90

@@ -131,7 +131,7 @@ export function CampaignsAdminPage() {
               Nueva etapa
             </Button>
           }
-          description="Configurá los períodos de evaluación y vinculalos con una versión publicada e inmutable del cuestionario."
+          description="Configurá los períodos de evaluación y vinculalos con una versión institucional publicada, evaluable e inmutable."
           eyebrow="Administración"
           title="Etapas"
         />
@@ -200,7 +200,7 @@ export function CampaignsAdminPage() {
                   Crear etapa
                 </Button>
               }
-              description="Necesitás al menos una versión publicada para crear una etapa."
+              description="Necesitás al menos una versión institucional publicada y evaluable para crear una etapa."
               icon={CalendarRange}
               title="Todavía no hay etapas"
             />

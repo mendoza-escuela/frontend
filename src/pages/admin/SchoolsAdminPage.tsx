@@ -16,7 +16,9 @@ import { ConfirmDialog } from "../../components/ui/ConfirmDialog";
 import { PaginationControls } from "../../components/ui/PaginationControls";
 import { LoadingState } from "../../components/ui/LoadingState";
 import { SearchableSelect } from "../../components/ui/SearchableSelect";
+import { ActiveStatusBadge } from "../../components/ui/StatusBadge";
 import { inputClassName } from "../../components/ui/form-styles";
+import { formatNumber } from "../../lib/format";
 import { getHttpErrorMessage } from "../../lib/http-error";
 import { showError, showSuccess } from "../../lib/toast";
 import {
@@ -282,10 +284,10 @@ export function SchoolsAdminPage() {
                       <td className="px-4 py-3">
                         {school.enrollment === null
                           ? "Sin informar"
-                          : school.enrollment.toLocaleString("es-AR")}
+                          : formatNumber(school.enrollment)}
                       </td>
                       <td className="px-4 py-3">
-                        <Status active={school.isActive} />
+                        <ActiveStatusBadge isActive={school.isActive} />
                       </td>
                       <td className="px-4 py-3">
                         <Actions school={school} status={setStatusTarget} />
@@ -358,15 +360,6 @@ function SelectFilter({
 }) {
   return <SearchableSelect label={label} onChange={(nextValue) => setDraft({ ...draft, [name]: nextValue })} options={values.map((option) => ({ value: option, label: option }))} value={value} />;
 }
-function Status({ active }: { active: boolean }) {
-  return (
-    <span
-      className={`rounded-full px-2.5 py-1 text-xs font-bold ${active ? "bg-green-100 text-green-800" : "bg-red-100 text-red-800"}`}
-    >
-      {active ? "Activo" : "Inactivo"}
-    </span>
-  );
-}
 function Actions({
   school,
   status,
@@ -419,7 +412,7 @@ function SchoolCard({
           <h2 className="font-bold text-mendoza-text">{school.name}</h2>
           <p className="text-sm text-mendoza-muted">CUE {school.cue}</p>
         </div>
-        <Status active={school.isActive} />
+        <ActiveStatusBadge isActive={school.isActive} />
       </div>
       <dl className="mt-4 grid grid-cols-2 gap-3 text-sm">
         <div>

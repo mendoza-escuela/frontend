@@ -22,6 +22,7 @@ import { LoadingState } from "../../components/ui/LoadingState";
 import { PageHeader } from "../../components/ui/PageHeader";
 import { SearchableMultiSelect } from "../../components/ui/SearchableMultiSelect";
 import { SearchableSelect } from "../../components/ui/SearchableSelect";
+import { formatNumber } from "../../lib/format";
 import { getHttpErrorMessage } from "../../lib/http-error";
 import { showError } from "../../lib/toast";
 import { INSTITUTIONAL_CHART_COLORS } from "../../theme/institutional-theme";
@@ -695,4 +696,4 @@ const statusLabel = (status: string) =>
       ? "Cerrada"
       : "Archivada";
 const formatPercentage = (value: number) =>
-  `${new Intl.NumberFormat("es-AR", { maximumFractionDigits: 2 }).format(value)} %`;
+  `${formatNumber(value)} %`;

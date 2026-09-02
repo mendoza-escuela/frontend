@@ -21,7 +21,9 @@ import {
   XAxis,
   YAxis,
 } from "recharts";
+import { formatNumber } from "../../lib/format";
 import { getHttpErrorMessage } from "../../lib/http-error";
+import { wrapChartLabel } from "../../lib/text";
 import { showWarning } from "../../lib/toast";
 import { adminDashboardService } from "../../services/admin-dashboard.service";
 import {
@@ -623,7 +625,7 @@ function ComparisonRadarTick({
   payload,
 }: ComparisonRadarTickProps) {
   const normalizedX = Number(x);
-  const lines = wrapLabel(String(payload?.value ?? ""), 23);
+  const lines = wrapChartLabel(String(payload?.value ?? ""), 23);
   return (
     <text
       fill={INSTITUTIONAL_CHART_COLORS.label}
@@ -693,13 +695,6 @@ function formatStarDistribution(period: CampaignComparisonPeriod) {
   return values.length ? values.join(" · ") : "Sin certificaciones";
 }
 
-function formatNumber(value: number) {
-  return new Intl.NumberFormat("es-AR", {
-    maximumFractionDigits: 2,
-    minimumFractionDigits: 0,
-  }).format(value);
-}
-
 function campaignTypeLabel(type: "annual" | "semiannual") {
   return type === "annual" ? "Operativo anual" : "Monitoreo semestral";
 }
@@ -732,16 +727,6 @@ function formatDateTime(value: string) {
     timeStyle: "short",
     timeZone: "America/Argentina/Mendoza",
   }).format(new Date(value));
-}
-
-function wrapLabel(label: string, maximumLength: number) {
-  const lines: string[] = [];
-  for (const word of label.split(/\s+/)) {
-    const current = lines.at(-1);
-    if (!current || `${current} ${word}`.length > maximumLength) lines.push(word);
-    else lines[lines.length - 1] = `${current} ${word}`;
-  }
-  return lines;
 }
 
 function institutionalComparisonFilters(filters: ParticipationFilters) {

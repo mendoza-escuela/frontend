@@ -20,6 +20,7 @@ import { PaginationControls } from "../../components/ui/PaginationControls";
 import { LoadingState } from "../../components/ui/LoadingState";
 import { SearchableSelect } from "../../components/ui/SearchableSelect";
 import { getHttpErrorMessage } from "../../lib/http-error";
+import { formatNumber } from "../../lib/format";
 import { showError, showSuccess } from "../../lib/toast";
 import { adminSchoolsService } from "../../services/admin-schools.service";
 import type { SchoolDetail } from "../../types/admin-school";
@@ -242,7 +243,7 @@ export function SchoolDetailPage() {
                 value={
                   school.enrollment === null
                     ? "Sin informar"
-                    : school.enrollment.toLocaleString("es-AR")
+                    : formatNumber(school.enrollment)
                 }
               />
               <Datum label="Kiosco" value={yesNoUnknown(school.hasKiosk)} />

@@ -6,6 +6,7 @@ import type {
 
 export type SurveyVersionStatus = "draft" | "published" | "archived";
 export type SurveyVersionTemplate = "blank" | "official_dimensions";
+export type SurveyVersionProfile = "institutional" | "generic";
 
 export type SurveyVersionSummary = {
   id: string;
@@ -71,7 +72,7 @@ export type AdminSurveyVersion = {
   publishedAt: string | null;
   createdAt: string;
   updatedAt: string;
-  profile: "institutional" | "generic";
+  profile: SurveyVersionProfile;
   dimensions: SurveyDimension[];
 };
 
@@ -83,6 +84,7 @@ export type SurveyWriteInput = {
 };
 
 type SurveyOptionWriteInput = {
+  id: string | null;
   value: string;
   label: string;
   helpText?: string | null;
@@ -90,6 +92,7 @@ type SurveyOptionWriteInput = {
 };
 
 type SurveyQuestionWriteInput = {
+  id: string | null;
   code: string;
   type: SurveyQuestionType;
   prompt: string;
@@ -100,6 +103,7 @@ type SurveyQuestionWriteInput = {
 };
 
 type SurveySectionWriteInput = {
+  id: string | null;
   code: string;
   title: string;
   description?: string | null;
@@ -107,6 +111,7 @@ type SurveySectionWriteInput = {
 };
 
 type SurveyDimensionWriteInput = {
+  id: string | null;
   code: string;
   title: string;
   description?: string | null;
@@ -114,6 +119,7 @@ type SurveyDimensionWriteInput = {
 };
 
 export type SurveyVersionWriteInput = {
+  expectedUpdatedAt: string;
   title: string;
   instructions?: string | null;
   dimensions: SurveyDimensionWriteInput[];
@@ -122,6 +128,9 @@ export type SurveyVersionWriteInput = {
 export type SurveyStructureValidation = {
   valid: boolean;
   errors: string[];
+  profile: SurveyVersionProfile;
+  evaluable: boolean;
+  evaluationErrors: string[];
   counts: {
     dimensions: number;
     sections: number;

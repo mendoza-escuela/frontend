@@ -16,8 +16,8 @@ import { getHttpErrorMessage } from "../../lib/http-error";
 import { showError, showSuccess } from "../../lib/toast";
 import { adminCampaignsService } from "../../services/admin-campaigns.service";
 import type {
+  CampaignSurveyVersionOption,
   CampaignWorkflowOption,
-  PublishedSurveyVersionOption,
 } from "../../types/admin-campaign";
 
 const datePattern = /^\d{4}-\d{2}-\d{2}$/;
@@ -31,7 +31,9 @@ const schema = z
       .max(255, "Ingresá hasta 255 caracteres."),
     description: z.string().max(2000, "Ingresá hasta 2000 caracteres."),
     type: z.enum(["annual", "semiannual"]),
-    surveyVersionId: z.string().min(1, "Seleccioná una versión publicada."),
+    surveyVersionId: z
+      .string()
+      .min(1, "Seleccioná una versión institucional elegible."),
     startDate: z
       .string()
       .regex(datePattern, "Ingresá una fecha de inicio válida."),
@@ -72,7 +74,7 @@ export function CampaignFormPage() {
   const { id } = useParams();
   const isEditing = Boolean(id);
   const navigate = useNavigate();
-  const [versions, setVersions] = useState<PublishedSurveyVersionOption[]>([]);
+  const [versions, setVersions] = useState<CampaignSurveyVersionOption[]>([]);
   const [workflows, setWorkflows] = useState<CampaignWorkflowOption[]>([]);
   const [creatingWorkflow, setCreatingWorkflow] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
@@ -136,7 +138,7 @@ export function CampaignFormPage() {
 
   useEffect(() => {
     Promise.all([
-      adminCampaignsService.publishedVersions(),
+      adminCampaignsService.eligibleSurveyVersions(),
       adminCampaignsService.workflowOptions(),
       id ? adminCampaignsService.findOne(id) : Promise.resolve(null),
     ])
@@ -203,11 +205,12 @@ export function CampaignFormPage() {
                 size={36}
               />
               <h2 className="mt-4 text-xl font-bold text-mendoza-text">
-                No hay versiones publicadas
+                No hay versiones institucionales elegibles
               </h2>
               <p className="mx-auto mt-2 max-w-xl text-sm leading-6 text-mendoza-muted">
-                Publicá una versión de cuestionario antes de crear la etapa.
-                Los borradores no pueden utilizarse para evaluar escuelas.
+                Para crear una etapa, publicá una versión que cumpla el perfil
+                institucional de evaluación. Las versiones genéricas pueden
+                publicarse, pero no se ofrecen para evaluar escuelas.
               </p>
               <Link
                 className="mt-5 inline-flex min-h-11 items-center rounded-lg border border-mendoza-blue px-4 text-sm font-semibold text-mendoza-blue hover:bg-mendoza-blue-soft"
@@ -337,8 +340,8 @@ export function CampaignFormPage() {
                     value={surveyVersionId}
                   />
                   <p className="mt-2 text-xs leading-5 text-mendoza-muted">
-                    Sólo se muestran versiones publicadas de cuestionarios
-                    activos.
+                    Sólo se muestran versiones institucionales publicadas y
+                    evaluables de cuestionarios activos.
                   </p>
                 </div>
 

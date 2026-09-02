@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from "react";
 import { Controller, useForm } from "react-hook-form";
 import { Link, useNavigate, useParams } from "react-router-dom";
 import { Button } from "../../components/ui/Button";
+import { FormField as Field } from "../../components/ui/FormField";
 import { LoadingState } from "../../components/ui/LoadingState";
 import { SchoolCombobox } from "../../components/users/SchoolCombobox";
 import { getHttpErrorDetails, getHttpErrorMessage } from "../../lib/http-error";
@@ -163,7 +164,11 @@ export function UserFormPage() {
                 autoComplete="family-name"
               />
             </Field>
-            <Field label="Correo" error={errors.email?.message} wide>
+            <Field
+              className="sm:col-span-2"
+              label="Correo"
+              error={errors.email?.message}
+            >
               <input
                 {...register("email")}
                 className="field"
@@ -203,9 +208,9 @@ export function UserFormPage() {
             )}
             {!editing && (
               <Field
+                className="sm:col-span-2"
                 label="Contraseña temporal"
                 error={errors.temporaryPassword?.message}
-                wide
               >
                 <span className="relative block">
                   <input
@@ -266,33 +271,5 @@ export function UserFormPage() {
         </section>
       </div>
     </main>
-  );
-}
-
-function Field({
-  label,
-  error,
-  wide,
-  children,
-}: {
-  label: string;
-  error?: string;
-  wide?: boolean;
-  children: React.ReactNode;
-}) {
-  return (
-    <label
-      className={`text-sm font-semibold text-mendoza-text ${wide ? "sm:col-span-2" : ""}`}
-    >
-      {label}
-      <span className="mt-2 block [&_.field]:w-full [&_.field]:rounded-lg [&_.field]:border [&_.field]:border-mendoza-border [&_.field]:px-3 [&_.field]:py-2.5 [&_.field]:outline-none focus-within:[&_.field]:border-mendoza-sky">
-        {children}
-      </span>
-      {error && (
-        <span className="mt-1 block text-sm font-normal text-mendoza-error">
-          {error}
-        </span>
-      )}
-    </label>
   );
 }

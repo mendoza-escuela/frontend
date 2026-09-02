@@ -36,8 +36,8 @@ jobs:
           node-version-file: .nvmrc
           cache: npm
 
-      - name: Configurar npm 11.6.1
-        run: npm install --global npm@11.6.1
+      - name: Usar npm declarado por el proyecto
+        run: bash security/scripts/setup-project-npm.sh
       - run: npm ci
       - run: npm run lint
       - run: npm run build

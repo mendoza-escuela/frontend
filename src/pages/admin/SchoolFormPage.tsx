@@ -9,8 +9,10 @@ import {
   useForm,
 } from "react-hook-form";
 import { Link, useNavigate, useParams } from "react-router-dom";
+import { LegacyCatalogNotice } from "../../components/schools/LegacyCatalogNotice";
 import { Button } from "../../components/ui/Button";
 import { ErrorState } from "../../components/ui/ErrorState";
+import { FormField as Field } from "../../components/ui/FormField";
 import { LoadingState } from "../../components/ui/LoadingState";
 import { SearchableSelect } from "../../components/ui/SearchableSelect";
 import { checkboxClassName } from "../../components/ui/form-styles";
@@ -23,6 +25,14 @@ import {
   createAdminSchoolFormSchema,
   type SchoolFormValues,
 } from "../../lib/school-form-schema";
+import {
+  booleanSchoolCharacteristic,
+  nullableInteger,
+  resolveSchoolShift,
+  schoolCatalogLabel,
+  schoolCharacteristicLabel,
+  simpleSchoolCharacteristics,
+} from "../../lib/school-form-helpers";
 import { showError, showSuccess, showWarning } from "../../lib/toast";
 import { adminSchoolsService } from "../../services/admin-schools.service";
 import type {
@@ -200,7 +210,9 @@ export function SchoolFormPage() {
     } = values;
     void _respondentPosition;
     void _characteristics;
-    const characteristics = simpleCharacteristics(values.characteristics);
+    const characteristics = simpleSchoolCharacteristics(
+      values.characteristics,
+    );
 
     const input: SchoolWriteInput = {
       ...schoolValues,
@@ -318,11 +330,15 @@ export function SchoolFormPage() {
             <Field label="Número">
               <input className="field" {...register("schoolNumber")} />
             </Field>
-            <Field wide label="Nombre *" error={errors.name?.message}>
+            <Field
+              className="md:col-span-2"
+              label="Nombre *"
+              error={errors.name?.message}
+            >
               <input className="field" {...register("name")} />
             </Field>
             <Field
-              wide
+              className="md:col-span-2"
               label="Director/a *"
               error={errors.directorName?.message}
             >
@@ -336,7 +352,11 @@ export function SchoolFormPage() {
             <Field label="Localidad *" error={errors.locality?.message}>
               <input className="field" {...register("locality")} />
             </Field>
-            <Field wide label="Dirección *" error={errors.address?.message}>
+            <Field
+              className="md:col-span-2"
+              label="Dirección *"
+              error={errors.address?.message}
+            >
               <input className="field" {...register("address")} />
             </Field>
             <Field label="Código postal">
@@ -442,7 +462,7 @@ export function SchoolFormPage() {
             <BooleanField
               control={control}
               error={errors.characteristics?.isMultigrade?.message}
-              label={characteristicLabel(
+              label={schoolCharacteristicLabel(
                 catalogs,
                 "isMultigrade",
                 "¿Es Plurogrado?",
@@ -453,7 +473,7 @@ export function SchoolFormPage() {
             <BooleanField
               control={control}
               error={errors.characteristics?.isInterculturalBilingual?.message}
-              label={characteristicLabel(
+              label={schoolCharacteristicLabel(
                 catalogs,
                 "isInterculturalBilingual",
                 "¿Es intercultural y bilingüe?",
@@ -465,8 +485,9 @@ export function SchoolFormPage() {
             <Section title="Contacto institucional" />
             <Field
               label="Correo principal del colegio"
-              hint="Correo general para comunicaciones con el establecimiento. No se utiliza para ingresar a la aplicación."
-              hintId="school-email-help"
+              help="Correo general para comunicaciones con el establecimiento. No se utiliza para ingresar a la aplicación."
+              helpId="school-email-help"
+              helpPlacement="below"
               error={errors.email?.message}
             >
               <input
@@ -510,8 +531,9 @@ export function SchoolFormPage() {
             </Field>
             <Field
               label={editing ? "Correo institucional" : "Correo institucional *"}
-              hint="Este será el correo con el que el referente responsable ingresará a la aplicación."
-              hintId="referent-email-help"
+              help="Este será el correo con el que el referente responsable ingresará a la aplicación."
+              helpId="referent-email-help"
+              helpPlacement="below"
               error={errors.referentEmail?.message}
             >
               <input
@@ -601,21 +623,10 @@ function CatalogField({
         )}
       />
       {legacyValue && (
-        <span
-          className={`mt-2 block rounded-lg border p-3 text-sm font-normal leading-5 ${
-            unresolvedLegacy
-              ? "border-amber-300 bg-amber-50 text-amber-950"
-              : "border-mendoza-sky/50 bg-mendoza-blue-soft text-mendoza-blue"
-          }`}
-          role={unresolvedLegacy ? "alert" : "status"}
-        >
-          <strong>Valor anterior sin correspondencia: {legacyValue}.</strong> No
-          equivale automáticamente a un tipo de educación. Los niveles educativos
-          se informan por separado.{" "}
-          {unresolvedLegacy
-            ? "Elegí una opción del catálogo oficial antes de guardar."
-            : "La opción oficial seleccionada se aplicará al guardar."}
-        </span>
+        <LegacyCatalogNotice
+          legacyValue={legacyValue}
+          unresolved={Boolean(unresolvedLegacy)}
+        />
       )}
     </>
   );
@@ -780,12 +791,7 @@ function schoolFormValues(
   catalogs: SchoolRectificationCatalogs,
 ): SchoolFormValues {
   const respondent = school.contacts?.find(({ type }) => type === "RESPONDENT");
-  const shift = catalogs.shifts.items.find(
-    (option) =>
-      option.id === school.shiftCatalogId ||
-      option.label === school.shift ||
-      option.code === school.shift,
-  );
+  const shift = resolveSchoolShift(catalogs, school);
   return {
     cue: school.cue,
     name: school.name,
@@ -798,11 +804,11 @@ function schoolFormValues(
     educationLevel:
       officialCatalogLabel(catalogs.educationTypes, school.educationLevel) ??
       school.educationLevel,
-    managementType: catalogLabel(
+    managementType: schoolCatalogLabel(
       catalogs.managementTypes,
       school.managementType,
     ),
-    scope: catalogLabel(catalogs.scopes, school.scope),
+    scope: schoolCatalogLabel(catalogs.scopes, school.scope),
     shift: shift?.label ?? "",
     shiftCatalogId: shift?.id ?? null,
     educationLevels: school.educationLevels.map(({ levelId, enrollment }) => ({
@@ -814,8 +820,8 @@ function schoolFormValues(
     isBoarding: school.isBoarding,
     characteristics: {
       ...school.characteristics,
-      isMultigrade: booleanCharacteristic(school, "isMultigrade"),
-      isInterculturalBilingual: booleanCharacteristic(
+      isMultigrade: booleanSchoolCharacteristic(school, "isMultigrade"),
+      isInterculturalBilingual: booleanSchoolCharacteristic(
         school,
         "isInterculturalBilingual",
       ),
@@ -832,88 +838,10 @@ function schoolFormValues(
   };
 }
 
-function catalogLabel(options: SchoolNamedCatalogOption[], current: string) {
-  return (
-    options.find(({ code, label }) => code === current || label === current)
-      ?.label ?? ""
-  );
-}
-
-function characteristicLabel(
-  catalogs: SchoolRectificationCatalogs,
-  code: string,
-  fallback: string,
-) {
-  return (
-    catalogs.characteristics.find((option) => option.code === code)?.label ??
-    fallback
-  );
-}
-
-function booleanCharacteristic(school: SchoolDetail, code: string) {
-  const value = school.characteristics[code];
-  return typeof value === "boolean" ? value : null;
-}
-
-function simpleCharacteristics(
-  characteristics: SchoolFormValues["characteristics"],
-) {
-  return {
-    isMultigrade: characteristics.isMultigrade ?? null,
-    isInterculturalBilingual: characteristics.isInterculturalBilingual ?? null,
-  };
-}
-
-const nullableInteger = (value: unknown) =>
-  value === "" || value === null || value === undefined ? null : Number(value);
-
 function Section({ title }: { title: string }) {
   return (
     <h2 className="border-b border-mendoza-border pb-2 text-lg font-bold text-mendoza-blue md:col-span-2">
       {title}
     </h2>
-  );
-}
-
-function Field({
-  label,
-  hint,
-  hintId,
-  error,
-  wide,
-  children,
-}: {
-  label: string;
-  hint?: string;
-  hintId?: string;
-  error?: string;
-  wide?: boolean;
-  children: React.ReactNode;
-}) {
-  return (
-    <label
-      className={`text-sm font-semibold text-mendoza-text ${wide ? "md:col-span-2" : ""}`}
-    >
-      {label}
-      <span className="mt-2 block [&_.field]:w-full [&_.field]:rounded-lg [&_.field]:border [&_.field]:border-mendoza-border [&_.field]:px-3 [&_.field]:py-2.5 [&_.field]:outline-none focus-within:[&_.field]:border-mendoza-sky">
-        {children}
-      </span>
-      {hint && (
-        <span
-          className="mt-1 block text-xs font-normal leading-5 text-mendoza-muted"
-          id={hintId}
-        >
-          {hint}
-        </span>
-      )}
-      {error && (
-        <span
-          className="mt-1 block text-sm font-normal text-mendoza-error"
-          role="alert"
-        >
-          {error}
-        </span>
-      )}
-    </label>
   );
 }

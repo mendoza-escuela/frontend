@@ -3,6 +3,8 @@
 Validación reproducible del código y de la imagen desplegable del frontend. Las
 herramientas corren en contenedores con versiones fijadas en
 `security/config/tool-versions.env`; el único requisito operativo es Docker.
+`security/scripts/load-tool-versions.sh` carga y valida esa fuente antes de cada
+ejecución.
 
 El stack efímero, los tests integrados de seguridad y el DAST pertenecen al
 pipeline del repositorio backend, porque allí se puede levantar y auditar la
@@ -30,26 +32,37 @@ El veredicto queda en `security/reports/summary.md`.
 | `run-all.sh` | Orquesta el alcance completo del frontend y aplica el veredicto | todas las siguientes |
 | `run-static.sh` | SAST, SCA, secretos y SBOM | Semgrep, Gitleaks, Trivy, OSV |
 | `run-container-scan.sh` | Construye y analiza sólo la imagen frontend | Docker, Trivy |
+| `load-tool-versions.sh` | Valida y exporta todas las imágenes canónicas | Bash |
+| `setup-project-npm.sh` | Instala el npm fijado en `packageManager` para CI | Node.js, npm |
 | `create-summary.sh` | Consolida resultados y artefactos obligatorios | Python |
 | `validate-exceptions.py` | Rechaza excepciones vencidas o mal formadas | Python |
 
-`run-dast.sh`, `wait-for-app.sh` y sus configuraciones se conservan
-temporalmente como archivos legacy, pero no están soportados ni son invocados
-por `run-all.sh`, el wrapper de Windows o los workflows. El DAST operativo se
-ejecuta únicamente desde backend.
+Este repositorio no conserva wrappers ni configuraciones DAST locales. El DAST
+operativo se ejecuta únicamente desde backend, donde existe el stack integrado.
 
 ## Herramientas y versiones
 
-| Herramienta | Versión | Rol |
+| Herramienta | Fuente | Rol |
 | --- | --- | --- |
-| Semgrep | 1.145.0 | SAST y 3 reglas propias del frontend |
-| Trivy | 0.74.0 | Dependencias, imagen, SBOM y misconfig |
-| OSV-Scanner | v2.2.4 | Segunda fuente sobre los lockfiles |
-| Gitleaks | v8.30.0 | Secretos en el historial completo |
+| Python | `PYTHON_IMAGE` | Runtime de respaldo para los consolidadores |
+| Semgrep | `SEMGREP_IMAGE` | SAST y reglas propias del frontend |
+| Trivy | `TRIVY_IMAGE` | Dependencias, imagen, SBOM y misconfig |
+| OSV-Scanner | `OSV_SCANNER_IMAGE` | Segunda fuente sobre los lockfiles |
+| Gitleaks | `GITLEAKS_IMAGE` | Secretos en el historial completo |
 
 Nunca se usa `latest`. Para actualizar una herramienta se cambia una sola vez
 `security/config/tool-versions.env`; los scripts locales y CI consumen esa misma
-fuente.
+fuente. El helper rechaza variables faltantes, adicionales, duplicadas y
+referencias sin tag o digest fijo.
+
+Los workflows tampoco repiten la versión de npm: `setup-project-npm.sh` la
+deriva de `package.json#packageManager`. Los valores de `uses:` de GitHub Actions
+son la única excepción técnica: GitHub no permite variables ni expresiones en
+ese campo, por lo que sus SHA permanecen fijados y comentados inline.
+
+Backend y frontend conservan copias vendorizadas de los helpers comunes. Es una
+decisión deliberada para que cada repositorio sea autónomo; las pruebas de
+integridad validan el inventario y las fuentes locales en cada uno.
 
 ## Política de bloqueo
 

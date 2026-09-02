@@ -10,6 +10,7 @@ import { authService } from '../services/auth.service';
 import type { AuthUser } from '../types/auth';
 import {
   AUTH_UNAUTHORIZED_EVENT,
+  beginAuthenticationOperation,
   getAppHttpErrorDetail,
   type AppHttpErrorStatus,
 } from '../lib/api';
@@ -22,6 +23,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const [authenticationErrorStatus, setAuthenticationErrorStatus] =
     useState<AppHttpErrorStatus | null>(null);
   const authenticationOperation = useRef(0);
+  const authenticationMutationTail = useRef<Promise<void>>(Promise.resolve());
+  const pendingAuthenticationRequests = useRef(0);
   const currentUser = useRef<AuthUser | null>(null);
 
   const updateUser = useCallback((nextUser: AuthUser | null) => {
@@ -31,9 +34,12 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   const refreshUser = useCallback(async () => {
     const operation = ++authenticationOperation.current;
+    beginAuthenticationOperation();
+    pendingAuthenticationRequests.current += 1;
     try {
       const authenticatedUser = await authService.me();
       if (operation !== authenticationOperation.current) return;
+      beginAuthenticationOperation();
       updateUser(authenticatedUser);
       setSessionExpired(false);
       setAuthenticationErrorStatus(null);
@@ -43,6 +49,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       setAuthenticationErrorStatus(
         getAppHttpErrorDetail(error)?.statusCode ?? null,
       );
+    } finally {
+      pendingAuthenticationRequests.current -= 1;
     }
   }, [updateUser]);
 
@@ -52,7 +60,11 @@ export function AuthProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     const clearInvalidSession = () => {
-      authenticationOperation.current += 1;
+      // Un 401 vigente limpia el estado actual, pero no debe cancelar un
+      // login/refresh ya en curso: esa operación decidirá el estado final.
+      if (pendingAuthenticationRequests.current === 0)
+        authenticationOperation.current += 1;
+      beginAuthenticationOperation();
       setAuthenticationErrorStatus(null);
       if (currentUser.current) setSessionExpired(true);
       updateUser(null);
@@ -65,6 +77,24 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       );
   }, [updateUser]);
 
+  const runAuthenticationMutation = useCallback(
+    <T,>(mutation: () => Promise<T>): Promise<T> => {
+      pendingAuthenticationRequests.current += 1;
+      const previous = authenticationMutationTail.current.catch(
+        () => undefined,
+      );
+      const current = previous.then(mutation);
+      authenticationMutationTail.current = current.then(
+        () => undefined,
+        () => undefined,
+      );
+      return current.finally(() => {
+        pendingAuthenticationRequests.current -= 1;
+      });
+    },
+    [],
+  );
+
   const value = useMemo<AuthContextValue>(
     () => ({
       user,
@@ -73,23 +103,33 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       authenticationErrorStatus,
       login: async (email, password) => {
         const operation = ++authenticationOperation.current;
-        const authenticatedUser = await authService.login(email, password);
-        if (operation !== authenticationOperation.current)
-          return authenticatedUser;
-        updateUser(authenticatedUser);
-        setSessionExpired(false);
-        setAuthenticationErrorStatus(null);
-        return authenticatedUser;
-      },
-      logout: async () => {
-        authenticationOperation.current += 1;
-        try {
-          await authService.logout();
-        } finally {
-          updateUser(null);
+        beginAuthenticationOperation();
+        return runAuthenticationMutation(async () => {
+          const authenticatedUser = await authService.login(email, password);
+          beginAuthenticationOperation();
+          if (operation !== authenticationOperation.current)
+            return authenticatedUser;
+          updateUser(authenticatedUser);
           setSessionExpired(false);
           setAuthenticationErrorStatus(null);
-        }
+          return authenticatedUser;
+        });
+      },
+      logout: async () => {
+        const operation = ++authenticationOperation.current;
+        beginAuthenticationOperation();
+        await runAuthenticationMutation(async () => {
+          try {
+            await authService.logout();
+          } finally {
+            beginAuthenticationOperation();
+            if (operation === authenticationOperation.current) {
+              updateUser(null);
+              setSessionExpired(false);
+              setAuthenticationErrorStatus(null);
+            }
+          }
+        });
       },
       refreshUser,
     }),
@@ -97,6 +137,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       authenticationErrorStatus,
       isLoading,
       refreshUser,
+      runAuthenticationMutation,
       sessionExpired,
       updateUser,
       user,

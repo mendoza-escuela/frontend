@@ -25,10 +25,9 @@ describe("SearchableMultiSelect", () => {
     render(<Harness />);
 
     fireEvent.click(screen.getByRole("button", { name: "Departamento" }));
-    expect(screen.getByRole("listbox", { name: "Departamento" })).toHaveAttribute(
-      "aria-multiselectable",
-      "true",
-    );
+    expect(
+      screen.getByRole("listbox", { name: "Departamento" }),
+    ).toHaveAttribute("aria-multiselectable", "true");
     fireEvent.click(screen.getByRole("option", { name: "Capital" }));
     fireEvent.change(
       screen.getByRole("combobox", { name: "Buscar en Departamento" }),
@@ -80,9 +79,7 @@ describe("SearchableMultiSelect", () => {
 
   it("informa y respeta el máximo de selecciones", () => {
     const onMaxSelectionsReached = vi.fn();
-    render(
-      <LimitedHarness onMaxSelectionsReached={onMaxSelectionsReached} />,
-    );
+    render(<LimitedHarness onMaxSelectionsReached={onMaxSelectionsReached} />);
 
     fireEvent.click(screen.getByRole("button", { name: "Departamento" }));
     fireEvent.click(screen.getByRole("option", { name: "Capital" }));
@@ -99,6 +96,41 @@ describe("SearchableMultiSelect", () => {
       "true",
     );
     expect(screen.queryByText("2 seleccionados")).not.toBeInTheDocument();
+  });
+
+  it("muestra badges y resalta opciones con información previa", () => {
+    render(
+      <SearchableMultiSelect
+        label="Preguntas"
+        onChange={vi.fn()}
+        options={[
+          {
+            value: "without-rules",
+            label: "Pregunta sin reglas",
+            badge: "0 reglas",
+          },
+          {
+            value: "with-rules",
+            label: "Pregunta con reglas",
+            badge: "2 reglas",
+            highlighted: true,
+          },
+        ]}
+      />,
+    );
+
+    fireEvent.click(screen.getByRole("button", { name: "Preguntas" }));
+
+    expect(
+      screen.getByRole("option", {
+        name: "Pregunta con reglas · 2 reglas",
+      }),
+    ).toHaveAttribute("data-highlighted", "true");
+    expect(
+      screen.getByRole("option", {
+        name: "Pregunta sin reglas · 0 reglas",
+      }),
+    ).not.toHaveAttribute("data-highlighted");
   });
 });
 

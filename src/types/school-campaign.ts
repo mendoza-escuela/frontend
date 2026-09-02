@@ -47,6 +47,7 @@ export type AvailableSchoolCampaign = SchoolCampaignSummary & {
     status: SchoolSubmissionStatus;
     startedAt: string;
     lastSavedAt: string | null;
+    revision: number;
     submittedAt: string | null;
     progress: SubmissionProgress;
   } | null;
@@ -72,6 +73,7 @@ export type SchoolSubmissionWorkspace = {
     status: SchoolSubmissionStatus;
     startedAt: string;
     lastSavedAt: string | null;
+    revision: number;
     submittedAt: string | null;
     originalRespondent: {
       id: string;

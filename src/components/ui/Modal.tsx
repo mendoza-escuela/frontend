@@ -1,5 +1,11 @@
 import { X } from "lucide-react";
-import { useEffect, useId, type ReactNode } from "react";
+import {
+  useEffect,
+  useId,
+  useLayoutEffect,
+  useRef,
+  type ReactNode,
+} from "react";
 
 type ModalSize = "md" | "lg" | "xl";
 
@@ -11,6 +17,15 @@ const sizeClassNames: Record<ModalSize, string> = {
 
 let bodyScrollLockCount = 0;
 let bodyOverflowBeforeLock = "";
+
+const focusableElementSelector = [
+  "a[href]",
+  "button:not([disabled])",
+  "input:not([disabled])",
+  "select:not([disabled])",
+  "textarea:not([disabled])",
+  '[tabindex]:not([tabindex="-1"])',
+].join(",");
 
 function lockBodyScroll() {
   if (bodyScrollLockCount === 0) {
@@ -34,6 +49,8 @@ export function Modal({
   children,
   onClose,
   size = "md",
+  dismissible = true,
+  busy = false,
 }: {
   open: boolean;
   title: string;
@@ -41,35 +58,97 @@ export function Modal({
   children: ReactNode;
   onClose: () => void;
   size?: ModalSize;
+  dismissible?: boolean;
+  busy?: boolean;
 }) {
   const titleId = useId();
   const descriptionId = useId();
+  const dialogRef = useRef<HTMLDivElement>(null);
+  const dismissibleRef = useRef(dismissible);
+  const onCloseRef = useRef(onClose);
+
+  useLayoutEffect(() => {
+    dismissibleRef.current = dismissible;
+    onCloseRef.current = onClose;
+    const activeElement = document.activeElement;
+    if (
+      !dismissible &&
+      activeElement instanceof HTMLElement &&
+      activeElement.matches(":disabled")
+    ) {
+      dialogRef.current?.focus();
+    }
+  }, [dismissible, onClose]);
 
   useEffect(() => {
     if (!open) return;
     const unlockBodyScroll = lockBodyScroll();
-    const closeOnEscape = (event: KeyboardEvent) => {
-      if (event.key === "Escape") onClose();
+    const previouslyFocused =
+      document.activeElement instanceof HTMLElement
+        ? document.activeElement
+        : null;
+    const dialog = dialogRef.current;
+    const focusableElements = dialog?.querySelectorAll<HTMLElement>(
+      focusableElementSelector,
+    );
+    (focusableElements?.[0] ?? dialog)?.focus();
+
+    const handleDialogKeys = (event: KeyboardEvent) => {
+      if (event.key === "Escape") {
+        if (dismissibleRef.current) onCloseRef.current();
+        return;
+      }
+      if (event.key !== "Tab" || !dialog) return;
+
+      const availableElements = Array.from(
+        dialog.querySelectorAll<HTMLElement>(focusableElementSelector),
+      );
+      if (!availableElements.length) {
+        event.preventDefault();
+        dialog.focus();
+        return;
+      }
+
+      const firstElement = availableElements[0];
+      const lastElement = availableElements[availableElements.length - 1];
+      const activeElement = document.activeElement;
+      if (
+        event.shiftKey &&
+        (activeElement === firstElement || !dialog.contains(activeElement))
+      ) {
+        event.preventDefault();
+        lastElement.focus();
+      } else if (
+        !event.shiftKey &&
+        (activeElement === lastElement || !dialog.contains(activeElement))
+      ) {
+        event.preventDefault();
+        firstElement.focus();
+      }
     };
-    document.addEventListener("keydown", closeOnEscape);
+    document.addEventListener("keydown", handleDialogKeys);
     return () => {
       unlockBodyScroll();
-      document.removeEventListener("keydown", closeOnEscape);
+      document.removeEventListener("keydown", handleDialogKeys);
+      previouslyFocused?.focus();
     };
-  }, [onClose, open]);
+  }, [open]);
 
   if (!open) return null;
 
   return (
     <div
       aria-describedby={description ? descriptionId : undefined}
+      aria-busy={busy || undefined}
       aria-labelledby={titleId}
       aria-modal="true"
       className="fixed inset-0 z-50 grid place-items-center bg-black/45 p-4"
       onMouseDown={(event) => {
-        if (event.target === event.currentTarget) onClose();
+        if (dismissible && event.target === event.currentTarget) onClose();
       }}
+      ref={dialogRef}
       role="dialog"
+      tabIndex={-1}
     >
       <section
         className={`flex max-h-[calc(100dvh-2rem)] w-full flex-col overflow-hidden rounded-2xl bg-white p-5 shadow-xl sm:p-6 ${sizeClassNames[size]}`}
@@ -90,7 +169,8 @@ export function Modal({
           </div>
           <button
             aria-label="Cerrar"
-            className="rounded-lg p-2 text-mendoza-muted hover:bg-mendoza-background"
+            className="rounded-lg p-2 text-mendoza-muted hover:bg-mendoza-background disabled:cursor-not-allowed disabled:opacity-50"
+            disabled={!dismissible}
             onClick={onClose}
             type="button"
           >

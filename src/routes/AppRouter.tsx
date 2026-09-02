@@ -15,11 +15,6 @@ import {
   ErrorRoutePage,
   RouteErrorBoundaryPage,
 } from "../pages/ErrorRoutePage";
-const AccessDeniedPage = lazy(() =>
-  import("../pages/AccessDeniedPage").then((module) => ({
-    default: module.AccessDeniedPage,
-  })),
-);
 const ChangePasswordPage = lazy(() =>
   import("../pages/ChangePasswordPage").then((module) => ({
     default: module.ChangePasswordPage,
@@ -321,7 +316,7 @@ const applicationRoutes: RouteObject[] = [
       },
     ],
   },
-  { path: "acceso-denegado", element: lazyPage(<AccessDeniedPage />) },
+  { path: "acceso-denegado", element: <ErrorRoutePage statusCode={403} /> },
   { path: "error", element: <ErrorRoutePage statusCode="generic" /> },
   { path: "error/:statusCode", element: <ErrorRoutePage /> },
   { path: "*", element: <ErrorRoutePage statusCode={404} /> },

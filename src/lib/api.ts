@@ -11,6 +11,22 @@ export type AppHttpErrorDetail = {
   correlationId: string | null;
 };
 
+type AuthenticationEpochConfig = {
+  __authenticationEpoch?: number;
+};
+
+let authenticationEpoch = 0;
+
+/**
+ * Inicia una nueva operación de autenticación. Las respuestas 401 de requests
+ * privados iniciados antes de este punto ya no pueden invalidar la sesión
+ * resultante de la operación nueva.
+ */
+export function beginAuthenticationOperation() {
+  authenticationEpoch += 1;
+  return authenticationEpoch;
+}
+
 const API_URL_CONTRACT_ERROR =
   'VITE_API_URL must be "/api" or an HTTP(S) URL ending in "/api".';
 
@@ -141,6 +157,8 @@ function isAuthenticationEntryPoint(url: string | undefined) {
 }
 
 api.interceptors.request.use((config) => {
+  (config as typeof config & AuthenticationEpochConfig).__authenticationEpoch =
+    authenticationEpoch;
   const method = config.method?.toUpperCase();
   if (method && !['GET', 'HEAD', 'OPTIONS'].includes(method)) {
     config.headers.set(CSRF_PROTECTION_HEADER, '1');
@@ -155,6 +173,9 @@ api.interceptors.response.use(
       axios.isAxiosError(error) &&
       error.response?.status === 401 &&
       !isAuthenticationEntryPoint(error.config?.url) &&
+      (
+        error.config as typeof error.config & AuthenticationEpochConfig
+      )?.__authenticationEpoch === authenticationEpoch &&
       typeof window !== 'undefined'
     ) {
       window.dispatchEvent(new Event(AUTH_UNAUTHORIZED_EVENT));

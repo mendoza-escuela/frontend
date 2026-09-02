@@ -1,8 +1,15 @@
 // @vitest-environment jsdom
 
 import "@testing-library/jest-dom/vitest";
-import { cleanup, fireEvent, render, screen, waitFor } from "@testing-library/react";
-import { MemoryRouter } from "react-router-dom";
+import {
+  act,
+  cleanup,
+  fireEvent,
+  render,
+  screen,
+  waitFor,
+} from "@testing-library/react";
+import { createMemoryRouter, Link, RouterProvider } from "react-router-dom";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 import { schoolCampaignsService } from "../../services/school-campaigns.service";
 import type {
@@ -10,7 +17,34 @@ import type {
   AvailableSchoolCampaignsResponse,
   SchoolSubmissionWorkspace,
 } from "../../types/school-campaign";
+import type { QuestionnaireFormValues } from "../../types/survey";
 import { SchoolSurveyPage } from "./SchoolSurveyPage";
+
+type QuestionnaireMockProps = {
+  readOnly?: boolean;
+  disabled?: boolean;
+  defaultValues?: QuestionnaireFormValues;
+  submitDisabledReason?: string;
+  onSaveDraft?: (
+    values: QuestionnaireFormValues,
+    expectedRevision: number,
+  ) => Promise<{
+    revision: number;
+    lastSavedAt: string | null;
+    authoritativeChanged?: boolean;
+  }>;
+  onSubmit?: (
+    values: QuestionnaireFormValues,
+    revision: number,
+  ) => void | Promise<void>;
+};
+
+let latestQuestionnaireProps: QuestionnaireMockProps | null = null;
+
+const questionnaireControl = vi.hoisted(() => ({
+  hasPendingChanges: false,
+  flushDraft: vi.fn<() => Promise<number>>(),
+}));
 
 vi.mock("../../services/school-campaigns.service", () => ({
   schoolCampaignsService: {
@@ -22,19 +56,47 @@ vi.mock("../../services/school-campaigns.service", () => ({
   },
 }));
 
-vi.mock("../../components/surveys/QuestionnaireRenderer", () => ({
-  QuestionnaireRenderer: ({ readOnly }: { readOnly?: boolean }) => (
-    <div data-testid="questionnaire-mode">
-      {readOnly ? "Cuestionario bloqueado" : "Cuestionario editable"}
-    </div>
-  ),
-}));
+vi.mock("../../components/surveys/QuestionnaireRenderer", async () => {
+  const { forwardRef, useEffect, useImperativeHandle } =
+    await vi.importActual<typeof import("react")>("react");
+  return {
+    QuestionnaireRenderer: forwardRef(function QuestionnaireRendererMock(
+      props: QuestionnaireMockProps,
+      ref,
+    ) {
+      useEffect(() => {
+        latestQuestionnaireProps = props;
+      }, [props]);
+      useImperativeHandle(ref, () => ({
+        flushDraft: questionnaireControl.flushDraft,
+        hasPendingChanges: () => questionnaireControl.hasPendingChanges,
+      }));
+      return (
+        <div>
+          <div data-testid="questionnaire-mode">
+            {props.readOnly
+              ? "Cuestionario bloqueado"
+              : "Cuestionario editable"}
+            {props.submitDisabledReason && (
+              <span>{props.submitDisabledReason}</span>
+            )}
+          </div>
+          <input
+            aria-label="Respuesta de prueba"
+            disabled={props.disabled || props.readOnly}
+          />
+        </div>
+      );
+    }),
+  };
+});
 
 describe("SchoolSurveyPage expired drafts", () => {
   beforeEach(() => {
-    vi.mocked(schoolCampaignsService.list).mockResolvedValue(
-      campaignsFixture,
-    );
+    latestQuestionnaireProps = null;
+    questionnaireControl.hasPendingChanges = false;
+    questionnaireControl.flushDraft.mockResolvedValue(0);
+    vi.mocked(schoolCampaignsService.list).mockResolvedValue(campaignsFixture);
     vi.mocked(schoolCampaignsService.workspace).mockResolvedValue(
       workspaceFixture,
     );
@@ -135,9 +197,7 @@ describe("SchoolSurveyPage expired drafts", () => {
     });
     vi.mocked(schoolCampaignsService.workspace).mockImplementation(
       async (campaignId) =>
-        campaignId === activeCampaign.id
-          ? activeIncomplete
-          : expiredIncomplete,
+        campaignId === activeCampaign.id ? activeIncomplete : expiredIncomplete,
     );
 
     renderPage();
@@ -197,6 +257,34 @@ describe("SchoolSurveyPage expired drafts", () => {
     expect(schoolCampaignsService.start).not.toHaveBeenCalled();
   });
 
+  it("no ofrece rectificar una ficha lista cuando la versión de la etapa es incompatible", async () => {
+    const incompatibleCampaign: AvailableSchoolCampaign = {
+      ...activeCampaign,
+      workflowStatus: "locked",
+      canStart: false,
+      blockedBy: null,
+      blockingReason:
+        "La versión publicada de esta etapa no es compatible con la evaluación institucional.",
+      submission: null,
+    };
+    vi.mocked(schoolCampaignsService.list).mockResolvedValue({
+      ...campaignsFixture,
+      items: [incompatibleCampaign],
+      expiredDrafts: [],
+    });
+
+    renderPage();
+
+    expect(await screen.findByText("Bloqueada")).toBeVisible();
+    expect(screen.getByText(/no es compatible/)).toBeVisible();
+    expect(
+      screen.queryByRole("link", { name: /Rectificar ficha/ }),
+    ).not.toBeInTheDocument();
+    expect(
+      screen.getByRole("button", { name: "Comenzar evaluación" }),
+    ).toBeDisabled();
+  });
+
   it("usa el desplegable reutilizable para cambiar entre etapas", async () => {
     const firstCampaign: AvailableSchoolCampaign = {
       ...activeCampaign,
@@ -226,23 +314,322 @@ describe("SchoolSurveyPage expired drafts", () => {
     expect(
       screen.getByRole("combobox", { name: "Buscar en Etapa" }),
     ).toBeVisible();
-    fireEvent.click(
-      screen.getByRole("option", { name: "2. Plan de mejora" }),
-    );
+    fireEvent.click(screen.getByRole("option", { name: "2. Plan de mejora" }));
 
-    expect(selector).toHaveTextContent("2. Plan de mejora");
+    await waitFor(() =>
+      expect(selector).toHaveTextContent("2. Plan de mejora"),
+    );
     expect(
       screen.getByRole("heading", { name: "Plan de mejora" }),
     ).toBeVisible();
   });
+
+  it("espera el flush antes de completar una navegación SPA", async () => {
+    let resolveFlush!: (revision: number) => void;
+    questionnaireControl.hasPendingChanges = true;
+    questionnaireControl.flushDraft.mockReturnValue(
+      new Promise<number>((resolve) => {
+        resolveFlush = resolve;
+      }),
+    );
+    vi.mocked(schoolCampaignsService.list).mockResolvedValue({
+      ...campaignsFixture,
+      items: [activeCampaign],
+    });
+    vi.mocked(schoolCampaignsService.workspace).mockResolvedValue(
+      activeWorkspaceFixture,
+    );
+    const router = createMemoryRouter([
+      {
+        path: "/",
+        element: (
+          <>
+            <Link to="/destino">Salir del cuestionario</Link>
+            <SchoolSurveyPage />
+          </>
+        ),
+      },
+      { path: "/destino", element: <p>Pantalla destino</p> },
+    ]);
+    render(<RouterProvider router={router} />);
+    expect(await screen.findByText("Cuestionario editable")).toBeVisible();
+
+    fireEvent.click(
+      screen.getByRole("link", { name: "Salir del cuestionario" }),
+    );
+
+    await waitFor(() =>
+      expect(questionnaireControl.flushDraft).toHaveBeenCalledOnce(),
+    );
+    expect(router.state.location.pathname).toBe("/");
+
+    questionnaireControl.hasPendingChanges = false;
+    resolveFlush(1);
+    await waitFor(() =>
+      expect(router.state.location.pathname).toBe("/destino"),
+    );
+  });
+
+  it("vuelve a drenar el borrador inmediatamente antes del envío confirmado", async () => {
+    questionnaireControl.flushDraft.mockResolvedValue(4);
+    vi.mocked(schoolCampaignsService.list).mockResolvedValue({
+      ...campaignsFixture,
+      items: [activeCampaign],
+    });
+    vi.mocked(schoolCampaignsService.workspace).mockResolvedValue(
+      activeWorkspaceFixture,
+    );
+    vi.mocked(schoolCampaignsService.submit).mockResolvedValue({
+      ...activeWorkspaceFixture,
+      submission: {
+        ...activeWorkspaceFixture.submission,
+        status: "submitted",
+        revision: 5,
+        editable: false,
+        canSubmit: false,
+      },
+    });
+    renderPage();
+    expect(await screen.findByText("Cuestionario editable")).toBeVisible();
+
+    await act(async () => {
+      await latestQuestionnaireProps!.onSubmit!({}, 3);
+    });
+    const confirmButton = screen.getByRole("button", {
+      name: "Enviar presentación",
+    });
+    fireEvent.click(confirmButton);
+    fireEvent.click(confirmButton);
+
+    await waitFor(() =>
+      expect(schoolCampaignsService.submit).toHaveBeenCalledWith(
+        activeCampaign.id,
+        4,
+      ),
+    );
+    expect(schoolCampaignsService.submit).toHaveBeenCalledOnce();
+    expect(questionnaireControl.flushDraft).toHaveBeenCalledOnce();
+  });
+
+  it("mantiene bloqueados el diálogo y el cuestionario durante el POST final", async () => {
+    let resolveSubmission!: (workspace: SchoolSubmissionWorkspace) => void;
+    questionnaireControl.flushDraft.mockResolvedValue(4);
+    vi.mocked(schoolCampaignsService.list).mockResolvedValue({
+      ...campaignsFixture,
+      items: [activeCampaign],
+    });
+    vi.mocked(schoolCampaignsService.workspace).mockResolvedValue(
+      activeWorkspaceFixture,
+    );
+    vi.mocked(schoolCampaignsService.submit).mockReturnValue(
+      new Promise<SchoolSubmissionWorkspace>((resolve) => {
+        resolveSubmission = resolve;
+      }),
+    );
+    const { router } = renderPage();
+    expect(await screen.findByText("Cuestionario editable")).toBeVisible();
+
+    await act(async () => {
+      await latestQuestionnaireProps!.onSubmit!({}, 3);
+    });
+    fireEvent.click(
+      screen.getByRole("button", { name: "Enviar presentación" }),
+    );
+
+    await waitFor(() =>
+      expect(schoolCampaignsService.submit).toHaveBeenCalledWith(
+        activeCampaign.id,
+        4,
+      ),
+    );
+    const dialog = screen.getByRole("dialog", {
+      name: "¿Confirmar el envío definitivo?",
+    });
+    expect(screen.getByLabelText("Respuesta de prueba")).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Cancelar" })).toBeDisabled();
+    expect(screen.getByRole("button", { name: "Cerrar" })).toBeDisabled();
+
+    fireEvent.keyDown(document, { key: "Escape" });
+    fireEvent.mouseDown(dialog);
+    expect(dialog).toBeVisible();
+
+    act(() => {
+      void router.navigate("/destino");
+    });
+    await waitFor(() => expect(router.state.location.pathname).toBe("/"));
+
+    await act(async () => {
+      resolveSubmission({
+        ...activeWorkspaceFixture,
+        submission: {
+          ...activeWorkspaceFixture.submission,
+          status: "submitted",
+          revision: 5,
+          editable: false,
+          canSubmit: false,
+        },
+      });
+      await Promise.resolve();
+    });
+
+    await waitFor(() => expect(dialog).not.toBeInTheDocument());
+  });
+
+  it("permite cancelar y volver a editar si falla el POST final", async () => {
+    let rejectSubmission!: (reason: unknown) => void;
+    questionnaireControl.flushDraft.mockResolvedValue(4);
+    vi.mocked(schoolCampaignsService.list).mockResolvedValue({
+      ...campaignsFixture,
+      items: [activeCampaign],
+    });
+    vi.mocked(schoolCampaignsService.workspace).mockResolvedValue(
+      activeWorkspaceFixture,
+    );
+    vi.mocked(schoolCampaignsService.submit).mockReturnValue(
+      new Promise<SchoolSubmissionWorkspace>((_resolve, reject) => {
+        rejectSubmission = reject;
+      }),
+    );
+    renderPage();
+    expect(await screen.findByText("Cuestionario editable")).toBeVisible();
+
+    await act(async () => {
+      await latestQuestionnaireProps!.onSubmit!({}, 3);
+    });
+    fireEvent.click(
+      screen.getByRole("button", { name: "Enviar presentación" }),
+    );
+    await waitFor(() =>
+      expect(screen.getByRole("button", { name: "Cancelar" })).toBeDisabled(),
+    );
+
+    await act(async () => {
+      rejectSubmission(new Error("No se pudo completar el envío."));
+      await Promise.resolve();
+    });
+
+    const cancelButton = await screen.findByRole("button", {
+      name: "Cancelar",
+    });
+    await waitFor(() => expect(cancelButton).toBeEnabled());
+    expect(screen.getByLabelText("Respuesta de prueba")).toBeDisabled();
+    fireEvent.click(cancelButton);
+    expect(screen.getByLabelText("Respuesta de prueba")).toBeEnabled();
+  });
+
+  it("adopta un cambio autoritativo de aplicabilidad sin reponer respuestas viejas", async () => {
+    vi.mocked(schoolCampaignsService.list).mockResolvedValue({
+      ...campaignsFixture,
+      items: [activeCampaign],
+    });
+    vi.mocked(schoolCampaignsService.workspace).mockResolvedValue(
+      activeWorkspaceFixture,
+    );
+    const questionId = "question-after-refresh";
+    const changedWorkspace: SchoolSubmissionWorkspace = {
+      ...activeWorkspaceFixture,
+      submission: {
+        ...activeWorkspaceFixture.submission,
+        revision: 3,
+        lastSavedAt: "2026-09-01T13:00:00.000Z",
+      },
+      answers: { [questionId]: "respuesta anterior del servidor" },
+      applicability: {
+        ...activeWorkspaceFixture.applicability,
+        status: "incomplete",
+        missingFields: [{ code: "has_kiosk", label: "Kiosco" }],
+      },
+      survey: {
+        ...activeWorkspaceFixture.survey,
+        version: {
+          ...activeWorkspaceFixture.survey.version,
+          title: "Contrato autoritativo actualizado",
+          dimensions: [
+            {
+              ...activeWorkspaceFixture.survey.version.dimensions[0],
+              sections: [
+                {
+                  id: "section-after-refresh",
+                  code: "actualizada",
+                  title: "Sección actualizada",
+                  description: null,
+                  order: 1,
+                  questions: [
+                    {
+                      id: questionId,
+                      code: "p001",
+                      type: "short_text",
+                      prompt: "Respuesta actualizada",
+                      helpText: null,
+                      required: false,
+                      order: 1,
+                      validation: {},
+                      options: [],
+                    },
+                  ],
+                },
+              ],
+            },
+          ],
+        },
+      },
+    };
+    vi.mocked(schoolCampaignsService.saveDraft)
+      .mockResolvedValueOnce(changedWorkspace)
+      .mockResolvedValueOnce({
+        ...changedWorkspace,
+        submission: { ...changedWorkspace.submission, revision: 4 },
+      });
+    renderPage();
+    expect(await screen.findByText("Cuestionario editable")).toBeVisible();
+    const localValues = { [questionId]: "edición local más nueva" };
+
+    let saved:
+      | {
+          revision: number;
+          lastSavedAt: string | null;
+          authoritativeChanged?: boolean;
+        }
+      | undefined;
+    await act(async () => {
+      saved = await latestQuestionnaireProps!.onSaveDraft!(localValues, 2);
+    });
+
+    expect(saved).toMatchObject({
+      revision: 3,
+      authoritativeChanged: true,
+    });
+    expect(
+      await screen.findByText("Completá la ficha escolar antes de enviar."),
+    ).toBeVisible();
+    expect(latestQuestionnaireProps?.defaultValues).toMatchObject(localValues);
+
+    await act(async () => {
+      await latestQuestionnaireProps!.onSaveDraft!(
+        { [questionId]: "edición posterior al refresco" },
+        3,
+      );
+    });
+    expect(schoolCampaignsService.saveDraft).toHaveBeenNthCalledWith(
+      2,
+      activeCampaign.id,
+      [
+        {
+          questionId,
+          value: "edición posterior al refresco",
+        },
+      ],
+      3,
+    );
+  });
 });
 
 function renderPage() {
-  return render(
-    <MemoryRouter>
-      <SchoolSurveyPage />
-    </MemoryRouter>,
-  );
+  const router = createMemoryRouter([
+    { path: "/", element: <SchoolSurveyPage /> },
+    { path: "/destino", element: <p>Pantalla destino</p> },
+  ]);
+  return { ...render(<RouterProvider router={router} />), router };
 }
 
 const expiredCampaign: AvailableSchoolCampaign = {
@@ -274,6 +661,7 @@ const expiredCampaign: AvailableSchoolCampaign = {
     status: "draft",
     startedAt: "2025-04-01T12:00:00.000Z",
     lastSavedAt: "2025-11-30T15:30:00.000Z",
+    revision: 2,
     submittedAt: null,
     progress: {
       answered: 18,
@@ -325,6 +713,7 @@ const workspaceFixture: SchoolSubmissionWorkspace = {
     status: "draft",
     startedAt: "2025-04-01T12:00:00.000Z",
     lastSavedAt: "2025-11-30T15:30:00.000Z",
+    revision: 2,
     submittedAt: null,
     originalRespondent: {
       id: "user-1",
