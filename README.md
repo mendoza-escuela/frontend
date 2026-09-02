@@ -28,18 +28,36 @@ al iniciar, por lo que estos valores pueden cambiarse con variables de entorno
 sin recompilar la aplicación. `VITE_API_URL` usa `/api` por defecto y las cuatro
 variables `VITE_BRAND_MENDOZA_*` y `VITE_BRAND_OPS_*` son opcionales.
 
-## Imagen Docker de develop
+## Publicación y versionado de la imagen Docker
 
 Cada push a `develop` publica en Docker Hub las etiquetas `develop` y
-`develop-<sha>` bajo `<docker-id>/mendoza-frontend`. El repositorio de GitHub
-debe definir la variable `DOCKERHUB_USERNAME` y el secreto `DOCKERHUB_TOKEN`.
-Ejemplo con una API en otro origen:
+`develop-<sha>` bajo `<docker-id>/eps-frontend`. Al publicar un tag Git SemVer,
+por ejemplo `v1.0.0`, el pipeline publica además
+`<docker-id>/eps-frontend:v1.0.0`. Las versiones ya publicadas no deben moverse
+ni reutilizarse; el siguiente cambio debe recibir un tag nuevo, como `v1.0.1`.
+
+El repositorio de GitHub debe definir la variable `DOCKERHUB_USERNAME` y el
+secreto `DOCKERHUB_TOKEN`. Ejemplo con una API en otro origen:
 
 ```bash
 docker run --rm -p 8080:8080 \
   -e VITE_API_URL=https://api.example.org/api \
-  <docker-id>/mendoza-frontend:develop
+  <docker-id>/eps-frontend:v1.0.0
 ```
+
+Para publicar una versión desde un commit aprobado de `develop`:
+
+```bash
+git switch develop
+git pull --ff-only
+git tag -a v1.0.0 -m "Frontend v1.0.0"
+git push origin v1.0.0
+```
+
+También puede publicarse manualmente desde GitHub en **Actions → Publicar
+imagen Docker → Run workflow**. Se debe seleccionar la rama `develop` y
+completar `version` con un valor SemVer como `v1.0.0`. Este mecanismo crea el
+tag de la imagen Docker, pero no crea un tag Git.
 
 Si se conserva `VITE_API_URL=/api`, el proxy externo debe enrutar `/api` hacia
 el backend en el mismo origen. La URL absoluta permite ejecutar el frontend de
