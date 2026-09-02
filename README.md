@@ -31,14 +31,14 @@ variables `VITE_BRAND_MENDOZA_*` y `VITE_BRAND_OPS_*` son opcionales.
 ## Imagen Docker de develop
 
 Cada push a `develop` publica en Docker Hub las etiquetas `develop` y
-`develop-<sha>`. El repositorio de GitHub debe definir las variables
-`DOCKERHUB_USERNAME` y `DOCKERHUB_IMAGE_NAME`, y el secreto
-`DOCKERHUB_TOKEN`. Ejemplo con una API en otro origen:
+`develop-<sha>` bajo `<docker-id>/mendoza-frontend`. El repositorio de GitHub
+debe definir la variable `DOCKERHUB_USERNAME` y el secreto `DOCKERHUB_TOKEN`.
+Ejemplo con una API en otro origen:
 
 ```bash
 docker run --rm -p 8080:8080 \
   -e VITE_API_URL=https://api.example.org/api \
-  <docker-id>/<nombre-imagen-frontend>:develop
+  <docker-id>/mendoza-frontend:develop
 ```
 
 Si se conserva `VITE_API_URL=/api`, el proxy externo debe enrutar `/api` hacia
