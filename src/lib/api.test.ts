@@ -15,6 +15,34 @@ afterAll(() => {
 });
 
 describe('api', () => {
+  it.each([
+    ['/api', '/api'],
+    ['/api/', '/api'],
+    ['http://localhost:4000/api', 'http://localhost:4000/api'],
+    [
+      'https://api.example.org/programa/api/',
+      'https://api.example.org/programa/api',
+    ],
+  ])('normaliza una URL de API válida: %s', (value, expected) => {
+    expect(apiModule.normalizeApiBaseUrl(value)).toBe(expected);
+  });
+
+  it.each([
+    undefined,
+    '',
+    '/',
+    '/programa/api',
+    'localhost:4000/api',
+    'ftp://api.example.org/api',
+    'https://api.example.org',
+    'https://user:password@api.example.org/api',
+    'https://api.example.org/api?token=publico',
+  ])('rechaza una URL de API fuera del contrato: %s', (value) => {
+    expect(() => apiModule.normalizeApiBaseUrl(value)).toThrow(
+      /VITE_API_URL/,
+    );
+  });
+
   it('conserva FormData para que el navegador envíe archivos multipart', async () => {
     const body = new FormData();
     body.append('file', 'contenido-de-prueba');

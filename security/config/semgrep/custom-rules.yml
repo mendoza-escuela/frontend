@@ -1,0 +1,49 @@
+# Reglas Semgrep específicas del frontend.
+#
+# Complementan los packs públicos con invariantes de seguridad que sí aplican a
+# una SPA React. Los controles de NestJS, SQL, SMTP y guards pertenecen al
+# repositorio backend y deliberadamente no se duplican acá.
+
+rules:
+  - id: mendoza-react-dangerously-set-inner-html
+    languages: [typescript, javascript]
+    severity: ERROR
+    message: >-
+      dangerouslySetInnerHTML inyecta HTML sin escapar (XSS). La aplicación no
+      lo necesita; preferí renderizado React seguro.
+    metadata:
+      category: security
+      cwe: "CWE-79: Cross-site Scripting"
+      asvs: "5.3.3"
+      confidence: HIGH
+    patterns:
+      - pattern-regex: 'dangerouslySetInnerHTML'
+
+  - id: mendoza-token-in-browser-storage
+    languages: [typescript, javascript]
+    severity: ERROR
+    message: >-
+      Guardar credenciales o tokens en localStorage/sessionStorage los expone a
+      cualquier XSS. La aplicación usa una cookie httpOnly y no debe volver al
+      almacenamiento accesible desde JavaScript.
+    metadata:
+      category: security
+      cwe: "CWE-522: Insufficiently Protected Credentials"
+      asvs: "3.4.1"
+      confidence: HIGH
+    patterns:
+      - pattern-regex: '(localStorage|sessionStorage)\.setItem\(\s*[''"`][^''"`]*(token|jwt|auth|password|secret|credential)'
+
+  - id: mendoza-insecure-randomness-for-secrets
+    languages: [typescript, javascript]
+    severity: ERROR
+    message: >-
+      Math.random() no es criptográficamente seguro. Para valores sensibles en
+      el navegador usá Web Crypto (crypto.getRandomValues o crypto.randomUUID).
+    metadata:
+      category: security
+      cwe: "CWE-338: Use of Cryptographically Weak PRNG"
+      asvs: "6.3.1"
+      confidence: MEDIUM
+    patterns:
+      - pattern-regex: '(?i)(token|secret|password|salt|nonce|otp|code)[^\n;]{0,40}Math\.random\s*\('

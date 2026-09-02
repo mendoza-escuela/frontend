@@ -6,7 +6,7 @@ import type {
   CampaignType,
   CampaignWriteInput,
   CampaignWorkflowOption,
-  PublishedSurveyVersionOption,
+  CampaignSurveyVersionOption,
   CampaignSchoolAssignment,
   CampaignSchoolAssignmentResult,
   CampaignSchoolFilters,
@@ -39,9 +39,9 @@ export const adminCampaignsService = {
     return (await api.get<AdminCampaign>(`/admin/campaigns/${id}`)).data;
   },
 
-  async publishedVersions() {
+  async eligibleSurveyVersions() {
     return (
-      await api.get<PublishedSurveyVersionOption[]>(
+      await api.get<CampaignSurveyVersionOption[]>(
         "/admin/campaigns/survey-versions",
       )
     ).data;

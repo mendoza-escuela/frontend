@@ -68,7 +68,7 @@ describe("ErrorPage", () => {
       "/inicio",
     );
     expect(
-      screen.getByAltText("Escuelas Promotoras de Salud"),
+      screen.getByAltText("Escuelas Promotoras de Salud Mendoza"),
     ).toBeInTheDocument();
     expect(screen.getByAltText("Gobierno de Mendoza")).toBeInTheDocument();
   });

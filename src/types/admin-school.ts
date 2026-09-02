@@ -32,7 +32,7 @@ export type School = {
   updatedAt: string;
 };
 
-export type SchoolContact = {
+type SchoolContact = {
   id?: string;
   type: "RESPONDENT" | "HEALTH_PROMOTION";
   firstName: string;
@@ -55,7 +55,7 @@ export type SchoolNamedCatalogOption = {
   label: string;
 };
 
-export type SchoolEducationLevelSelection = {
+type SchoolEducationLevelSelection = {
   levelId: string;
   code: string;
   label: string;
@@ -250,7 +250,7 @@ export type SchoolUserListResponse = {
   };
 };
 
-export type SchoolCampaignParticipationStatus =
+type SchoolCampaignParticipationStatus =
   "not_started" | "draft" | "submitted";
 
 export type SchoolDetailCampaignActivity = {

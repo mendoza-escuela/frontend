@@ -6,6 +6,7 @@ import type {
 
 export type SurveyVersionStatus = "draft" | "published" | "archived";
 export type SurveyVersionTemplate = "blank" | "official_dimensions";
+export type SurveyVersionProfile = "institutional" | "generic";
 
 export type SurveyVersionSummary = {
   id: string;
@@ -71,7 +72,7 @@ export type AdminSurveyVersion = {
   publishedAt: string | null;
   createdAt: string;
   updatedAt: string;
-  profile: "institutional" | "generic";
+  profile: SurveyVersionProfile;
   dimensions: SurveyDimension[];
 };
 
@@ -82,14 +83,16 @@ export type SurveyWriteInput = {
   isActive: boolean;
 };
 
-export type SurveyOptionWriteInput = {
+type SurveyOptionWriteInput = {
+  id: string | null;
   value: string;
   label: string;
   helpText?: string | null;
   score?: number | null;
 };
 
-export type SurveyQuestionWriteInput = {
+type SurveyQuestionWriteInput = {
+  id: string | null;
   code: string;
   type: SurveyQuestionType;
   prompt: string;
@@ -99,14 +102,16 @@ export type SurveyQuestionWriteInput = {
   options: SurveyOptionWriteInput[];
 };
 
-export type SurveySectionWriteInput = {
+type SurveySectionWriteInput = {
+  id: string | null;
   code: string;
   title: string;
   description?: string | null;
   questions: SurveyQuestionWriteInput[];
 };
 
-export type SurveyDimensionWriteInput = {
+type SurveyDimensionWriteInput = {
+  id: string | null;
   code: string;
   title: string;
   description?: string | null;
@@ -114,6 +119,7 @@ export type SurveyDimensionWriteInput = {
 };
 
 export type SurveyVersionWriteInput = {
+  expectedUpdatedAt: string;
   title: string;
   instructions?: string | null;
   dimensions: SurveyDimensionWriteInput[];
@@ -122,6 +128,9 @@ export type SurveyVersionWriteInput = {
 export type SurveyStructureValidation = {
   valid: boolean;
   errors: string[];
+  profile: SurveyVersionProfile;
+  evaluable: boolean;
+  evaluationErrors: string[];
   counts: {
     dimensions: number;
     sections: number;
@@ -194,7 +203,7 @@ export type SurveyImportPreview = {
   }>;
 };
 
-export type ApplicabilityAction = "show" | "omit";
+type ApplicabilityAction = "show" | "omit";
 export type ApplicabilityRule = {
   id: string;
   questionId: string;

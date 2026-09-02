@@ -47,19 +47,52 @@ describe("ConfirmDialog", () => {
     expect(onCancel).toHaveBeenCalledOnce();
   });
 
+  it("permite cerrar con Escape, el fondo o la X cuando está inactivo", () => {
+    const onCancel = vi.fn();
+    render(
+      <ConfirmDialog
+        description="Acción reversible"
+        onCancel={onCancel}
+        onConfirm={vi.fn()}
+        open
+        title="Confirmar acción"
+      />,
+    );
+
+    const dialog = screen.getByRole("dialog");
+    fireEvent.keyDown(document, { key: "Escape" });
+    fireEvent.mouseDown(dialog);
+    fireEvent.click(screen.getByRole("button", { name: "Cerrar" }));
+
+    expect(onCancel).toHaveBeenCalledTimes(3);
+  });
+
   it("bloquea las acciones mientras procesa", () => {
+    const onCancel = vi.fn();
     render(
       <ConfirmDialog
         description="Publicando"
         isProcessing
-        onCancel={vi.fn()}
+        onCancel={onCancel}
         onConfirm={vi.fn()}
         open
         title="Publicar versión"
       />,
     );
 
+    const dialog = screen.getByRole("dialog");
+    const closeButton = screen.getByRole("button", { name: "Cerrar" });
+    expect(dialog).toHaveAttribute("aria-busy", "true");
     expect(screen.getByRole("button", { name: "Procesando…" })).toBeDisabled();
     expect(screen.getByRole("button", { name: "Cancelar" })).toBeDisabled();
+    expect(closeButton).toBeDisabled();
+
+    fireEvent.keyDown(document, { key: "Escape" });
+    fireEvent.mouseDown(dialog);
+    fireEvent.click(closeButton);
+    fireEvent.click(screen.getByRole("button", { name: "Cancelar" }));
+
+    expect(onCancel).not.toHaveBeenCalled();
+    expect(dialog).toBeVisible();
   });
 });

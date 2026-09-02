@@ -1,3 +1,6 @@
+.git/
+.github/
+security/reports/
 node_modules
 dist
 coverage

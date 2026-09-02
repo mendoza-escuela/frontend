@@ -10,7 +10,7 @@ import { ErrorState } from "../../components/ui/ErrorState";
 import { LoadingState } from "../../components/ui/LoadingState";
 import { PageHeader } from "../../components/ui/PageHeader";
 import { Button } from "../../components/ui/Button";
-import { formatDateTime } from "../../lib/format";
+import { formatDateTime, formatNumber } from "../../lib/format";
 import { getHttpErrorMessage } from "../../lib/http-error";
 import { showError } from "../../lib/toast";
 import { adminSchoolResultDetailService } from "../../services/admin-school-result-detail.service";
@@ -106,7 +106,6 @@ function ExclusionDetails({ exclusion }: { exclusion: AdminExcludedQuestion["exc
 }
 function Status({ status }: { status: AdminSchoolResultDetail["participationStatus"] }) { const labels = { not_started: "No iniciada", draft: "Borrador", submitted: "Enviada" }; return <span className="rounded-full bg-mendoza-background px-3 py-1 text-xs font-bold text-mendoza-blue">{labels[status]}</span>; }
 function stars(value: number | null) { return value === null ? "No disponible" : `${value} ${"★".repeat(value)}`; }
-function formatNumber(value: number) { return new Intl.NumberFormat("es-AR", { maximumFractionDigits: 2 }).format(value); }
 function displayAnswer(value: unknown): string { if (value === null || value === undefined || value === "") return "No informado"; if (typeof value === "boolean") return value ? "Sí" : "No"; if (typeof value === "object") return JSON.stringify(value); return String(value); }
 function calculationMethodLabel(version: string) {
   const labels: Record<string, string> = {

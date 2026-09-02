@@ -1,0 +1,85 @@
+name: Seguridad (nocturno)
+
+# Reanálisis semanal del código, las dependencias y la imagen frontend. El DAST
+# integrado se programa desde el repositorio backend.
+#
+# POR QUÉ EXISTE: una vulnerabilidad puede publicarse sin que cambie el código.
+# Sin un escaneo programado, un CVE aparecido después del último merge no se
+# detecta hasta el siguiente PR o escaneo semanal.
+#
+# CRON: lunes 03:47 UTC = lunes 00:47 en Argentina (UTC-3). Se corre 30 minutos
+# después del nocturno del backend para no competir por runners.
+# Para cambiar el horario, editar la expresión de abajo (siempre en UTC).
+
+on:
+  schedule:
+    - cron: '47 3 * * 1'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+concurrency:
+  group: security-nightly
+  cancel-in-progress: false
+
+jobs:
+  deep-scan:
+    name: Escaneo profundo
+    runs-on: ubuntu-24.04
+    permissions:
+      contents: read
+      security-events: write
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          fetch-depth: 0
+
+      - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
+        with:
+          node-version-file: .nvmrc
+          cache: npm
+      - name: Usar npm declarado por el proyecto
+        run: bash security/scripts/setup-project-npm.sh
+      - run: npm ci
+
+      - name: Análisis estático y escaneo de imagen
+        run: bash security/scripts/run-all.sh
+
+      - name: Subir SARIF a Code Scanning
+        if: always() && hashFiles('security/reports/semgrep.sarif') != ''
+        uses: github/codeql-action/upload-sarif@cdf488f595d80d6e07e03d4674febd5ab45fa938 # v4.37.9
+        with:
+          sarif_file: security/reports/semgrep.sarif
+          category: semgrep-nightly
+
+      - name: Publicar resumen
+        if: always()
+        run: cat security/reports/summary.md >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Guardar informes completos
+        if: always()
+        uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: security-nightly-${{ github.run_id }}
+          path: |
+            security/reports/*.json
+            security/reports/*.sarif
+            security/reports/*.md
+          retention-days: 14
+
+      - name: Avisar si el escaneo nocturno falla
+        if: failure()
+        env:
+          # Se pasa por env en lugar de interpolar ${{ }} dentro del script:
+          # interpolar en un `run:` permite inyección de comandos.
+          RUN_ID: ${{ github.run_id }}
+        run: |
+          {
+            echo "## El escaneo nocturno de seguridad falló"
+            echo ""
+            echo "Puede deberse a una vulnerabilidad NUEVA publicada sin que"
+            echo "cambiara el código, o a una excepción de seguridad vencida."
+            echo ""
+            echo "Revisá el artifact security-nightly-$RUN_ID."
+          } >> "$GITHUB_STEP_SUMMARY"

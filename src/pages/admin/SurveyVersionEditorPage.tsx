@@ -9,7 +9,7 @@ import {
 } from "lucide-react";
 import { useEffect, useState } from "react";
 import { useForm } from "react-hook-form";
-import { Link, useParams } from "react-router-dom";
+import { Link, useBlocker, useParams } from "react-router-dom";
 import { z } from "zod";
 import { Button } from "../../components/ui/Button";
 import { Card } from "../../components/ui/Card";
@@ -21,7 +21,7 @@ import {
   checkboxClassName,
   inputClassName,
 } from "../../components/ui/form-styles";
-import { getHttpErrorMessage } from "../../lib/http-error";
+import { getHttpErrorDetails, getHttpErrorMessage } from "../../lib/http-error";
 import { showError, showSuccess } from "../../lib/toast";
 import { adminSurveysService } from "../../services/admin-surveys.service";
 import type { AdminSurveyVersion } from "../../types/admin-survey";
@@ -50,6 +50,7 @@ const optionalMaxSelections = z.preprocess(
   z.number().int().min(1).max(500).optional(),
 );
 const optionSchema = z.object({
+  id: z.string().uuid().nullable(),
   value: codeSchema,
   label: z.string().trim().min(1, "La etiqueta es obligatoria.").max(500),
   helpText: z.string().max(2000).optional().nullable(),
@@ -64,7 +65,7 @@ const optionSchema = z.object({
   ),
 });
 const questionSchema = z.object({
-  id: z.string().uuid().optional(),
+  id: z.string().uuid().nullable(),
   code: codeSchema,
   type: z.enum([
     "single_choice",
@@ -89,12 +90,14 @@ const questionSchema = z.object({
   options: z.array(optionSchema).max(500),
 });
 const sectionSchema = z.object({
+  id: z.string().uuid().nullable(),
   code: codeSchema,
   title: z.string().trim().min(1, "El título es obligatorio.").max(255),
   description: z.string().max(5000).optional().nullable(),
   questions: z.array(questionSchema).max(300),
 });
 const dimensionSchema = z.object({
+  id: z.string().uuid().nullable(),
   code: codeSchema,
   title: z.string().trim().min(1, "El título es obligatorio.").max(255),
   description: z.string().max(5000).optional().nullable(),
@@ -111,6 +114,7 @@ type EditorForm = z.infer<typeof editorSchema>;
 const emptyQuestion = (
   type: SurveyQuestionType = "boolean",
 ): EditorForm["dimensions"][number]["sections"][number]["questions"][number] => ({
+  id: null,
   code: "",
   type,
   prompt: "",
@@ -131,7 +135,9 @@ export function SurveyVersionEditorPage() {
   const { surveyId, versionId } = useParams();
   const [version, setVersion] = useState<AdminSurveyVersion | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [isReloading, setIsReloading] = useState(false);
   const [loadError, setLoadError] = useState("");
+  const [editConflict, setEditConflict] = useState("");
   const {
     register,
     handleSubmit,
@@ -146,6 +152,22 @@ export function SurveyVersionEditorPage() {
   });
   const dimensions = watch("dimensions");
   const isInstitutional = version?.profile === "institutional";
+  const navigationBlocker = useBlocker(isDirty);
+
+  useEffect(() => {
+    if (!isDirty) return;
+    const preventUnload = (event: BeforeUnloadEvent) => {
+      event.preventDefault();
+      event.returnValue = "";
+    };
+    window.addEventListener("beforeunload", preventUnload);
+    return () => window.removeEventListener("beforeunload", preventUnload);
+  }, [isDirty]);
+
+  useEffect(() => {
+    if (navigationBlocker.state === "blocked" && !isDirty && !isSubmitting)
+      navigationBlocker.proceed();
+  }, [isDirty, isSubmitting, navigationBlocker]);
 
   useEffect(() => {
     if (!surveyId || !versionId) return;
@@ -167,20 +189,49 @@ export function SurveyVersionEditorPage() {
     });
 
   const submit = handleSubmit(async (values) => {
-    if (!surveyId || !versionId) return;
+    if (!surveyId || !versionId || !version) return;
     try {
       const updated = await adminSurveysService.updateVersion(
         surveyId,
         versionId,
-        toWriteInput(values),
+        {
+          ...toWriteInput(values),
+          expectedUpdatedAt: version.updatedAt,
+        },
       );
       setVersion(updated);
+      setEditConflict("");
       showSuccess("La versión borrador fue guardada.");
       reset(toEditorForm(updated));
     } catch (error) {
+      const details = getHttpErrorDetails(error);
+      if (
+        details?.code === "SURVEY_VERSION_EDIT_CONFLICT" ||
+        details?.code === "SURVEY_STRUCTURE_IDENTITY_CONFLICT"
+      ) {
+        setEditConflict(details.message);
+        showError(details.message);
+        return;
+      }
       showError(getHttpErrorMessage(error));
     }
   });
+
+  const loadLatestVersion = async () => {
+    if (!surveyId || !versionId) return;
+    setIsReloading(true);
+    try {
+      const latest = await adminSurveysService.findVersion(surveyId, versionId);
+      setVersion(latest);
+      reset(toEditorForm(latest));
+      setEditConflict("");
+      showSuccess("Se cargó la versión más reciente.");
+    } catch (error) {
+      showError(getHttpErrorMessage(error));
+    } finally {
+      setIsReloading(false);
+    }
+  };
 
   if (isLoading)
     return (
@@ -202,108 +253,202 @@ export function SurveyVersionEditorPage() {
     );
 
   return (
-    <main className="p-4 sm:p-8">
-      <form className="mx-auto max-w-7xl" noValidate onSubmit={submit}>
-        <PageHeader
-          actions={
-            <Button
-              disabled={isSubmitting || !isDirty}
-              icon={<Save aria-hidden="true" size={18} />}
-              type="submit"
-            >
-              {isSubmitting ? "Guardando…" : "Guardar borrador"}
-            </Button>
-          }
-          backLabel="Volver al cuestionario"
-          backTo={`/admin/cuestionarios/${surveyId}`}
-          description="El orden visual de dimensiones, secciones, preguntas y opciones será el orden utilizado por el renderizador."
-          eyebrow={`Versión ${version.versionNumber} · Borrador`}
-          title="Editor de cuestionario"
-        />
-
-        <Card className="mt-8">
-          <div className="grid gap-5 md:grid-cols-2">
-            <FormField
-              error={errors.title?.message}
-              htmlFor="version-title"
-              label="Título de la versión"
-            >
-              <input
-                {...register("title")}
-                className={inputClassName}
-                id="version-title"
-              />
-            </FormField>
-            <FormField
-              error={errors.instructions?.message}
-              htmlFor="version-instructions"
-              label="Instrucciones generales"
-            >
-              <textarea
-                {...register("instructions")}
-                className={inputClassName}
-                id="version-instructions"
-                rows={3}
-              />
-            </FormField>
-          </div>
-        </Card>
-
-        <div className="mt-8 flex flex-wrap items-center justify-between gap-3">
-          <div>
-            <h2 className="text-2xl font-bold text-mendoza-text">Estructura</h2>
-            <p className="mt-1 text-sm text-mendoza-muted">
-              El borrador puede guardarse incompleto; la publicación exige una
-              estructura completa.
-            </p>
-          </div>
-          <Button
-            icon={<CirclePlus aria-hidden="true" size={18} />}
-            onClick={() =>
-              updateDimensions([
-                ...getValues("dimensions"),
-                { code: "", title: "", description: "", sections: [] },
-              ])
+    <>
+      <main className="p-4 sm:p-8">
+        <form className="mx-auto max-w-7xl" noValidate onSubmit={submit}>
+          <PageHeader
+            actions={
+              <Button
+                disabled={isSubmitting || !isDirty}
+                icon={<Save aria-hidden="true" size={18} />}
+                type="submit"
+              >
+                {isSubmitting ? "Guardando…" : "Guardar borrador"}
+              </Button>
             }
-            variant="outline"
-          >
-            Agregar dimensión
-          </Button>
-        </div>
+            backLabel="Volver al cuestionario"
+            backTo={`/admin/cuestionarios/${surveyId}`}
+            description="El orden visual de dimensiones, secciones, preguntas y opciones será el orden utilizado por el renderizador."
+            eyebrow={`Versión ${version.versionNumber} · Borrador`}
+            title="Editor de cuestionario"
+          />
 
-        {dimensions.length === 0 ? (
-          <Card className="mt-5 border-dashed text-center text-sm text-mendoza-muted">
-            Agregá una dimensión para comenzar a construir el cuestionario.
+          <fieldset
+            className="m-0 min-w-0 border-0 p-0"
+            disabled={isSubmitting}
+          >
+            <div
+              className={`mt-6 rounded-xl border p-4 text-sm leading-6 ${
+                isInstitutional
+                  ? "border-mendoza-sky bg-mendoza-blue-soft text-mendoza-text"
+                  : "border-mendoza-gold bg-amber-50 text-amber-950"
+              }`}
+              role="note"
+            >
+              <p className="font-bold text-mendoza-blue">
+                {isInstitutional ? "Perfil institucional" : "Versión genérica"}
+              </p>
+              <p className="mt-1">
+                {isInstitutional
+                  ? "Esta estructura usa códigos institucionales. Para publicarse y quedar elegible para etapas debe completar el instrumento oficial; el flujo escolar admite únicamente selección simple."
+                  : "Puede guardarse y publicarse. Mientras conserve este perfil, no estará disponible al crear etapas ni llegará al flujo escolar; tipos como selección múltiple pertenecen únicamente a este editor genérico."}
+              </p>
+            </div>
+
+            {editConflict && (
+              <Card
+                className="mt-6 border-mendoza-error bg-red-50"
+                role="alert"
+              >
+                <p className="font-bold text-mendoza-error">
+                  No se sobrescribieron los cambios de otra persona
+                </p>
+                <p className="mt-1 text-sm leading-6 text-mendoza-text">
+                  {editConflict} Tus cambios siguen visibles en esta pantalla
+                  para que puedas revisarlos antes de decidir.
+                </p>
+                <Button
+                  className="mt-4"
+                  disabled={isReloading}
+                  onClick={() => void loadLatestVersion()}
+                  variant="outline"
+                >
+                  {isReloading
+                    ? "Cargando…"
+                    : "Descartar mis cambios y cargar la versión actual"}
+                </Button>
+              </Card>
+            )}
+
+            <Card className="mt-8">
+              <div className="grid gap-5 md:grid-cols-2">
+                <FormField
+                  error={errors.title?.message}
+                  htmlFor="version-title"
+                  label="Título de la versión"
+                >
+                  <input
+                    {...register("title")}
+                    className={inputClassName}
+                    id="version-title"
+                  />
+                </FormField>
+                <FormField
+                  error={errors.instructions?.message}
+                  htmlFor="version-instructions"
+                  label="Instrucciones generales"
+                >
+                  <textarea
+                    {...register("instructions")}
+                    className={inputClassName}
+                    id="version-instructions"
+                    rows={3}
+                  />
+                </FormField>
+              </div>
+            </Card>
+
+            <div className="mt-8 flex flex-wrap items-center justify-between gap-3">
+              <div>
+                <h2 className="text-2xl font-bold text-mendoza-text">
+                  Estructura
+                </h2>
+                <p className="mt-1 text-sm text-mendoza-muted">
+                  El borrador puede guardarse incompleto; la publicación exige
+                  una estructura completa.
+                </p>
+              </div>
+              <Button
+                icon={<CirclePlus aria-hidden="true" size={18} />}
+                onClick={() =>
+                  updateDimensions([
+                    ...getValues("dimensions"),
+                    {
+                      id: null,
+                      code: "",
+                      title: "",
+                      description: "",
+                      sections: [],
+                    },
+                  ])
+                }
+                variant="outline"
+              >
+                Agregar dimensión
+              </Button>
+            </div>
+
+            {dimensions.length === 0 ? (
+              <Card className="mt-5 border-dashed text-center text-sm text-mendoza-muted">
+                Agregá una dimensión para comenzar a construir el cuestionario.
+              </Card>
+            ) : (
+              <div className="mt-5 space-y-6">
+                {dimensions.map((dimension, dimensionIndex) => (
+                  <DimensionEditor
+                    dimension={dimension}
+                    dimensionIndex={dimensionIndex}
+                    dimensions={dimensions}
+                    errors={errors}
+                    key={`dimension-${dimensionIndex}`}
+                    register={register}
+                    isInstitutional={isInstitutional}
+                    rulesPath={`/admin/cuestionarios/${surveyId}/versiones/${versionId}/reglas`}
+                    updateDimensions={updateDimensions}
+                  />
+                ))}
+              </div>
+            )}
+
+            <div className="sticky bottom-4 mt-8 flex justify-end rounded-xl border border-mendoza-border bg-white/95 p-4 shadow-lg backdrop-blur">
+              <Button
+                disabled={isSubmitting || !isDirty}
+                icon={<Save aria-hidden="true" size={18} />}
+                type="submit"
+              >
+                {isSubmitting ? "Guardando…" : "Guardar borrador"}
+              </Button>
+            </div>
+          </fieldset>
+        </form>
+      </main>
+      {navigationBlocker.state === "blocked" && (
+        <div
+          aria-labelledby="unsaved-survey-title"
+          aria-modal="true"
+          className="fixed inset-0 z-50 grid place-items-center bg-black/45 p-4"
+          role="alertdialog"
+        >
+          <Card className="w-full max-w-lg shadow-xl">
+            <h2
+              className="text-xl font-bold text-mendoza-text"
+              id="unsaved-survey-title"
+            >
+              Hay cambios sin guardar
+            </h2>
+            <p className="mt-2 text-sm leading-6 text-mendoza-muted">
+              {isSubmitting
+                ? "El guardado está en curso. Esperá a que termine para confirmar si los cambios se conservaron."
+                : "Si salís ahora, se perderán las modificaciones realizadas en el cuestionario."}
+            </p>
+            <div className="mt-5 flex flex-wrap justify-end gap-3">
+              <Button
+                onClick={() => navigationBlocker.reset()}
+                variant="outline"
+              >
+                Seguir editando
+              </Button>
+              <Button
+                disabled={isSubmitting}
+                onClick={() => navigationBlocker.proceed()}
+              >
+                Salir sin guardar
+              </Button>
+            </div>
           </Card>
-        ) : (
-          <div className="mt-5 space-y-6">
-            {dimensions.map((dimension, dimensionIndex) => (
-              <DimensionEditor
-                dimension={dimension}
-                dimensionIndex={dimensionIndex}
-                dimensions={dimensions}
-                errors={errors}
-                key={`dimension-${dimensionIndex}`}
-                register={register}
-                isInstitutional={isInstitutional}
-                rulesPath={`/admin/cuestionarios/${surveyId}/versiones/${versionId}/reglas`}
-                updateDimensions={updateDimensions}
-              />
-            ))}
-          </div>
-        )}
-
-        <div className="sticky bottom-4 mt-8 flex justify-end rounded-xl border border-mendoza-border bg-white/95 p-4 shadow-lg backdrop-blur">
-          <Button
-            disabled={isSubmitting || !isDirty}
-            icon={<Save aria-hidden="true" size={18} />}
-            type="submit"
-          >
-            {isSubmitting ? "Guardando…" : "Guardar borrador"}
-          </Button>
         </div>
-      </form>
-    </main>
+      )}
+    </>
   );
 }
 
@@ -399,7 +544,13 @@ function DimensionEditor({
           onClick={() =>
             updateSections([
               ...dimension.sections,
-              { code: "", title: "", description: "", questions: [] },
+              {
+                id: null,
+                code: "",
+                title: "",
+                description: "",
+                questions: [],
+              },
             ])
           }
           variant="outline"
@@ -603,6 +754,9 @@ function QuestionEditor({
   };
   const isChoice = ["single_choice", "multiple_choice"].includes(question.type);
   const isText = ["short_text", "long_text"].includes(question.type);
+  const incompatibleInstitutionalType =
+    isInstitutional && question.type !== "single_choice";
+  const incompatibleTypeMessageId = `question-type-${dimensionIndex}-${sectionIndex}-${questionIndex}-error`;
   const hasPresentationValidation =
     question.type === "number" || question.type === "multiple_choice" || isText;
   const questionErrors =
@@ -653,6 +807,13 @@ function QuestionEditor({
         </CompactField>
         <CompactField label="Tipo">
           <select
+            aria-describedby={
+              incompatibleInstitutionalType
+                ? incompatibleTypeMessageId
+                : undefined
+            }
+            aria-invalid={incompatibleInstitutionalType}
+            aria-label="Tipo"
             className={inputClassName}
             onChange={(event) => {
               const next = structuredClone(questions);
@@ -689,6 +850,12 @@ function QuestionEditor({
             }}
             value={question.type}
           >
+            {incompatibleInstitutionalType && (
+              <option value={question.type}>
+                {questionTypeLabel(question.type)} · no compatible con el perfil
+                institucional
+              </option>
+            )}
             {(isInstitutional ? institutionalQuestionTypes : questionTypes).map(
               ([value, label]) => (
                 <option key={value} value={value}>
@@ -697,6 +864,18 @@ function QuestionEditor({
               ),
             )}
           </select>
+          {incompatibleInstitutionalType && (
+            <span
+              className="mt-2 block text-xs leading-5 text-mendoza-error"
+              id={incompatibleTypeMessageId}
+              role="alert"
+            >
+              Este tipo se conserva para que puedas corregir un borrador
+              histórico. Elegí Selección simple antes de publicar; el flujo
+              escolar no admite {questionTypeLabel(question.type).toLowerCase()}
+              .
+            </span>
+          )}
         </CompactField>
         <label className="flex items-end gap-3 pb-2 text-sm font-semibold text-mendoza-text">
           <input
@@ -812,7 +991,13 @@ function QuestionEditor({
               onClick={() =>
                 updateOptions([
                   ...question.options,
-                  { value: "", label: "", helpText: "", score: undefined },
+                  {
+                    id: null,
+                    value: "",
+                    label: "",
+                    helpText: "",
+                    score: undefined,
+                  },
                 ])
               }
               variant="outline"
@@ -1006,6 +1191,10 @@ const institutionalQuestionTypes: Array<[SurveyQuestionType, string]> = [
   ["single_choice", "Selección simple"],
 ];
 
+function questionTypeLabel(type: SurveyQuestionType) {
+  return questionTypes.find(([value]) => value === type)?.[1] ?? type;
+}
+
 function move<T>(values: T[], index: number, offset: -1 | 1) {
   const next = [...values];
   const target = index + offset;
@@ -1018,10 +1207,12 @@ function toEditorForm(version: AdminSurveyVersion): EditorForm {
     title: version.title,
     instructions: version.instructions ?? "",
     dimensions: version.dimensions.map((dimension) => ({
+      id: dimension.id,
       code: dimension.code,
       title: dimension.title,
       description: dimension.description ?? "",
       sections: dimension.sections.map((section) => ({
+        id: section.id,
         code: section.code,
         title: section.title,
         description: section.description ?? "",
@@ -1041,6 +1232,7 @@ function toEditorForm(version: AdminSurveyVersion): EditorForm {
             placeholder: question.validation?.placeholder ?? "",
           },
           options: question.options.map((option) => ({
+            id: option.id,
             value: option.value,
             label: option.label,
             helpText: option.helpText ?? "",
@@ -1056,14 +1248,6 @@ function toWriteInput(values: EditorForm) {
   return {
     title: values.title,
     instructions: values.instructions,
-    dimensions: values.dimensions.map((dimension) => ({
-      ...dimension,
-      sections: dimension.sections.map((section) => ({
-        ...section,
-        questions: section.questions.map(
-          ({ id: _persistedQuestionId, ...question }) => question,
-        ),
-      })),
-    })),
+    dimensions: values.dimensions,
   };
 }

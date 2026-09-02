@@ -70,7 +70,7 @@ export function SchoolLayout() {
             <InstitutionalBrand
               className="min-w-0 max-w-full flex-1"
               compact
-              organizationKeys={["mendoza", "ops"]}
+              organizationKeys={["ops", "eps", "mendoza"]}
             />
             <div className="flex flex-wrap items-center gap-4 sm:justify-end">
               <div className="min-w-0">

@@ -1,6 +1,7 @@
 import { Check, ChevronDown, Search, X } from "lucide-react";
 import { useEffect, useId, useMemo, useRef, useState } from "react";
 import { useAdaptiveDropdown } from "../../hooks/useAdaptiveDropdown";
+import { normalizeSearchText } from "../../lib/text";
 
 export type SearchableSelectOption = { value: string; label: string };
 
@@ -41,13 +42,13 @@ export function SearchableSelect({
     useAdaptiveDropdown<HTMLButtonElement>(open);
   const selected = options.find((option) => option.value === value);
   const visibleOptions = useMemo(() => {
-    const normalizedQuery = normalize(query.trim());
+    const normalizedQuery = normalizeSearchText(query.trim());
     const available = allowEmpty
       ? [{ value: "", label: allLabel }, ...options]
       : options;
     return normalizedQuery
       ? available.filter(({ label }) =>
-          normalize(label).includes(normalizedQuery),
+          normalizeSearchText(label).includes(normalizedQuery),
         )
       : available;
   }, [allLabel, allowEmpty, options, query]);
@@ -228,11 +229,4 @@ export function SearchableSelect({
       )}
     </div>
   );
-}
-
-function normalize(value: string) {
-  return value
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .toLocaleLowerCase("es-AR");
 }

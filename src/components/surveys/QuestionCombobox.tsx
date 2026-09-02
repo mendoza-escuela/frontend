@@ -8,6 +8,7 @@ import {
   useRef,
   useState,
 } from "react";
+import { normalizeSearchText } from "../../lib/text";
 
 const PANEL_MAX_HEIGHT = 448;
 const PANEL_MIN_USEFUL_SPACE = 320;
@@ -65,13 +66,13 @@ export function QuestionCombobox({
 
   const selectedOption = options.find((option) => option.value === value);
   const visibleOptions = useMemo(() => {
-    const normalizedQuery = normalize(query.trim());
+    const normalizedQuery = normalizeSearchText(query.trim());
     if (!normalizedQuery) return options;
 
     return options.filter((option) =>
-      normalize(`${option.code} ${option.prompt} ${option.groupLabel}`).includes(
-        normalizedQuery,
-      ),
+      normalizeSearchText(
+        `${option.code} ${option.prompt} ${option.groupLabel}`,
+      ).includes(normalizedQuery),
     );
   }, [options, query]);
   const groupedOptions = useMemo(
@@ -431,11 +432,4 @@ function formatRuleCount(count: number) {
 
 function formatQuestionCount(count: number) {
   return `${count} ${count === 1 ? "pregunta" : "preguntas"}`;
-}
-
-function normalize(value: string) {
-  return value
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .toLocaleLowerCase("es-AR");
 }

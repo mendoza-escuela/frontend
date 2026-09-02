@@ -5,7 +5,7 @@ import {
   FilePenLine,
 } from "lucide-react";
 import { Link } from "react-router-dom";
-import { formatDateTime } from "../../lib/format";
+import { formatDateTime, formatNumber } from "../../lib/format";
 import type {
   SchoolDetail,
   SchoolDetailCampaignActivity,
@@ -220,7 +220,7 @@ function EvaluationCard({
         <span className="rounded-lg bg-mendoza-blue px-3 py-2 text-sm font-bold text-white">
           {evaluation.generalScore === null
             ? "Puntaje no disponible"
-            : `${formatScore(evaluation.generalScore)} / 100`}
+            : `${formatNumber(evaluation.generalScore)} / 100`}
         </span>
       </div>
       <p className="mt-3 text-sm text-mendoza-muted">
@@ -289,12 +289,6 @@ function campaignStatusLabel(
     closed: "Cerrada",
     archived: "Archivada",
   }[status];
-}
-
-function formatScore(value: number) {
-  return new Intl.NumberFormat("es-AR", { maximumFractionDigits: 2 }).format(
-    value,
-  );
 }
 
 const secondaryLinkClass =

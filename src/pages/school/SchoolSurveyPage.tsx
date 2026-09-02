@@ -10,8 +10,11 @@ import {
   PlayCircle,
 } from "lucide-react";
 import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import { Link } from "react-router-dom";
-import { QuestionnaireRenderer } from "../../components/surveys/QuestionnaireRenderer";
+import { Link, useBlocker } from "react-router-dom";
+import {
+  QuestionnaireRenderer,
+  type QuestionnaireRendererHandle,
+} from "../../components/surveys/QuestionnaireRenderer";
 import { Button } from "../../components/ui/Button";
 import { Card } from "../../components/ui/Card";
 import { ConfirmDialog } from "../../components/ui/ConfirmDialog";
@@ -20,6 +23,7 @@ import { LoadingState } from "../../components/ui/LoadingState";
 import { SearchableSelect } from "../../components/ui/SearchableSelect";
 import { formatDateTime } from "../../lib/format";
 import { getHttpErrorMessage } from "../../lib/http-error";
+import { schoolSurveyWorkspaceFingerprint } from "../../lib/school-survey-workspace";
 import { showError, showSuccess } from "../../lib/toast";
 import { schoolCampaignsService } from "../../services/school-campaigns.service";
 import type {
@@ -37,10 +41,13 @@ export function SchoolSurveyPage() {
   const [available, setAvailable] =
     useState<AvailableSchoolCampaignsResponse | null>(null);
   const [selectedCampaignId, setSelectedCampaignId] = useState("");
-  const [workspace, setWorkspace] =
-    useState<SchoolSubmissionWorkspace | null>(null);
-  const [pendingSubmission, setPendingSubmission] =
-    useState<QuestionnaireFormValues | null>(null);
+  const [workspace, setWorkspace] = useState<SchoolSubmissionWorkspace | null>(
+    null,
+  );
+  const [pendingSubmission, setPendingSubmission] = useState<{
+    answers: QuestionnaireFormValues;
+    revision: number;
+  } | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [isOpening, setIsOpening] = useState(false);
   const [isSubmitting, setIsSubmitting] = useState(false);
@@ -54,6 +61,42 @@ export function SchoolSurveyPage() {
   const [isOpeningExpiredDraft, setIsOpeningExpiredDraft] = useState(false);
   const activeWorkspaceRequestId = useRef(0);
   const expiredWorkspaceRequestId = useRef(0);
+  const submissionRequestInFlight = useRef(false);
+  const questionnaireRef = useRef<QuestionnaireRendererHandle>(null);
+  const workspaceRef = useRef<SchoolSubmissionWorkspace | null>(workspace);
+  const submissionInteractionLocked = pendingSubmission !== null;
+  const navigationBlocker = useBlocker(
+    () =>
+      submissionInteractionLocked ||
+      submissionRequestInFlight.current ||
+      (questionnaireRef.current?.hasPendingChanges() ?? false),
+  );
+
+  useEffect(() => {
+    workspaceRef.current = workspace;
+  }, [workspace]);
+
+  useEffect(() => {
+    if (navigationBlocker.state !== "blocked") return;
+    if (submissionInteractionLocked || submissionRequestInFlight.current) {
+      navigationBlocker.reset();
+      return;
+    }
+    let active = true;
+    void questionnaireRef.current
+      ?.flushDraft()
+      .then(() => {
+        if (active) navigationBlocker.proceed();
+      })
+      .catch((saveError: unknown) => {
+        if (!active) return;
+        showError(getHttpErrorMessage(saveError));
+        navigationBlocker.reset();
+      });
+    return () => {
+      active = false;
+    };
+  }, [navigationBlocker, submissionInteractionLocked]);
 
   const loadCampaigns = useCallback(async () => {
     setIsLoading(true);
@@ -79,9 +122,8 @@ export function SchoolSurveyPage() {
 
   const selectedCampaign = useMemo(
     () =>
-      available?.items.find(
-        (campaign) => campaign.id === selectedCampaignId,
-      ) ?? null,
+      available?.items.find((campaign) => campaign.id === selectedCampaignId) ??
+      null,
     [available, selectedCampaignId],
   );
 
@@ -127,10 +169,9 @@ export function SchoolSurveyPage() {
     setIsOpening(true);
     try {
       const hasSubmission = Boolean(selectedCampaign.submission);
-      const response =
-        hasSubmission
-          ? await schoolCampaignsService.workspace(selectedCampaign.id)
-          : await schoolCampaignsService.start(selectedCampaign.id);
+      const response = hasSubmission
+        ? await schoolCampaignsService.workspace(selectedCampaign.id)
+        : await schoolCampaignsService.start(selectedCampaign.id);
       if (requestId === activeWorkspaceRequestId.current)
         setWorkspace(response);
       if (!hasSubmission && requestId === activeWorkspaceRequestId.current)
@@ -144,6 +185,12 @@ export function SchoolSurveyPage() {
   };
 
   const openExpiredDraft = async (campaignId: string) => {
+    try {
+      await questionnaireRef.current?.flushDraft();
+    } catch (saveError) {
+      showError(getHttpErrorMessage(saveError));
+      return;
+    }
     activeWorkspaceRequestId.current += 1;
     const requestId = ++expiredWorkspaceRequestId.current;
     setIsOpening(false);
@@ -167,27 +214,67 @@ export function SchoolSurveyPage() {
   };
 
   const saveDraft = useCallback(
-    async (values: QuestionnaireFormValues) => {
-      if (!workspace) return;
+    async (values: QuestionnaireFormValues, expectedRevision: number) => {
+      const activeWorkspace = workspaceRef.current;
+      if (!activeWorkspace)
+        throw new Error("No hay una presentación activa para guardar.");
+      const previousFingerprint =
+        schoolSurveyWorkspaceFingerprint(activeWorkspace);
       const saved = await schoolCampaignsService.saveDraft(
-        workspace.campaign.id,
-        formValuesToAnswers(workspace.survey, values),
+        activeWorkspace.campaign.id,
+        formValuesToAnswers(activeWorkspace.survey, values),
+        expectedRevision,
       );
-      setWorkspace(saved);
+      const authoritativeChanged =
+        schoolSurveyWorkspaceFingerprint(saved) !== previousFingerprint;
+      if (
+        authoritativeChanged &&
+        workspaceRef.current?.submission.id === saved.submission.id
+      ) {
+        const refreshedWorkspace = {
+          ...saved,
+          // El formulario conserva incluso las ediciones hechas durante el
+          // request. Esta mezcla evita además reponer respuestas viejas si la
+          // estructura autoritativa obliga a volver a renderizar campos.
+          answers: { ...saved.answers, ...values },
+        };
+        // La cola se pausa ante este resultado. Actualizar la referencia antes
+        // de resolver garantiza que cualquier reintento use el survey nuevo,
+        // incluso antes de que React confirme el render.
+        workspaceRef.current = refreshedWorkspace;
+        setWorkspace((current) =>
+          current?.submission.id === saved.submission.id
+            ? refreshedWorkspace
+            : current,
+        );
+      }
+      return {
+        revision: saved.submission.revision,
+        lastSavedAt: saved.submission.lastSavedAt,
+        authoritativeChanged,
+      };
     },
-    [workspace],
+    [],
   );
 
   const confirmSubmission = async () => {
-    if (!workspace || !pendingSubmission) return;
+    if (
+      !workspace ||
+      !pendingSubmission ||
+      submissionRequestInFlight.current
+    )
+      return;
+    submissionRequestInFlight.current = true;
     setIsSubmitting(true);
     try {
-      await schoolCampaignsService.saveDraft(
-        workspace.campaign.id,
-        formValuesToAnswers(workspace.survey, pendingSubmission),
-      );
+      // Se vuelve a drenar justo antes del POST: el diálogo no debe abrir una
+      // ventana en la que una edición por teclado quede fuera del envío.
+      const latestRevision =
+        (await questionnaireRef.current?.flushDraft()) ??
+        pendingSubmission.revision;
       const submitted = await schoolCampaignsService.submit(
         workspace.campaign.id,
+        latestRevision,
       );
       setWorkspace(submitted);
       setPendingSubmission(null);
@@ -196,8 +283,14 @@ export function SchoolSurveyPage() {
     } catch (submitError) {
       showError(getHttpErrorMessage(submitError));
     } finally {
+      submissionRequestInFlight.current = false;
       setIsSubmitting(false);
     }
+  };
+
+  const cancelSubmissionConfirmation = () => {
+    if (submissionRequestInFlight.current) return;
+    setPendingSubmission(null);
   };
 
   if (isLoading)
@@ -216,7 +309,10 @@ export function SchoolSurveyPage() {
 
   return (
     <main className="p-4 sm:p-8">
-      <div className="mx-auto max-w-5xl">
+      <div
+        className="mx-auto max-w-5xl"
+        inert={submissionInteractionLocked || undefined}
+      >
         <p className="text-sm font-bold uppercase tracking-wide text-mendoza-blue">
           Evaluación institucional
         </p>
@@ -249,8 +345,18 @@ export function SchoolSurveyPage() {
               <div className="mt-6 max-w-xl">
                 <SearchableSelect
                   allLabel="Seleccionar etapa"
+                  disabled={submissionInteractionLocked}
                   label="Etapa"
-                  onChange={setSelectedCampaignId}
+                  onChange={(campaignId) => {
+                    void (async () => {
+                      try {
+                        await questionnaireRef.current?.flushDraft();
+                        setSelectedCampaignId(campaignId);
+                      } catch (saveError) {
+                        showError(getHttpErrorMessage(saveError));
+                      }
+                    })();
+                  }}
                   options={available.items.map((campaign) => ({
                     value: campaign.id,
                     label: campaign.sequenceOrder
@@ -266,6 +372,10 @@ export function SchoolSurveyPage() {
               <CampaignIntroduction
                 campaign={selectedCampaign}
                 isOpening={isOpening}
+                isSchoolEvaluationReady={
+                  available.rectification.isEvaluationReady ??
+                  available.rectification.isRectified
+                }
                 onOpen={() => void openCampaign()}
                 rectificationPeriod={available.rectification.periodYear}
                 schoolActive={available.school.isActive}
@@ -281,56 +391,38 @@ export function SchoolSurveyPage() {
               <div className="mt-6">
                 <ErrorState
                   message={workspaceError}
-                  onRetry={() => setWorkspaceReloadKey((current) => current + 1)}
+                  onRetry={() =>
+                    setWorkspaceReloadKey((current) => current + 1)
+                  }
                 />
               </div>
             ) : (
               workspace && (
                 <div className="mt-6">
                   <ApplicabilityNotice workspace={workspace} />
-                  {workspace.survey.version.dimensions.length ? (
-                    <QuestionnaireRenderer
-                      defaultValues={workspace.answers}
-                      key={workspace.submission.id}
-                      onSaveDraft={
-                        workspace.submission.editable ? saveDraft : undefined
-                      }
-                      onSubmit={(answers) => setPendingSubmission(answers)}
-                      readOnly={!workspace.submission.editable}
-                      submitDisabled={!workspace.submission.canSubmit}
-                      submitDisabledReason={
-                        workspace.applicability.status === "incomplete"
-                          ? "Completá la ficha escolar antes de enviar."
-                          : undefined
-                      }
-                      submitLabel="Enviar presentación"
-                      survey={workspace.survey}
-                      validateOnSectionChange={false}
-                    />
-                  ) : (
-                    <Card>
-                      <Info
-                        aria-hidden="true"
-                        className="text-mendoza-blue"
-                        size={24}
-                      />
-                      <h2 className="mt-3 text-lg font-bold text-mendoza-text">
-                        No hay preguntas aplicables
-                      </h2>
-                      <p className="mt-2 text-sm text-mendoza-muted">
-                        Las reglas del cuestionario excluyeron todas las
-                        preguntas para la ficha rectificada de esta
-                        presentación.
-                      </p>
-                      {workspace.submission.canSubmit && (
-                        <div className="mt-5 flex justify-end">
-                          <Button onClick={() => setPendingSubmission({})}>
-                            Enviar presentación
-                          </Button>
-                        </div>
-                      )}
-                    </Card>
-                  )}
+                  <QuestionnaireRenderer
+                    defaultValues={workspace.answers}
+                    disabled={submissionInteractionLocked}
+                    draftRevision={workspace.submission.revision}
+                    key={workspace.submission.id}
+                    onSaveDraft={
+                      workspace.submission.editable ? saveDraft : undefined
+                    }
+                    onSubmit={(answers, revision) =>
+                      setPendingSubmission({ answers, revision })
+                    }
+                    readOnly={!workspace.submission.editable}
+                    ref={questionnaireRef}
+                    submitDisabled={!workspace.submission.canSubmit}
+                    submitDisabledReason={
+                      workspace.applicability.status === "incomplete"
+                        ? "Completá la ficha escolar antes de enviar."
+                        : undefined
+                    }
+                    submitLabel="Enviar presentación"
+                    survey={workspace.survey}
+                    validateOnSectionChange={false}
+                  />
                 </div>
               )
             )}
@@ -351,9 +443,9 @@ export function SchoolSurveyPage() {
         confirmLabel="Enviar presentación"
         description="Después del envío las respuestas quedarán bloqueadas y no podrán modificarse. Verificá la información antes de continuar."
         isProcessing={isSubmitting}
-        onCancel={() => setPendingSubmission(null)}
+        onCancel={cancelSubmissionConfirmation}
         onConfirm={confirmSubmission}
-        open={Boolean(pendingSubmission)}
+        open={submissionInteractionLocked}
         title="¿Confirmar el envío definitivo?"
       />
     </main>
@@ -438,9 +530,7 @@ function ExpiredDraftsSection({
                   onClick={() => onOpen(campaign.id)}
                   variant="outline"
                 >
-                  {isOpening && selected
-                    ? "Abriendo…"
-                    : "Ver en solo lectura"}
+                  {isOpening && selected ? "Abriendo…" : "Ver en solo lectura"}
                 </Button>
               </div>
 
@@ -617,6 +707,7 @@ function CampaignIntroduction({
   campaign,
   workspace,
   isOpening,
+  isSchoolEvaluationReady,
   schoolActive,
   rectificationPeriod,
   onOpen,
@@ -624,6 +715,7 @@ function CampaignIntroduction({
   campaign: AvailableSchoolCampaign;
   workspace: SchoolSubmissionWorkspace | null;
   isOpening: boolean;
+  isSchoolEvaluationReady: boolean;
   schoolActive: boolean;
   rectificationPeriod: number;
   onOpen: () => void;
@@ -639,7 +731,9 @@ function CampaignIntroduction({
             <CalendarDays aria-hidden="true" size={18} />
             {campaign.type === "annual" ? "Etapa anual" : "Etapa semestral"}
             {campaign.workflowCycle && campaign.sequenceOrder && (
-              <span>· {campaign.workflowCycle} · Paso {campaign.sequenceOrder}</span>
+              <span>
+                · {campaign.workflowCycle} · Paso {campaign.sequenceOrder}
+              </span>
             )}
           </div>
           <h2 className="mt-2 text-2xl font-bold text-mendoza-text">
@@ -665,8 +759,8 @@ function CampaignIntroduction({
             : campaign.workflowStatus === "locked"
               ? "Bloqueada"
               : campaign.submission
-              ? "Borrador iniciado"
-              : "Sin iniciar"}
+                ? "Borrador iniciado"
+                : "Sin iniciar"}
         </span>
       </div>
 
@@ -705,7 +799,7 @@ function CampaignIntroduction({
             <AlertCircle aria-hidden="true" className="shrink-0" size={19} />
             {campaign.blockingReason}
           </span>
-          {schoolActive && !campaign.blockedBy && (
+          {schoolActive && !isSchoolEvaluationReady && !campaign.blockedBy && (
             <Link
               className="font-semibold text-mendoza-blue hover:underline"
               to="/colegio/establecimiento"
@@ -789,7 +883,7 @@ function formValuesToAnswers(
         if (
           value === undefined ||
           value === null ||
-          value === "" ||
+          (typeof value === "string" && value.trim() === "") ||
           (Array.isArray(value) && value.length === 0)
         )
           return [];
@@ -797,8 +891,7 @@ function formValuesToAnswers(
           return [{ questionId: question.id, optionId: String(value) }];
         if (question.type === "number")
           return [{ questionId: question.id, value: Number(value) }];
-        if (question.type === "multiple_choice")
-          return [];
+        if (question.type === "multiple_choice") return [];
         return [{ questionId: question.id, value: String(value) }];
       }),
     ),

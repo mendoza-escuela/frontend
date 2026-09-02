@@ -1,11 +1,17 @@
 import { Check, ChevronDown, Search, X } from "lucide-react";
 import { useEffect, useId, useMemo, useRef, useState } from "react";
+import { normalizeSearchText } from "../../lib/text";
 import type { SearchableSelectOption } from "./SearchableSelect";
+
+export type SearchableMultiSelectOption = SearchableSelectOption & {
+  badge?: string;
+  highlighted?: boolean;
+};
 
 type SearchableMultiSelectProps = {
   label: string;
   values?: readonly string[];
-  options: SearchableSelectOption[];
+  options: SearchableMultiSelectOption[];
   onChange: (values: string[]) => void;
   allLabel?: string;
   disabled?: boolean;
@@ -40,10 +46,10 @@ export function SearchableMultiSelect({
   const [activeIndex, setActiveIndex] = useState(0);
   const selectedValues = useMemo(() => new Set(values), [values]);
   const visibleOptions = useMemo(() => {
-    const normalizedQuery = normalize(query.trim());
+    const normalizedQuery = normalizeSearchText(query.trim());
     return normalizedQuery
       ? options.filter(({ label: optionLabel }) =>
-          normalize(optionLabel).includes(normalizedQuery),
+          normalizeSearchText(optionLabel).includes(normalizedQuery),
         )
       : options;
   }, [options, query]);
@@ -215,8 +221,14 @@ export function SearchableMultiSelect({
                 return (
                   <button
                     aria-disabled={isAtLimit}
+                    aria-label={
+                      option.badge
+                        ? `${option.label} · ${option.badge}`
+                        : option.label
+                    }
                     aria-selected={isSelected}
-                    className={`flex min-h-11 w-full items-center gap-2 rounded-lg px-3 py-2.5 text-left text-sm transition ${isAtLimit ? "cursor-not-allowed text-mendoza-muted opacity-60" : index === activeIndex ? "bg-mendoza-sky/15" : "hover:bg-mendoza-background"}`}
+                    className={`flex min-h-11 w-full items-center gap-2 rounded-lg border px-3 py-2.5 text-left text-sm transition ${isAtLimit ? "cursor-not-allowed border-transparent text-mendoza-muted opacity-60" : isSelected ? "border-mendoza-sky/40 bg-mendoza-blue-soft" : index === activeIndex ? "border-mendoza-sky/30 bg-mendoza-sky/15" : option.highlighted ? "border-mendoza-gold/50 bg-amber-50 hover:bg-amber-100/70" : "border-transparent hover:bg-mendoza-background"}`}
+                    data-highlighted={option.highlighted || undefined}
                     id={`${listboxId}-${index}`}
                     key={option.value}
                     onClick={() => toggle(option.value)}
@@ -230,7 +242,16 @@ export function SearchableMultiSelect({
                       className={`shrink-0 text-mendoza-blue ${isSelected ? "opacity-100" : "opacity-0"}`}
                       size={16}
                     />
-                    <span className="truncate">{option.label}</span>
+                    <span className="min-w-0 flex-1 truncate">
+                      {option.label}
+                    </span>
+                    {option.badge && (
+                      <span
+                        className={`shrink-0 rounded-full px-2 py-0.5 text-xs font-bold ${option.highlighted ? "bg-mendoza-gold/25 text-amber-950" : "bg-mendoza-background text-mendoza-muted"}`}
+                      >
+                        {option.badge}
+                      </span>
+                    )}
                   </button>
                 );
               })
@@ -261,17 +282,12 @@ export function SearchableMultiSelect({
 
 function selectionSummary(
   values: readonly string[],
-  options: SearchableSelectOption[],
+  options: SearchableMultiSelectOption[],
   allLabel: string,
 ) {
   if (!values.length) return allLabel;
   if (values.length > 1) return `${values.length} seleccionados`;
-  return options.find((option) => option.value === values[0])?.label ?? values[0];
-}
-
-function normalize(value: string) {
-  return value
-    .normalize("NFD")
-    .replace(/[\u0300-\u036f]/g, "")
-    .toLocaleLowerCase("es-AR");
+  return (
+    options.find((option) => option.value === values[0])?.label ?? values[0]
+  );
 }

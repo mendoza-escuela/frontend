@@ -3,6 +3,10 @@ dist/
 dist-ssr/
 coverage/
 
+# Artefactos de los scripts Python de seguridad
+__pycache__/
+*.py[cod]
+
 .env
 .env.*
 !.env.example

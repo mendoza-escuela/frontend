@@ -1,0 +1,50 @@
+# =============================================================================
+# Excepciones de seguridad temporalmente aceptadas — repositorio frontend
+#
+# REGLAS (las valida security/scripts/validate-exceptions.py y el pipeline
+# falla si no se cumplen):
+#
+#   1. Toda excepción DEBE tener los ocho campos completos.
+#   2. `expires` es obligatorio y no puede superar los 90 días desde `created`.
+#   3. Prohibidos los comodines y las justificaciones vacías.
+#   4. `compensating_control` debe describir un control real y verificable.
+#   5. `owner` es una persona identificable.
+#
+# Este archivo es la ÚNICA fuente de verdad: toda supresión en la configuración
+# de una herramienta debe citar el `id` correspondiente en un comentario.
+# =============================================================================
+
+exceptions:
+  - id: SEC-EXC-005
+    tool: semgrep
+    finding: nginx.conf excluido del analisis de p/security-audit
+    reason: >-
+      semgrep-core termina con SIGSEGV (exit -11) al analizar nginx.conf con las
+      reglas de nginx del pack p/security-audit. Se aislo la causa archivo por
+      archivo: el pack funciona sobre src/, .github/, public/, docs/, Dockerfile,
+      index.html y package.json, y solo falla con nginx.conf. Es un defecto de la
+      herramienta, no un hallazgo de seguridad, y hacia fallar el job entero de
+      SAST en GitHub Actions.
+    compensating_control: >-
+      Trivy mantiene el analisis estatico de nginx con el scanner misconfig. El
+      DAST integrado del repositorio backend levanta la pareja frontend/API y
+      verifica las cabeceras que entrega el servidor real. El resto del
+      repositorio frontend se sigue analizando con el pack completo.
+    owner: valentin
+    created: 2026-08-28
+    expires: 2026-11-26
+
+  - id: SEC-EXC-006
+    tool: semgrep
+    finding: dockerfile.security.last-user-is-root.last-user-is-root
+    reason: >-
+      La regla marca el USER root temporal usado durante el build para instalar
+      parches de Alpine y materializar la CSP. No interpreta el USER nginx que
+      aparece después y que es el usuario efectivo final de la imagen.
+    compensating_control: >-
+      El Dockerfile termina explícitamente con USER nginx (UID 101), Trivy
+      valida la configuración final y el compose de seguridad del backend aplica
+      read_only, cap_drop ALL y no-new-privileges al contenedor integrado.
+    owner: valentin
+    created: 2026-08-28
+    expires: 2026-11-26
