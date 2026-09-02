@@ -7,6 +7,8 @@ import {
   ResponsiveContainer,
   Tooltip,
 } from "recharts";
+import { formatNumber } from "../../lib/format";
+import { wrapChartLabel } from "../../lib/text";
 import { INSTITUTIONAL_CHART_COLORS } from "../../theme/institutional-theme";
 
 export type DimensionRadarValue = {
@@ -94,7 +96,7 @@ export function DimensionRadar({
               />
               <Tooltip
                 formatter={(value) => [
-                  `${formatScore(Number(value))} puntos`,
+                  `${formatNumber(Number(value))} puntos`,
                   "Puntaje",
                 ]}
                 labelFormatter={(label) => String(label)}
@@ -137,7 +139,7 @@ export function DimensionRadar({
             <dd className="shrink-0 font-bold text-mendoza-blue">
               {dimension.score === null
                 ? "No disponible"
-                : `${formatScore(dimension.score)} / 100`}
+                : `${formatNumber(dimension.score)} / 100`}
             </dd>
           </div>
         ))}
@@ -154,7 +156,7 @@ function RadarAxisTick({
 }: RadarAxisTickProps) {
   const normalizedX = Number(x);
   const normalizedY = Number(y);
-  const lines = wrapLabel(String(payload?.value ?? ""), 23);
+  const lines = wrapChartLabel(String(payload?.value ?? ""), 23);
   return (
     <text
       fill={INSTITUTIONAL_CHART_COLORS.label}
@@ -175,25 +177,4 @@ function RadarAxisTick({
       ))}
     </text>
   );
-}
-
-function wrapLabel(label: string, maximumLength: number) {
-  const words = label.split(/\s+/);
-  const lines: string[] = [];
-  for (const word of words) {
-    const lastLine = lines.at(-1);
-    if (!lastLine || `${lastLine} ${word}`.length > maximumLength) {
-      lines.push(word);
-    } else {
-      lines[lines.length - 1] = `${lastLine} ${word}`;
-    }
-  }
-  return lines;
-}
-
-function formatScore(score: number) {
-  return new Intl.NumberFormat("es-AR", {
-    maximumFractionDigits: 2,
-    minimumFractionDigits: 0,
-  }).format(score);
 }

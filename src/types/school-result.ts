@@ -10,7 +10,7 @@ export type PreliminaryResultDimension = {
   criticalThreshold: number | null;
 };
 
-export type PreliminaryResultQuestion = {
+type PreliminaryResultQuestion = {
   id: string;
   code: string;
   prompt: string;
@@ -38,7 +38,7 @@ export type PreliminaryResultAnswer = PreliminaryResultQuestion & {
   };
 };
 
-export type PreliminaryResultExcludedQuestion = PreliminaryResultQuestion & {
+type PreliminaryResultExcludedQuestion = PreliminaryResultQuestion & {
   exclusion: {
     reasonCode: string;
     reason: string;
@@ -115,7 +115,7 @@ export type SchoolPreliminaryResult = {
   };
 };
 
-export type SchoolPreliminaryResultSummary = {
+type SchoolPreliminaryResultSummary = {
   id: string;
   submissionId: string;
   campaign: {

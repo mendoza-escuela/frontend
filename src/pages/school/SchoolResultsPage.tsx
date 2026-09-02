@@ -22,7 +22,7 @@ import { EmptyState } from "../../components/ui/EmptyState";
 import { ErrorState } from "../../components/ui/ErrorState";
 import { LoadingState } from "../../components/ui/LoadingState";
 import { PageHeader } from "../../components/ui/PageHeader";
-import { formatDateTime } from "../../lib/format";
+import { formatDateTime, formatNumber } from "../../lib/format";
 import { getHttpErrorMessage } from "../../lib/http-error";
 import { showError } from "../../lib/toast";
 import { schoolResultsService } from "../../services/school-results.service";
@@ -123,7 +123,7 @@ function PreliminaryResultHistory() {
                       </h2>
                     </div>
                     <span className="rounded-full bg-mendoza-blue-soft px-3 py-1 text-sm font-bold text-mendoza-blue">
-                      {formatScore(result.generalScore)} / 100
+                      {formatNumber(result.generalScore)} / 100
                     </span>
                   </div>
                   <p className="mt-4 flex items-center gap-2 text-sm text-mendoza-muted">
@@ -278,7 +278,7 @@ function PreliminaryResultDetail({ campaignId }: { campaignId: string }) {
                   Puntaje general
                 </p>
                 <p className="mt-1 text-5xl font-bold">
-                  {formatScore(preliminaryResult.result.generalScore)}
+                  {formatNumber(preliminaryResult.result.generalScore)}
                 </p>
                 <p className="mt-1 text-sm text-white/80">sobre 100 puntos</p>
                 <Stars value={preliminaryResult.result.stars.final} />
@@ -374,12 +374,12 @@ function PreliminaryResultDetail({ campaignId }: { campaignId: string }) {
                   <strong>
                     {mentalHealth.value === null
                       ? "no disponible"
-                      : `${formatScore(mentalHealth.value)} puntos`}
+                      : `${formatNumber(mentalHealth.value)} puntos`}
                   </strong>
                   . El área se considera crítica cuando el valor es menor a{" "}
                   {mentalHealth.threshold === null
                     ? "33"
-                    : formatScore(mentalHealth.threshold)}
+                    : formatNumber(mentalHealth.threshold)}
                   .
                 </p>
                 {preliminaryResult.result.stars.wasLimited && (
@@ -440,7 +440,7 @@ function PreliminaryResultDetail({ campaignId }: { campaignId: string }) {
                   <p className="mt-4 text-3xl font-bold text-mendoza-blue">
                     {dimension.score === null
                       ? "No disponible"
-                      : `${formatScore(dimension.score)} / 100`}
+                      : `${formatNumber(dimension.score)} / 100`}
                   </p>
                 </Card>
               ))}
@@ -565,7 +565,7 @@ function StarDistributionCard({
                     </div>
                   </td>
                   <td className="w-40 p-2 text-right font-semibold">
-                    {item.count} ({item.percentage.toLocaleString("es-AR")} %)
+                    {item.count} ({formatNumber(item.percentage)} %)
                   </td>
                 </tr>
               ))}
@@ -600,7 +600,7 @@ function AnswerCard({ answer }: { answer: PreliminaryResultAnswer }) {
               Puntaje utilizado
             </dt>
             <dd className="mt-1 text-sm font-bold text-mendoza-blue">
-              {formatScore(answer.answer.scoreUsed)} / 100
+              {formatNumber(answer.answer.scoreUsed)} / 100
             </dd>
           </div>
         )}
@@ -700,13 +700,6 @@ function answerValue(answer: PreliminaryResultAnswer) {
   return answer.answer.value === null || answer.answer.value === ""
     ? "Sin respuesta"
     : String(answer.answer.value);
-}
-
-function formatScore(score: number) {
-  return new Intl.NumberFormat("es-AR", {
-    maximumFractionDigits: 2,
-    minimumFractionDigits: 0,
-  }).format(score);
 }
 
 function resultError(error: unknown): ResultError {

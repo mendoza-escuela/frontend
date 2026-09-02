@@ -2,11 +2,49 @@
 
 Aplicación web React, TypeScript, Vite y Tailwind CSS.
 
+## Requisitos
+
+- Node.js `22.23.2` (declarado en `.nvmrc`).
+- npm `11.6.1`.
+
 ## Desarrollo
 
 1. Copiar `.env.example` a `.env`.
-2. Configurar `VITE_API_URL` con la URL base de la API, incluido el prefijo `/api` (por ejemplo, `http://localhost:4000/api`).
-3. Ejecutar `npm install` y `npm run dev`.
+2. Configurar `VITE_API_URL` como `/api` para mismo origen o con una URL
+   HTTP(S) terminada en `/api` (por ejemplo, `http://localhost:4000/api`). El
+   cliente no agrega ese prefijo automáticamente.
+3. Preparar el toolchain e instalar exactamente el lockfile:
+
+   ```bash
+   nvm use
+   npm install --global npm@11.6.1
+   npm ci
+   npm run dev
+   ```
+
+Las variables `VITE_*` son configuración pública y no deben contener secretos.
+En desarrollo se leen desde Vite. La imagen Docker genera `runtime-config.js`
+al iniciar, por lo que estos valores pueden cambiarse con variables de entorno
+sin recompilar la aplicación. `VITE_API_URL` usa `/api` por defecto y las cuatro
+variables `VITE_BRAND_MENDOZA_*` y `VITE_BRAND_OPS_*` son opcionales.
+
+## Imagen Docker de develop
+
+Cada push a `develop` publica en Docker Hub las etiquetas `develop` y
+`develop-<sha>` bajo `<docker-id>/mendoza-frontend`. El repositorio de GitHub
+debe definir la variable `DOCKERHUB_USERNAME` y el secreto `DOCKERHUB_TOKEN`.
+Ejemplo con una API en otro origen:
+
+```bash
+docker run --rm -p 8080:8080 \
+  -e VITE_API_URL=https://api.example.org/api \
+  <docker-id>/mendoza-frontend:develop
+```
+
+Si se conserva `VITE_API_URL=/api`, el proxy externo debe enrutar `/api` hacia
+el backend en el mismo origen. La URL absoluta permite ejecutar el frontend de
+forma independiente; el backend debe recibir en `FRONTEND_URL` el origen exacto
+desde el que se abre esta aplicación.
 
 La autenticación usa cookies `HttpOnly`; por eso las solicitudes Axios se realizan con credenciales y el token no se guarda en `localStorage`.
 
@@ -24,17 +62,17 @@ En `/colegio/establecimiento`, el usuario revisa los datos territoriales, tipo d
 
 Si un editor recibe un tipo de educación histórico sin correspondencia en el catálogo oficial, conserva y muestra el valor anterior sin inferir equivalencias —por ejemplo, no convierte `Primario` en `Educación común`— y exige una selección oficial antes de guardar. La regularización masiva del padrón queda pendiente de un mapeo oficial por CUE.
 
-El renderizador de cuestionarios consume una versión publicada y soporta selección simple, selección múltiple, sí/no, texto corto, texto largo, número y fecha. Navega por secciones y usa React Hook Form con Zod para las validaciones configuradas.
+Las nuevas etapas del flujo escolar consumen exclusivamente versiones institucionales elegibles. El instrumento institucional vigente admite preguntas de selección simple; una versión genérica puede editarse y publicarse para administración o consulta, pero no se ofrece al crear etapas ni llega a nuevas cargas escolares. El renderizador conserva compatibilidad de lectura con tipos históricos, sin ampliar por eso el contrato vigente del instrumento. El formulario navega por secciones y usa React Hook Form con Zod para las validaciones configuradas.
 
-En `/colegio/cuestionario`, el portal lista etapas activas dentro de su período, informa bloqueos por establecimiento inactivo o por una ficha que todavía no está lista para evaluar y permite iniciar o recuperar la presentación de la escuela. Una confirmación anual incompleta no se presenta como pendiente: conserva su fecha y señala los campos que requieren actualización. El formulario admite avance parcial, restaura respuestas, muestra progreso, guarda manualmente, realiza autoguardado y confirma el envío definitivo. Después del envío se abre en modo de sólo lectura.
+En `/colegio/cuestionario`, el portal lista etapas activas dentro de su período, informa bloqueos por establecimiento inactivo o por una ficha que todavía no está lista para evaluar y permite iniciar o recuperar la presentación de la escuela. Una confirmación anual incompleta no se presenta como pendiente: conserva su fecha y señala los campos que requieren actualización. El formulario admite avance parcial, restaura respuestas, muestra progreso, guarda manualmente, realiza autoguardado y confirma el envío definitivo. El autoguardado usa una cola de una sola escritura, coalesce al estado local más nuevo, espera el flush antes del envío o de una navegación SPA y detecta ediciones concurrentes mediante la revisión del backend. Si otra pestaña avanzó esa revisión, se detiene y exige recargar en lugar de sobrescribirla. Si una respuesta de guardado trae un cuestionario o una aplicabilidad autoritativa diferente, adopta ese contrato sin reponer respuestas antiguas, mantiene las ediciones locales y pausa el siguiente guardado hasta que la escuela lo revise. Después del envío se abre en modo de sólo lectura.
 
 Las etapas pueden integrar recorridos ordenados. Aunque el administrador mantenga varias abiertas simultáneamente, el portal muestra el ciclo y el número de paso, identifica como bloqueada una etapa con requisitos anteriores y explica cuál debe enviarse. Sólo cuentan las etapas asignadas al colegio: una etapa no aplicable no interrumpe su recorrido.
 
-El panel `/admin/cuestionarios` incorpora el ABM de cuestionarios y versiones. Permite crear versiones con las seis dimensiones oficiales, vacías o clonadas; editar la estructura y los puntajes; validar antes de publicar; consultar auditoría; comparar versiones, incluido el puntaje; y abrir una vista previa administrativa que muestra los puntos sin exponerlos en el portal escolar. Las versiones publicadas son de sólo lectura.
+El panel `/admin/cuestionarios` incorpora el ABM de cuestionarios y versiones. Permite crear versiones con las seis dimensiones oficiales, vacías o clonadas; editar la estructura y los puntajes; validar antes de publicar; consultar auditoría; comparar versiones, incluido el puntaje; y abrir una vista previa administrativa que muestra los puntos sin exponerlos en el portal escolar. Las versiones publicadas son de sólo lectura. El editor conserva los UUID de cada nodo al renombrar, mover o reordenar, envía la revisión cargada para impedir sobrescrituras concurrentes y avisa antes de navegar con cambios pendientes. Ante un conflicto mantiene la edición local visible hasta que el administrador decida recargar la versión vigente.
 
-El editor de reglas conserva el trabajo sobre una pregunta y suma el modo “Varias preguntas”. En este modo el administrador marca dos o más preguntas con un selector buscable y aplica la misma regla sin reemplazar sus reglas existentes. La prioridad se agrega independientemente al final de cada pregunta; las tareas posteriores de edición, eliminación, orden y prueba se realizan desde el modo individual.
+El editor de reglas conserva el trabajo sobre una pregunta y suma el modo “Varias preguntas”. En este modo el administrador marca dos o más preguntas con un selector buscable y aplica la misma regla sin reemplazar sus reglas existentes. La prioridad se agrega independientemente al final de cada pregunta; las tareas posteriores de edición, eliminación, orden y prueba se realizan desde el modo individual. El listado adopta las reglas y la revisión entregadas por un mismo snapshot del backend; cada alta, edición, baja o reordenamiento envía esa revisión y adopta la nueva cabecera de respuesta. Si otra persona modificó la versión, el backend responde conflicto, la pantalla no sobrescribe y conserva el formulario hasta que el administrador decida cargar la versión actual.
 
-El panel `/admin/campanas` permite crear etapas anuales o semestrales, asociarlas a una versión publicada, buscarlas y filtrarlas. Los borradores pueden editarse o eliminarse y luego recorren el ciclo irreversible Activa, Cerrada y Archivada. La interfaz informa que la fecha final cierra a las 23:59:59 de Mendoza.
+El panel `/admin/campanas` permite crear etapas anuales o semestrales, asociarlas únicamente a una versión institucional publicada y evaluable, buscarlas y filtrarlas. Las versiones genéricas publicadas se conservan para administración o consulta, pero no aparecen como elegibles para etapas escolares. Los borradores pueden editarse o eliminarse y luego recorren el ciclo irreversible Activa, Cerrada y Archivada. La interfaz informa que la fecha final cierra a las 23:59:59 de Mendoza.
 
 Al crear o editar un borrador, el administrador puede dejarlo independiente o indicar un nombre de recorrido y un orden entre 1 y 100. El formulario reutiliza los recorridos existentes y el listado identifica visualmente el ciclo y el paso configurados.
 
@@ -56,6 +94,10 @@ La paleta institucional se centraliza mediante tokens `mendoza-*` en `src/styles
 
 ```bash
 npm run lint
+npm run typecheck
 npm test
 npm run build
 ```
+
+`npm run lint` sólo informa hallazgos. Para aplicar correcciones automáticas de
+Oxlint de forma explícita se usa `npm run lint:fix`.

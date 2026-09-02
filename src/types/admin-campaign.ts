@@ -3,7 +3,8 @@ import type { Pagination } from "../components/ui/PaginationControls";
 export type CampaignType = "annual" | "semiannual";
 export type CampaignStatus = "draft" | "active" | "closed" | "archived";
 
-export type PublishedSurveyVersionOption = {
+/** Versión publicada que el backend habilita para crear o editar una etapa. */
+export type CampaignSurveyVersionOption = {
   id: string;
   surveyId: string;
   surveyCode: string;
@@ -64,7 +65,7 @@ export type CampaignWorkflowOption = {
   lastSequenceOrder: number;
 };
 
-export type CampaignSchoolAssignmentSource = "manual" | "filter" | "bulk";
+type CampaignSchoolAssignmentSource = "manual" | "filter" | "bulk";
 
 export type CampaignSchoolFilters = {
   search?: string;
@@ -79,7 +80,7 @@ export type CampaignSchoolFilters = {
   limit?: number;
 };
 
-export type CampaignSchoolOption = {
+type CampaignSchoolOption = {
   id: string;
   cue: string;
   name: string;

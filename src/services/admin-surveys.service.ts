@@ -15,6 +15,17 @@ import type {
   ApplicabilityRule,
 } from "../types/admin-survey";
 
+const surveyVersionUpdatedAtHeader = "x-survey-version-updated-at";
+
+function versionUpdatedAtFromHeader(value: unknown) {
+  const candidate = Array.isArray(value) ? value[0] : value;
+  if (typeof candidate !== "string" || Number.isNaN(Date.parse(candidate)))
+    throw new Error(
+      "La respuesta no incluyó la revisión de la versión del cuestionario.",
+    );
+  return candidate;
+}
+
 export const adminSurveysService = {
   async list(
     filters: { search?: string; page?: number; limit?: number },
@@ -114,12 +125,16 @@ export const adminSurveysService = {
     versionId: string,
     questionId?: string,
   ) {
-    return (
-      await api.get<ApplicabilityRule[]>(
-        `/admin/surveys/${surveyId}/versions/${versionId}/applicability-rules`,
-        { params: { questionId } },
-      )
-    ).data;
+    const response = await api.get<ApplicabilityRule[]>(
+      `/admin/surveys/${surveyId}/versions/${versionId}/applicability-rules`,
+      { params: { questionId } },
+    );
+    return {
+      rules: response.data,
+      versionUpdatedAt: versionUpdatedAtFromHeader(
+        response.headers[surveyVersionUpdatedAtHeader],
+      ),
+    };
   },
 
   async createApplicabilityRule(
@@ -127,13 +142,18 @@ export const adminSurveysService = {
     versionId: string,
     questionId: string,
     input: Omit<ApplicabilityRule, "id" | "questionId" | "question">,
+    expectedUpdatedAt: string,
   ) {
-    return (
-      await api.post<ApplicabilityRule>(
-        `/admin/surveys/${surveyId}/versions/${versionId}/questions/${questionId}/applicability-rules`,
-        input,
-      )
-    ).data;
+    const response = await api.post<ApplicabilityRule>(
+      `/admin/surveys/${surveyId}/versions/${versionId}/questions/${questionId}/applicability-rules`,
+      { ...input, expectedUpdatedAt },
+    );
+    return {
+      rule: response.data,
+      versionUpdatedAt: versionUpdatedAtFromHeader(
+        response.headers[surveyVersionUpdatedAtHeader],
+      ),
+    };
   },
 
   async createApplicabilityRuleBulk(
@@ -141,13 +161,18 @@ export const adminSurveysService = {
     versionId: string,
     questionIds: string[],
     input: Omit<ApplicabilityRule, "id" | "questionId" | "question">,
+    expectedUpdatedAt: string,
   ) {
-    return (
-      await api.post<ApplicabilityRule[]>(
-        `/admin/surveys/${surveyId}/versions/${versionId}/applicability-rules/bulk`,
-        { questionIds, rule: input },
-      )
-    ).data;
+    const response = await api.post<ApplicabilityRule[]>(
+      `/admin/surveys/${surveyId}/versions/${versionId}/applicability-rules/bulk`,
+      { questionIds, rule: input, expectedUpdatedAt },
+    );
+    return {
+      rules: response.data,
+      versionUpdatedAt: versionUpdatedAtFromHeader(
+        response.headers[surveyVersionUpdatedAtHeader],
+      ),
+    };
   },
 
   async updateApplicabilityRule(
@@ -156,13 +181,18 @@ export const adminSurveysService = {
     questionId: string,
     ruleId: string,
     input: Omit<ApplicabilityRule, "id" | "questionId" | "question">,
+    expectedUpdatedAt: string,
   ) {
-    return (
-      await api.put<ApplicabilityRule>(
-        `/admin/surveys/${surveyId}/versions/${versionId}/questions/${questionId}/applicability-rules/${ruleId}`,
-        input,
-      )
-    ).data;
+    const response = await api.put<ApplicabilityRule>(
+      `/admin/surveys/${surveyId}/versions/${versionId}/questions/${questionId}/applicability-rules/${ruleId}`,
+      { ...input, expectedUpdatedAt },
+    );
+    return {
+      rule: response.data,
+      versionUpdatedAt: versionUpdatedAtFromHeader(
+        response.headers[surveyVersionUpdatedAtHeader],
+      ),
+    };
   },
 
   async removeApplicabilityRule(
@@ -170,10 +200,17 @@ export const adminSurveysService = {
     versionId: string,
     questionId: string,
     ruleId: string,
+    expectedUpdatedAt: string,
   ) {
-    await api.delete(
+    const response = await api.delete(
       `/admin/surveys/${surveyId}/versions/${versionId}/questions/${questionId}/applicability-rules/${ruleId}`,
+      { params: { expectedUpdatedAt } },
     );
+    return {
+      versionUpdatedAt: versionUpdatedAtFromHeader(
+        response.headers[surveyVersionUpdatedAtHeader],
+      ),
+    };
   },
 
   async reorderApplicabilityRules(
@@ -181,13 +218,18 @@ export const adminSurveysService = {
     versionId: string,
     questionId: string,
     ruleIds: string[],
+    expectedUpdatedAt: string,
   ) {
-    return (
-      await api.put<ApplicabilityRule[]>(
-        `/admin/surveys/${surveyId}/versions/${versionId}/questions/${questionId}/applicability-rules-order`,
-        { ruleIds },
-      )
-    ).data;
+    const response = await api.put<ApplicabilityRule[]>(
+      `/admin/surveys/${surveyId}/versions/${versionId}/questions/${questionId}/applicability-rules-order`,
+      { ruleIds, expectedUpdatedAt },
+    );
+    return {
+      rules: response.data,
+      versionUpdatedAt: versionUpdatedAtFromHeader(
+        response.headers[surveyVersionUpdatedAtHeader],
+      ),
+    };
   },
 
   async previewApplicability(

@@ -7,27 +7,22 @@
     los requisitos y delega en bash, de modo que el resultado en Windows y en
     Linux sea idéntico.
 
+    El alcance del frontend es análisis estático y escaneo de su propia imagen.
+    El stack efímero y el DAST se ejecutan desde el repositorio backend.
+
     Requisitos: Docker Desktop y Git para Windows (aporta bash).
 
 .PARAMETER StaticOnly
-    Sólo análisis estático. No levanta el entorno con Docker Compose.
-
-.PARAMETER FullDast
-    ZAP full scan (activo) en lugar del baseline.
-
-.PARAMETER KeepEnv
-    No destruye el entorno efímero al terminar.
+    Alias conservado por compatibilidad. La suite frontend ya tiene ese alcance
+    y también incluye el escaneo de su imagen.
 
 .EXAMPLE
     .\security\run-security.ps1
     .\security\run-security.ps1 -StaticOnly
-    .\security\run-security.ps1 -FullDast -KeepEnv
 #>
 [CmdletBinding()]
 param(
-    [switch]$StaticOnly,
-    [switch]$FullDast,
-    [switch]$KeepEnv
+    [switch]$StaticOnly
 )
 
 $ErrorActionPreference = 'Stop'
@@ -90,17 +85,16 @@ Push-Location $repoRoot
 Write-Host "Repositorio: $repoRoot" -ForegroundColor Green
 
 try {
-    # --- Argumentos ----------------------------------------------------------
+    # `-StaticOnly` se conserva como alias compatible del wrapper anterior.
     $argumentos = @()
     if ($StaticOnly) { $argumentos += '--static-only' }
-    if ($FullDast)   { $argumentos += '--full-dast' }
-    if ($KeepEnv)    { $argumentos += '--keep-env' }
 
     Write-Step "Ejecutando la suite de seguridad"
     if ($argumentos.Count -gt 0) {
         Write-Host "Opciones: $($argumentos -join ' ')"
     }
-    Write-Host "La primera ejecucion descarga unos 6 GB de imagenes."
+    Write-Host "Alcance: analisis estatico y escaneo de la imagen frontend."
+    Write-Host "La primera ejecucion descarga las imagenes de las herramientas."
     Write-Host ""
 
     & $bash './security/scripts/run-all.sh' @argumentos

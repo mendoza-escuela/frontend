@@ -16,4 +16,33 @@ describe("FormField", () => {
     expect(container.firstElementChild).toHaveClass("flex", "h-full", "flex-col");
     expect(screen.getByRole("textbox").parentElement).toHaveClass("mt-auto", "pt-2");
   });
+
+  it("puede contener el control y asociar ayuda, obligatoriedad y error", () => {
+    const view = render(
+      <FormField
+        error="Campo inválido"
+        help="Ayuda contextual"
+        helpId="field-help"
+        helpPlacement="below"
+        label="Campo"
+        required
+      >
+        <input aria-describedby="field-help" />
+      </FormField>,
+    );
+
+    const input = view.container.querySelector("input");
+    expect(input).not.toBeNull();
+    if (!input) return;
+    expect(input.closest("label")).toHaveTextContent("Campo *");
+    expect(input).toHaveAttribute(
+      "aria-describedby",
+      "field-help",
+    );
+    expect(view.getByText("Ayuda contextual")).toHaveAttribute(
+      "id",
+      "field-help",
+    );
+    expect(view.getByRole("alert")).toHaveTextContent("Campo inválido");
+  });
 });

@@ -28,19 +28,24 @@ export const schoolCampaignsService = {
     ).data;
   },
 
-  async saveDraft(campaignId: string, answers: SubmissionAnswerInput[]) {
+  async saveDraft(
+    campaignId: string,
+    answers: SubmissionAnswerInput[],
+    expectedRevision: number,
+  ) {
     return (
       await api.put<SchoolSubmissionWorkspace>(
         `/school/campaigns/${campaignId}/submission/draft`,
-        { answers },
+        { answers, expectedRevision },
       )
     ).data;
   },
 
-  async submit(campaignId: string) {
+  async submit(campaignId: string, expectedRevision: number) {
     return (
       await api.post<SchoolSubmissionWorkspace>(
         `/school/campaigns/${campaignId}/submission/submit`,
+        { expectedRevision },
       )
     ).data;
   },

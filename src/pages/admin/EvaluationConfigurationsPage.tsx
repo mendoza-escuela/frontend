@@ -31,6 +31,7 @@ import { Card } from "../../components/ui/Card";
 import { ConfirmDialog } from "../../components/ui/ConfirmDialog";
 import { EmptyState } from "../../components/ui/EmptyState";
 import { ErrorState } from "../../components/ui/ErrorState";
+import { FormField as Field } from "../../components/ui/FormField";
 import { LoadingState } from "../../components/ui/LoadingState";
 import { Modal } from "../../components/ui/Modal";
 import { PageHeader } from "../../components/ui/PageHeader";
@@ -461,18 +462,30 @@ export function EvaluationConfigurationsPage() {
                 <section aria-labelledby="configuration-identity-title" className="space-y-4 rounded-2xl bg-mendoza-background/70 p-4">
                   <div className="flex items-center gap-2"><FileText aria-hidden="true" className="text-mendoza-blue" size={19} /><h3 className="font-bold text-mendoza-text" id="configuration-identity-title">Identificación de la versión</h3></div>
                 <Field
+                  className="grid gap-1.5"
+                  controlClassName=""
                   label="Código de versión"
                   error={form.formState.errors.versionCode?.message}
                 >
                   <input className={inputClassName} placeholder="Ej.: v2.1.0" {...form.register("versionCode")} />
                 </Field>
                 <Field
+                  className="grid gap-1.5"
+                  controlClassName=""
                   label="Nombre"
                   error={form.formState.errors.name?.message}
                 >
                   <input className={inputClassName} placeholder="Nombre descriptivo de la configuración" {...form.register("name")} />
                 </Field>
-                <Field label="Descripción" error={form.formState.errors.description?.message} hint="Opcional · hasta 2000 caracteres">
+                <Field
+                  className="grid gap-1.5"
+                  controlClassName=""
+                  error={form.formState.errors.description?.message}
+                  help="Opcional · hasta 2000 caracteres"
+                  helpPlacement="below"
+                  hideHelpWhenError
+                  label="Descripción"
+                >
                   <textarea
                     className={inputClassName}
                     placeholder="Explicá brevemente qué cambia en esta versión…"
@@ -485,7 +498,15 @@ export function EvaluationConfigurationsPage() {
                   <div className="mb-1 flex items-center gap-2"><AlertTriangle aria-hidden="true" className="text-amber-700" size={19} /><h3 className="font-bold text-mendoza-text" id="critical-rule-title">Regla de criticidad</h3></div>
                   <p className="mb-4 text-sm leading-5 text-mendoza-muted">Si Salud Mental queda por debajo del umbral, las estrellas finales no podrán superar el máximo definido.</p>
                 <div className="grid gap-3 sm:grid-cols-2">
-                  <Field label="Umbral Salud Mental" hint="Puntaje entero de 0 a 100" error={form.formState.errors.mentalHealthCriticalThreshold?.message}>
+                  <Field
+                    className="grid gap-1.5"
+                    controlClassName=""
+                    error={form.formState.errors.mentalHealthCriticalThreshold?.message}
+                    help="Puntaje entero de 0 a 100"
+                    helpPlacement="below"
+                    hideHelpWhenError
+                    label="Umbral Salud Mental"
+                  >
                     <input
                       className={inputClassName}
                       inputMode="numeric"
@@ -719,25 +740,6 @@ function preventNonIntegerPaste(event: ClipboardEvent<HTMLInputElement>) {
     event.preventDefault();
 }
 
-function Field({
-  label,
-  error,
-  hint,
-  children,
-}: {
-  label: string;
-  error?: string;
-  hint?: string;
-  children: React.ReactNode;
-}) {
-  return (
-    <label className="grid gap-1.5 text-sm font-semibold text-mendoza-text">
-      {label}
-      {children}
-      {error ? <span className="text-sm font-normal text-mendoza-error" role="alert">{error}</span> : hint ? <span className="text-xs font-normal text-mendoza-muted">{hint}</span> : null}
-    </label>
-  );
-}
 const statusLabel = (status: string) =>
   status === "active"
     ? "Activa"

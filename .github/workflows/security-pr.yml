@@ -35,8 +35,10 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
-          node-version: '22'
+          node-version-file: .nvmrc
           cache: npm
+      - name: Usar npm declarado por el proyecto
+        run: bash security/scripts/setup-project-npm.sh
       - run: npm ci
       - name: Lint
         run: npm run lint
@@ -60,6 +62,11 @@ jobs:
       - name: Validar excepciones de seguridad
         run: python3 security/scripts/validate-exceptions.py
 
+      - name: Regresiones del consolidador
+        env:
+          PYTHONDONTWRITEBYTECODE: '1'
+        run: python3 -m unittest discover -s security/scripts/tests -p 'test_*.py' -v
+
       - name: Análisis estático completo
         run: bash security/scripts/run-static.sh
 
@@ -72,7 +79,7 @@ jobs:
 
       - name: Consolidar resultados
         if: always()
-        run: bash security/scripts/create-summary.sh --partial
+        run: bash security/scripts/create-summary.sh --partial --require-group static
 
       - name: Publicar resumen en el PR
         if: always()
@@ -95,8 +102,10 @@ jobs:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
       - uses: actions/setup-node@820762786026740c76f36085b0efc47a31fe5020 # v7.0.0
         with:
-          node-version: '22'
+          node-version-file: .nvmrc
           cache: npm
+      - name: Usar npm declarado por el proyecto
+        run: bash security/scripts/setup-project-npm.sh
       - run: npm ci
 
       - name: Compilar como en producción
@@ -142,8 +151,8 @@ jobs:
     steps:
       - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
 
-      - name: Construir la imagen con el SHA del commit
-        run: docker build --build-arg VITE_API_URL=/api -t "app-frontend:${GITHUB_SHA::12}" .
+      - name: Construir y analizar la imagen frontend
+        run: bash security/scripts/run-container-scan.sh
 
       - name: Verificar que la imagen NO corre como root
         run: |
@@ -155,24 +164,9 @@ jobs:
             exit 1
           fi
 
-      - name: Trivy sobre la imagen
-        run: |
-          set -euo pipefail
-          mkdir -p security/reports
-          docker run --rm \
-            -v /var/run/docker.sock:/var/run/docker.sock \
-            -v "$PWD/security/reports:/reports" \
-            -v "$PWD/security/config:/config:ro" \
-            aquasec/trivy:0.67.2 image \
-            --config /config/trivy.yaml \
-            --scanners vuln,secret \
-            --format json \
-            --output /reports/trivy-frontend-image.json \
-            "app-frontend:${GITHUB_SHA::12}"
-
       - name: Consolidar resultados
         if: always()
-        run: bash security/scripts/create-summary.sh --partial
+        run: bash security/scripts/create-summary.sh --partial --require-group container
 
       - name: Publicar resumen
         if: always()

@@ -1,9 +1,11 @@
 import type { SurveyVersionStatus } from "../../types/admin-survey";
 import type { CampaignStatus } from "../../types/admin-campaign";
 
+const successStatusStyle = "bg-green-100 text-green-800";
+
 const versionStyles: Record<SurveyVersionStatus, string> = {
   draft: "bg-amber-50 text-amber-800",
-  published: "bg-green-50 text-mendoza-success",
+  published: successStatusStyle,
   archived: "bg-slate-100 text-slate-700",
 };
 
@@ -25,9 +27,7 @@ export function ActiveStatusBadge({ isActive }: { isActive: boolean }) {
   return (
     <span
       className={`rounded-full px-3 py-1 text-xs font-bold ${
-        isActive
-          ? "bg-green-50 text-mendoza-success"
-          : "bg-slate-100 text-slate-700"
+        isActive ? successStatusStyle : "bg-slate-100 text-slate-700"
       }`}
     >
       {isActive ? "Activo" : "Inactivo"}
@@ -37,7 +37,7 @@ export function ActiveStatusBadge({ isActive }: { isActive: boolean }) {
 
 const campaignStyles: Record<CampaignStatus, string> = {
   draft: "bg-amber-50 text-amber-800",
-  active: "bg-green-50 text-mendoza-success",
+  active: successStatusStyle,
   closed: "bg-slate-100 text-slate-700",
   archived: "bg-mendoza-blue-soft text-mendoza-blue",
 };

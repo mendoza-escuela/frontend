@@ -23,7 +23,6 @@ vi.mock("../../services/admin-schools.service", () => ({
     rectificationCatalogs: vi.fn(),
     findOne: vi.fn(),
     create: vi.fn(),
-    update: vi.fn(),
     updateAndRectify: vi.fn(),
   },
 }));
@@ -249,7 +248,6 @@ describe("SchoolFormPage", () => {
         contacts: [expect.objectContaining({ type: "RESPONDENT" })],
       }),
     );
-    expect(adminSchoolsService.update).not.toHaveBeenCalled();
     expect(adminSchoolsService.create).not.toHaveBeenCalled();
     expect(
       vi.mocked(adminSchoolsService.updateAndRectify).mock.calls[0][1],
@@ -339,7 +337,6 @@ describe("SchoolFormPage", () => {
         ],
       }),
     );
-    expect(adminSchoolsService.update).not.toHaveBeenCalled();
   });
 
   it("mantiene el alta mediante create y permite definir el estado inicial", async () => {
@@ -399,7 +396,6 @@ describe("SchoolFormPage", () => {
       expect.objectContaining({ isActive: true }),
     );
     expect(adminSchoolsService.updateAndRectify).not.toHaveBeenCalled();
-    expect(adminSchoolsService.update).not.toHaveBeenCalled();
   });
 });
 

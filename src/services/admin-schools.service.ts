@@ -56,9 +56,6 @@ export const adminSchoolsService = {
   async create(input: SchoolWriteInput) {
     return (await api.post<SchoolCreateResponse>("/admin/schools", input)).data;
   },
-  async update(id: string, input: Partial<SchoolWriteInput>) {
-    return (await api.patch<SchoolDetail>(`/admin/schools/${id}`, input)).data;
-  },
   async updateAndRectify(id: string, input: SchoolUpdateAndRectifyInput) {
     return (
       await api.put<SchoolDetail>(`/admin/schools/${id}/rectification`, input)

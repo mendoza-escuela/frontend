@@ -13,10 +13,12 @@ import {
 } from "lucide-react";
 import { Fragment, useEffect, useState } from "react";
 import { Controller, type Control, useForm } from "react-hook-form";
+import { LegacyCatalogNotice } from "../../components/schools/LegacyCatalogNotice";
 import { RectificationStatusNotice } from "../../components/schools/RectificationStatusNotice";
 import { Button } from "../../components/ui/Button";
 import { ConfirmDialog } from "../../components/ui/ConfirmDialog";
 import { ErrorState } from "../../components/ui/ErrorState";
+import { FormField as RectificationField } from "../../components/ui/FormField";
 import { LoadingState } from "../../components/ui/LoadingState";
 import { SearchableSelect } from "../../components/ui/SearchableSelect";
 import { checkboxClassName } from "../../components/ui/form-styles";
@@ -29,6 +31,14 @@ import {
   schoolRectificationSchema,
   type SchoolRectificationValues,
 } from "../../lib/school-form-schema";
+import {
+  booleanSchoolCharacteristic,
+  nullableInteger,
+  resolveSchoolShift,
+  schoolCatalogLabel,
+  schoolCharacteristicLabel,
+  simpleSchoolCharacteristics,
+} from "../../lib/school-form-helpers";
 import { showError, showSuccess } from "../../lib/toast";
 import { schoolPortalService } from "../../services/school-portal.service";
 import type {
@@ -189,7 +199,7 @@ export function SchoolProfilePage() {
       characteristics: formCharacteristics,
       ...rectification
     } = values;
-    const characteristics = simpleCharacteristics(formCharacteristics);
+    const characteristics = simpleSchoolCharacteristics(formCharacteristics);
     try {
       const profile = await schoolPortalService.rectify({
         ...rectification,
@@ -294,13 +304,16 @@ export function SchoolProfilePage() {
             <Definition
               label="Plurogrado"
               value={formatBoolean(
-                booleanCharacteristic(school, "isMultigrade"),
+                booleanSchoolCharacteristic(school, "isMultigrade"),
               )}
             />
             <Definition
               label="Intercultural y bilingüe"
               value={formatBoolean(
-                booleanCharacteristic(school, "isInterculturalBilingual"),
+                booleanSchoolCharacteristic(
+                  school,
+                  "isInterculturalBilingual",
+                ),
               )}
             />
           </ProfileCard>
@@ -344,33 +357,42 @@ export function SchoolProfilePage() {
             <RectificationField
               error={errors.name?.message}
               label="Nombre del establecimiento"
+              required
             >
               <input className="field" {...register("name")} />
             </RectificationField>
-            <RectificationField error={errors.cue?.message} label="CUE">
+            <RectificationField
+              error={errors.cue?.message}
+              label="CUE"
+              required
+            >
               <input className="field" {...register("cue")} />
             </RectificationField>
             <RectificationField
               error={errors.directorName?.message}
               label="Director/a"
+              required
             >
               <input className="field" {...register("directorName")} />
             </RectificationField>
             <RectificationField
               error={errors.department?.message}
               label="Departamento"
+              required
             >
               <input className="field" {...register("department")} />
             </RectificationField>
             <RectificationField
               error={errors.locality?.message}
               label="Localidad"
+              required
             >
               <input className="field" {...register("locality")} />
             </RectificationField>
             <RectificationField
               error={errors.address?.message}
               label="Dirección"
+              required
             >
               <input className="field" {...register("address")} />
             </RectificationField>
@@ -471,6 +493,7 @@ export function SchoolProfilePage() {
                       <RectificationField
                         error={errors.contacts?.[index]?.firstName?.message}
                         label="Nombre"
+                        required
                       >
                         <input
                           className="field"
@@ -480,6 +503,7 @@ export function SchoolProfilePage() {
                       <RectificationField
                         error={errors.contacts?.[index]?.lastName?.message}
                         label="Apellido"
+                        required
                       >
                         <input
                           className="field"
@@ -547,7 +571,7 @@ export function SchoolProfilePage() {
                 <BooleanChoiceField
                   control={control}
                   error={errors.characteristics?.isMultigrade?.message}
-                  label={characteristicLabel(
+                  label={schoolCharacteristicLabel(
                     catalogs,
                     "isMultigrade",
                     "¿Es Plurogrado?",
@@ -559,7 +583,7 @@ export function SchoolProfilePage() {
                   error={
                     errors.characteristics?.isInterculturalBilingual?.message
                   }
-                  label={characteristicLabel(
+                  label={schoolCharacteristicLabel(
                     catalogs,
                     "isInterculturalBilingual",
                     "¿Es intercultural y bilingüe?",
@@ -814,62 +838,6 @@ function BooleanChoiceField({
   );
 }
 
-function RectificationField({
-  label,
-  error,
-  required = true,
-  children,
-}: {
-  label: string;
-  error?: string;
-  required?: boolean;
-  children: React.ReactNode;
-}) {
-  return (
-    <label className="text-sm font-semibold text-mendoza-text">
-      {label}
-      {required ? " *" : ""}
-      <span className="mt-2 block [&_.field]:w-full [&_.field]:rounded-lg [&_.field]:border [&_.field]:border-mendoza-border [&_.field]:bg-white [&_.field]:px-3 [&_.field]:py-2.5 [&_.field]:outline-none focus-within:[&_.field]:border-mendoza-sky">
-        {children}
-      </span>
-      {error && (
-        <span
-          className="mt-1 block font-normal text-mendoza-error"
-          role="alert"
-        >
-          {error}
-        </span>
-      )}
-    </label>
-  );
-}
-
-function LegacyCatalogNotice({
-  legacyValue,
-  unresolved,
-}: {
-  legacyValue: string;
-  unresolved: boolean;
-}) {
-  return (
-    <span
-      className={`mt-2 block rounded-lg border p-3 text-sm leading-5 ${
-        unresolved
-          ? "border-amber-300 bg-amber-50 text-amber-950"
-          : "border-mendoza-sky/50 bg-mendoza-blue-soft text-mendoza-blue"
-      }`}
-      role={unresolved ? "alert" : "status"}
-    >
-      <strong>Valor anterior sin correspondencia: {legacyValue}.</strong> No
-      equivale automáticamente a un tipo de educación. Los niveles educativos se
-      informan por separado.{" "}
-      {unresolved
-        ? "Elegí una opción del catálogo oficial antes de guardar."
-        : "La opción oficial seleccionada se aplicará al guardar."}
-    </span>
-  );
-}
-
 function CatalogUnavailable({ message }: { message?: string | null }) {
   return (
     <span className="block rounded-lg border border-mendoza-gold bg-amber-50 p-3 font-normal text-amber-900">
@@ -998,12 +966,7 @@ function rectificationValues(
   school: SchoolProfile,
   catalogs: SchoolRectificationCatalogs,
 ): SchoolRectificationValues {
-  const shift = catalogs.shifts.items.find(
-    (option) =>
-      option.id === school.shiftCatalogId ||
-      option.label === school.shift ||
-      option.code === school.shift,
-  );
+  const shift = resolveSchoolShift(catalogs, school);
   return {
     name: school.name,
     cue: school.cue,
@@ -1014,18 +977,18 @@ function rectificationValues(
     educationLevel:
       officialCatalogLabel(catalogs.educationTypes, school.educationLevel) ??
       school.educationLevel,
-    managementType: catalogLabel(
+    managementType: schoolCatalogLabel(
       catalogs.managementTypes,
       school.managementType,
     ),
-    scope: catalogLabel(catalogs.scopes, school.scope),
+    scope: schoolCatalogLabel(catalogs.scopes, school.scope),
     hasKiosk: school.hasKiosk ?? null,
     hasFoodService: school.hasFoodService ?? null,
     isBoarding: school.isBoarding ?? null,
     characteristics: {
       ...school.characteristics,
-      isMultigrade: booleanCharacteristic(school, "isMultigrade"),
-      isInterculturalBilingual: booleanCharacteristic(
+      isMultigrade: booleanSchoolCharacteristic(school, "isMultigrade"),
+      isInterculturalBilingual: booleanSchoolCharacteristic(
         school,
         "isInterculturalBilingual",
       ),
@@ -1054,32 +1017,6 @@ function rectificationValues(
   };
 }
 
-function catalogLabel(
-  options: SchoolRectificationCatalogs["managementTypes"],
-  current: string,
-) {
-  return (
-    options.find(({ code, label }) => code === current || label === current)
-      ?.label ?? ""
-  );
-}
-
-function characteristicLabel(
-  catalogs: SchoolRectificationCatalogs,
-  code: string,
-  fallback: string,
-) {
-  return (
-    catalogs.characteristics.find((option) => option.code === code)?.label ??
-    fallback
-  );
-}
-
-function booleanCharacteristic(school: SchoolProfile, code: string) {
-  const value = school.characteristics[code];
-  return typeof value === "boolean" ? value : null;
-}
-
 function snapshotCharacteristic(
   snapshot: SchoolRectificationSnapshot,
   code: string,
@@ -1087,18 +1024,6 @@ function snapshotCharacteristic(
   const value = snapshot.characteristics?.[code];
   return typeof value === "boolean" ? value : null;
 }
-
-function simpleCharacteristics(
-  characteristics: SchoolRectificationValues["characteristics"],
-) {
-  return {
-    isMultigrade: characteristics.isMultigrade ?? null,
-    isInterculturalBilingual: characteristics.isInterculturalBilingual ?? null,
-  };
-}
-
-const nullableInteger = (value: unknown) =>
-  value === "" || value === null || value === undefined ? null : Number(value);
 
 const formatDate = (value: string) =>
   new Intl.DateTimeFormat("es-AR", {

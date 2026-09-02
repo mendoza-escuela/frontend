@@ -25,7 +25,7 @@ import { PageHeader } from "../../components/ui/PageHeader";
 import { PaginationControls } from "../../components/ui/PaginationControls";
 import { SearchableSelect } from "../../components/ui/SearchableSelect";
 import { inputClassName } from "../../components/ui/form-styles";
-import { formatDateTime } from "../../lib/format";
+import { formatDateTime, formatNumber } from "../../lib/format";
 import { getHttpErrorMessage } from "../../lib/http-error";
 import { adminCampaignTrackingService } from "../../services/admin-campaign-tracking.service";
 import type {
@@ -640,7 +640,5 @@ function MobileDetail({
 }
 
 function formatPercentage(value: number) {
-  return `${new Intl.NumberFormat("es-AR", {
-    maximumFractionDigits: 2,
-  }).format(value)}%`;
+  return `${formatNumber(value)}%`;
 }

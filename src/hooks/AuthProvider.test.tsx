@@ -1,6 +1,7 @@
 // @vitest-environment jsdom
 
 import '@testing-library/jest-dom/vitest';
+import type { InternalAxiosRequestConfig } from 'axios';
 import {
   act,
   cleanup,
@@ -10,7 +11,7 @@ import {
   waitFor,
 } from '@testing-library/react';
 import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest';
-import { AUTH_UNAUTHORIZED_EVENT } from '../lib/api';
+import { api, AUTH_UNAUTHORIZED_EVENT } from '../lib/api';
 import { authService } from '../services/auth.service';
 import type { AuthUser } from '../types/auth';
 import { AuthProvider } from './AuthProvider';
@@ -157,6 +158,102 @@ describe('AuthProvider', () => {
       expect(screen.getByTestId('session-expired')).toHaveTextContent('false');
     });
   });
+
+  it('ignora un 401 privado iniciado antes de un login exitoso', async () => {
+    let rejectOldRequest!: () => void;
+    vi.mocked(authService.me).mockRejectedValue(axiosReadError(401));
+    vi.mocked(authService.login).mockResolvedValue(authenticatedUser);
+
+    renderProvider();
+    await waitForAuthenticationLoad();
+    const oldRequest = api
+      .get('/schools/me', {
+        adapter: (config) =>
+          new Promise((_resolve, reject) => {
+            rejectOldRequest = () => reject(axiosReadError(401, config));
+          }),
+      })
+      .catch((error: unknown) => error);
+    await waitFor(() => expect(rejectOldRequest).toBeTypeOf('function'));
+
+    fireEvent.click(screen.getByRole('button', { name: 'Iniciar login' }));
+    await waitFor(() =>
+      expect(screen.getByTestId('user')).toHaveTextContent(
+        authenticatedUser.email,
+      ),
+    );
+
+    rejectOldRequest();
+    await oldRequest;
+
+    expect(screen.getByTestId('user')).toHaveTextContent(
+      authenticatedUser.email,
+    );
+    expect(screen.getByTestId('session-expired')).toHaveTextContent('false');
+  });
+
+  it('deja que un login pendiente prevalezca sobre un 401 iniciado durante esa operación', async () => {
+    let resolveLogin!: (user: AuthUser) => void;
+    let rejectPrivateRequest!: () => void;
+    vi.mocked(authService.me).mockRejectedValue(axiosReadError(401));
+    vi.mocked(authService.login).mockReturnValue(
+      new Promise<AuthUser>((resolve) => {
+        resolveLogin = resolve;
+      }),
+    );
+
+    renderProvider();
+    await waitForAuthenticationLoad();
+    fireEvent.click(screen.getByRole('button', { name: 'Iniciar login' }));
+    await waitFor(() => expect(authService.login).toHaveBeenCalledTimes(1));
+    const privateRequest = api
+      .get('/schools/me', {
+        adapter: (config) =>
+          new Promise((_resolve, reject) => {
+            rejectPrivateRequest = () =>
+              reject(axiosReadError(401, config));
+          }),
+      })
+      .catch((error: unknown) => error);
+    await waitFor(() => expect(rejectPrivateRequest).toBeTypeOf('function'));
+
+    rejectPrivateRequest();
+    await privateRequest;
+    resolveLogin(authenticatedUser);
+
+    await waitFor(() => {
+      expect(screen.getByTestId('user')).toHaveTextContent(
+        authenticatedUser.email,
+      );
+      expect(screen.getByTestId('session-expired')).toHaveTextContent('false');
+    });
+  });
+
+  it('serializa logout seguido de login y conserva la operación posterior', async () => {
+    let resolveLogout!: () => void;
+    vi.mocked(authService.me).mockResolvedValue(authenticatedUser);
+    vi.mocked(authService.logout).mockReturnValue(
+      new Promise<void>((resolve) => {
+        resolveLogout = resolve;
+      }),
+    );
+    vi.mocked(authService.login).mockResolvedValue(authenticatedUser);
+
+    renderProvider();
+    await waitForAuthenticationLoad();
+    fireEvent.click(screen.getByRole('button', { name: 'Cerrar sesión' }));
+    fireEvent.click(screen.getByRole('button', { name: 'Iniciar login' }));
+
+    expect(authService.login).not.toHaveBeenCalled();
+    resolveLogout();
+
+    await waitFor(() => {
+      expect(authService.login).toHaveBeenCalledTimes(1);
+      expect(screen.getByTestId('user')).toHaveTextContent(
+        authenticatedUser.email,
+      );
+    });
+  });
 });
 
 function AuthStateProbe() {
@@ -164,6 +261,7 @@ function AuthStateProbe() {
     authenticationErrorStatus,
     isLoading,
     login,
+    logout,
     sessionExpired,
     user,
   } = useAuth();
@@ -181,6 +279,9 @@ function AuthStateProbe() {
         type="button"
       >
         Iniciar login
+      </button>
+      <button onClick={() => void logout()} type="button">
+        Cerrar sesión
       </button>
     </>
   );
@@ -206,9 +307,12 @@ function dispatchUnauthorizedEvent() {
   });
 }
 
-function axiosReadError(status: number) {
+function axiosReadError(
+  status: number,
+  config: InternalAxiosRequestConfig | { method: string } = { method: 'get' },
+) {
   return Object.assign(new Error(`HTTP ${status}`), {
-    config: { method: 'get' },
+    config,
     isAxiosError: true,
     response: {
       data: {},

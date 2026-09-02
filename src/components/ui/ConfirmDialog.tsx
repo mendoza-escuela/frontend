@@ -22,7 +22,13 @@ export function ConfirmDialog({
   onConfirm: () => void | Promise<void>;
 }) {
   return (
-    <Modal open={open} onClose={onCancel} title={title}>
+    <Modal
+      busy={isProcessing}
+      dismissible={!isProcessing}
+      onClose={onCancel}
+      open={open}
+      title={title}
+    >
       <div className="flex gap-3 rounded-xl bg-mendoza-background p-4">
         <TriangleAlert
           aria-hidden="true"

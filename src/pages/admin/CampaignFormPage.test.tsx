@@ -9,7 +9,7 @@ import { CampaignFormPage } from "./CampaignFormPage";
 
 vi.mock("../../services/admin-campaigns.service", () => ({
   adminCampaignsService: {
-    publishedVersions: vi.fn(),
+    eligibleSurveyVersions: vi.fn(),
     workflowOptions: vi.fn(),
     findOne: vi.fn(),
     create: vi.fn(),
@@ -19,7 +19,7 @@ vi.mock("../../services/admin-campaigns.service", () => ({
 
 describe("CampaignFormPage programs", () => {
   beforeEach(() => {
-    vi.mocked(adminCampaignsService.publishedVersions).mockResolvedValue([
+    vi.mocked(adminCampaignsService.eligibleSurveyVersions).mockResolvedValue([
       {
         id: "version-1",
         surveyId: "survey-1",
@@ -103,5 +103,31 @@ describe("CampaignFormPage programs", () => {
     expect(selector).toHaveTextContent(
       "Cuestionario institucional · versión 1 · Versión publicada",
     );
+    expect(
+      screen.getByText(
+        "Sólo se muestran versiones institucionales publicadas y evaluables de cuestionarios activos.",
+      ),
+    ).toBeVisible();
+  });
+
+  it("explica por qué una versión genérica publicada no habilita etapas", async () => {
+    vi.mocked(
+      adminCampaignsService.eligibleSurveyVersions,
+    ).mockResolvedValueOnce([]);
+
+    render(
+      <MemoryRouter>
+        <CampaignFormPage />
+      </MemoryRouter>,
+    );
+
+    expect(
+      await screen.findByRole("heading", {
+        name: "No hay versiones institucionales elegibles",
+      }),
+    ).toBeVisible();
+    expect(
+      screen.getByText(/Las versiones genéricas pueden publicarse/),
+    ).toBeVisible();
   });
 });

@@ -1,9 +1,9 @@
 import type { SchoolRectificationStatus } from "./admin-school";
 import type { PublishedSurvey, QuestionnaireFormValues } from "./survey";
 
-export type SchoolSubmissionStatus = "draft" | "submitted";
+type SchoolSubmissionStatus = "draft" | "submitted";
 
-export type SchoolCampaignSummary = {
+type SchoolCampaignSummary = {
   id: string;
   name: string;
   description: string | null;
@@ -24,7 +24,7 @@ export type SchoolCampaignSummary = {
   };
 };
 
-export type SubmissionProgress = {
+type SubmissionProgress = {
   answered: number;
   total: number;
   percentage: number;
@@ -47,6 +47,7 @@ export type AvailableSchoolCampaign = SchoolCampaignSummary & {
     status: SchoolSubmissionStatus;
     startedAt: string;
     lastSavedAt: string | null;
+    revision: number;
     submittedAt: string | null;
     progress: SubmissionProgress;
   } | null;
@@ -72,6 +73,7 @@ export type SchoolSubmissionWorkspace = {
     status: SchoolSubmissionStatus;
     startedAt: string;
     lastSavedAt: string | null;
+    revision: number;
     submittedAt: string | null;
     originalRespondent: {
       id: string;

@@ -36,6 +36,7 @@ import { showError, showSuccess } from "../../lib/toast";
 import { adminSurveysService } from "../../services/admin-surveys.service";
 import type {
   AdminSurveyDetail,
+  SurveyStructureValidation,
   SurveyVersionSummary,
 } from "../../types/admin-survey";
 
@@ -47,7 +48,11 @@ const createVersionSchema = z.object({
 
 type CreateVersionForm = z.infer<typeof createVersionSchema>;
 type PendingAction =
-  | { type: "publish"; version: SurveyVersionSummary }
+  | {
+      type: "publish";
+      version: SurveyVersionSummary;
+      validation: SurveyStructureValidation;
+    }
   | { type: "archive"; version: SurveyVersionSummary }
   | { type: "delete"; version: SurveyVersionSummary }
   | null;
@@ -141,9 +146,7 @@ export function SurveyDetailPage() {
     try {
       if (pendingAction.type === "publish") {
         await adminSurveysService.publishVersion(id, pendingAction.version.id);
-        showSuccess(
-          "La versión fue publicada y quedó protegida contra cambios.",
-        );
+        showSuccess(publicationSuccessMessage(pendingAction.validation));
       } else if (pendingAction.type === "archive") {
         await adminSurveysService.archiveVersion(id, pendingAction.version.id);
         showSuccess("La versión fue archivada y queda disponible para consulta.");
@@ -169,7 +172,7 @@ export function SurveyDetailPage() {
         version.id,
       );
       if (validation.valid) {
-        setPendingAction({ type: "publish", version });
+        setPendingAction({ type: "publish", version, validation });
       } else {
         setValidationErrors(validation.errors);
       }
@@ -484,7 +487,7 @@ export function SurveyDetailPage() {
         }
         description={
           pendingAction?.type === "publish"
-            ? "La estructura será validada y quedará inmutable. Para realizar cambios posteriores deberás clonarla como una nueva versión."
+            ? publicationConfirmationDescription(pendingAction.validation)
             : pendingAction?.type === "archive"
               ? "No podrá usarse para nuevas evaluaciones, pero seguirá disponible para consultas históricas y clonación."
               : "Esta acción eliminará definitivamente el borrador y su estructura."
@@ -504,7 +507,7 @@ export function SurveyDetailPage() {
       />
 
       <Modal
-        description="Corregí estos puntos en el borrador antes de intentar publicarlo nuevamente."
+        description="El backend encontró problemas en la estructura o, si usa códigos institucionales, en el perfil oficial. Corregilos en el borrador antes de intentar publicarlo nuevamente."
         onClose={() => setValidationErrors([])}
         open={validationErrors.length > 0}
         title="La versión todavía no puede publicarse"
@@ -540,4 +543,24 @@ const auditLabels: Record<string, string> = {
 
 function auditLabel(action: string) {
   return auditLabels[action] ?? action;
+}
+
+function publicationConfirmationDescription(
+  validation: SurveyStructureValidation,
+) {
+  if (validation.evaluable)
+    return "La estructura cumple el perfil institucional de evaluación. Al publicarla quedará inmutable y podrá ofrecerse para nuevas etapas escolares mientras el cuestionario esté activo; para realizar cambios posteriores deberás clonarla.";
+
+  const reasons = validation.evaluationErrors.join(" ");
+  return `La estructura es publicable, pero no quedará disponible para etapas escolares${
+    reasons ? `: ${reasons}` : "."
+  } Al publicarla quedará inmutable; para realizar cambios posteriores deberás clonarla.`;
+}
+
+function publicationSuccessMessage(validation: SurveyStructureValidation) {
+  if (validation.evaluable)
+    return "Versión institucional publicada e inmutable. Podrá ofrecerse para nuevas etapas mientras el cuestionario esté activo.";
+  if (validation.profile === "generic")
+    return "Versión genérica publicada e inmutable. No estará disponible para etapas escolares.";
+  return "Versión publicada e inmutable, pero no quedó habilitada para etapas escolares.";
 }

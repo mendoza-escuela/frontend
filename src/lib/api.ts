@@ -1,4 +1,5 @@
 import axios from 'axios';
+import { getPublicRuntimeConfig } from '../config/runtime-config';
 
 export const AUTH_UNAUTHORIZED_EVENT = 'auth:unauthorized';
 export const APP_HTTP_ERROR_EVENT = 'app:http-error';
@@ -11,16 +12,56 @@ export type AppHttpErrorDetail = {
   correlationId: string | null;
 };
 
-const apiUrl = import.meta.env.VITE_API_URL;
+type AuthenticationEpochConfig = {
+  __authenticationEpoch?: number;
+};
 
-if (!apiUrl) {
-  throw new Error('Missing VITE_API_URL environment variable.');
+let authenticationEpoch = 0;
+
+/**
+ * Inicia una nueva operación de autenticación. Las respuestas 401 de requests
+ * privados iniciados antes de este punto ya no pueden invalidar la sesión
+ * resultante de la operación nueva.
+ */
+export function beginAuthenticationOperation() {
+  authenticationEpoch += 1;
+  return authenticationEpoch;
 }
 
-const normalizedApiUrl = apiUrl.replace(/\/+$/, '');
-const apiBaseUrl = /\/api$/i.test(normalizedApiUrl)
-  ? normalizedApiUrl
-  : `${normalizedApiUrl}/api`;
+const API_URL_CONTRACT_ERROR =
+  'VITE_API_URL must be "/api" or an HTTP(S) URL ending in "/api".';
+
+export function normalizeApiBaseUrl(value: string | undefined) {
+  const normalizedValue = value?.trim().replace(/\/+$/, '');
+  if (!normalizedValue) {
+    throw new Error('Missing VITE_API_URL environment variable.');
+  }
+  if (normalizedValue === '/api') return normalizedValue;
+
+  let parsedUrl: URL;
+  try {
+    parsedUrl = new URL(normalizedValue);
+  } catch {
+    throw new Error(API_URL_CONTRACT_ERROR);
+  }
+
+  if (
+    !['http:', 'https:'].includes(parsedUrl.protocol) ||
+    parsedUrl.username ||
+    parsedUrl.password ||
+    parsedUrl.search ||
+    parsedUrl.hash ||
+    !parsedUrl.pathname.endsWith('/api')
+  ) {
+    throw new Error(API_URL_CONTRACT_ERROR);
+  }
+
+  return parsedUrl.toString();
+}
+
+const apiBaseUrl = normalizeApiBaseUrl(
+  getPublicRuntimeConfig('VITE_API_URL'),
+);
 
 export const api = axios.create({
   baseURL: apiBaseUrl,
@@ -119,6 +160,8 @@ function isAuthenticationEntryPoint(url: string | undefined) {
 }
 
 api.interceptors.request.use((config) => {
+  (config as typeof config & AuthenticationEpochConfig).__authenticationEpoch =
+    authenticationEpoch;
   const method = config.method?.toUpperCase();
   if (method && !['GET', 'HEAD', 'OPTIONS'].includes(method)) {
     config.headers.set(CSRF_PROTECTION_HEADER, '1');
@@ -133,6 +176,9 @@ api.interceptors.response.use(
       axios.isAxiosError(error) &&
       error.response?.status === 401 &&
       !isAuthenticationEntryPoint(error.config?.url) &&
+      (
+        error.config as typeof error.config & AuthenticationEpochConfig
+      )?.__authenticationEpoch === authenticationEpoch &&
       typeof window !== 'undefined'
     ) {
       window.dispatchEvent(new Event(AUTH_UNAUTHORIZED_EVENT));

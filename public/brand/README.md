@@ -41,7 +41,7 @@ La aplicación usa como valores predeterminados:
 Las rutas de Mendoza y OPS pueden reemplazarse sin modificar código
 mediante `VITE_BRAND_MENDOZA_ON_LIGHT`, `VITE_BRAND_MENDOZA_ON_BLUE`,
 `VITE_BRAND_OPS_ON_LIGHT` y `VITE_BRAND_OPS_ON_BLUE`. Si una variante
-configurada falla, primero se intenta el asset provisorio versionado y, si
+configurada falla, primero se intenta el asset autorizado versionado y, si
 tampoco carga, se muestra la identificación textual.
 
 Las seis variantes autorizadas de OPS —horizontal y apilada en azul, blanco y

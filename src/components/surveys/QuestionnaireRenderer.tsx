@@ -1,18 +1,20 @@
 import { zodResolver } from "@hookform/resolvers/zod";
+import { ArrowLeft, ArrowRight, CheckCircle2, Info, Save } from "lucide-react";
 import {
-  ArrowLeft,
-  ArrowRight,
-  CheckCircle2,
-  Info,
-  Save,
-} from "lucide-react";
-import { useCallback, useEffect, useMemo, useRef, useState } from "react";
-import {
-  useForm,
-  useWatch,
-  type Resolver,
-} from "react-hook-form";
+  forwardRef,
+  useCallback,
+  useEffect,
+  useImperativeHandle,
+  useMemo,
+  useRef,
+  useState,
+} from "react";
+import { useForm, useWatch, type Resolver } from "react-hook-form";
 import { z } from "zod";
+import {
+  LatestDraftSaveQueue,
+  type DraftSaveQueueState,
+} from "../../lib/latest-draft-save-queue";
 import type {
   PublishedSurvey,
   QuestionnaireFormValues,
@@ -23,14 +25,31 @@ import { Button } from "../ui/Button";
 type QuestionnaireRendererProps = {
   survey: PublishedSurvey;
   readOnly?: boolean;
+  disabled?: boolean;
   showScores?: boolean;
   defaultValues?: QuestionnaireFormValues;
-  onSaveDraft?: (answers: QuestionnaireFormValues) => void | Promise<void>;
-  onSubmit?: (answers: QuestionnaireFormValues) => void | Promise<void>;
+  draftRevision?: number;
+  onSaveDraft?: (
+    answers: QuestionnaireFormValues,
+    expectedRevision: number,
+  ) => Promise<{
+    revision: number;
+    lastSavedAt: string | null;
+    authoritativeChanged?: boolean;
+  }>;
+  onSubmit?: (
+    answers: QuestionnaireFormValues,
+    revision: number,
+  ) => void | Promise<void>;
   submitLabel?: string;
   submitDisabled?: boolean;
   submitDisabledReason?: string;
   validateOnSectionChange?: boolean;
+};
+
+export type QuestionnaireRendererHandle = {
+  flushDraft: () => Promise<number>;
+  hasPendingChanges: () => boolean;
 };
 
 const requiredMessage = "Esta pregunta es obligatoria.";
@@ -69,8 +88,8 @@ function questionSchema(question: SurveyQuestion): z.ZodType {
     );
   }
 
-  let schema = z.string();
-  if (question.required) schema = schema.trim().min(1, requiredMessage);
+  let schema = z.string().trim();
+  if (question.required) schema = schema.min(1, requiredMessage);
   if (question.validation.minLength !== undefined) {
     schema = schema.min(
       question.validation.minLength,
@@ -83,21 +102,34 @@ function questionSchema(question: SurveyQuestion): z.ZodType {
       `Ingresá hasta ${question.validation.maxLength} caracteres.`,
     );
   }
-  return question.required ? schema : schema.optional();
+  if (question.required) return schema;
+  return z.preprocess(
+    (value) =>
+      typeof value === "string" && value.trim() === "" ? undefined : value,
+    schema.optional(),
+  );
 }
 
-export function QuestionnaireRenderer({
-  survey,
-  readOnly = false,
-  showScores = false,
-  defaultValues,
-  onSaveDraft,
-  onSubmit,
-  submitLabel = "Finalizar",
-  submitDisabled = false,
-  submitDisabledReason,
-  validateOnSectionChange = true,
-}: QuestionnaireRendererProps) {
+export const QuestionnaireRenderer = forwardRef<
+  QuestionnaireRendererHandle,
+  QuestionnaireRendererProps
+>(function QuestionnaireRenderer(
+  {
+    survey,
+    readOnly = false,
+    disabled = false,
+    showScores = false,
+    defaultValues,
+    draftRevision = 0,
+    onSaveDraft,
+    onSubmit,
+    submitLabel = "Finalizar",
+    submitDisabled = false,
+    submitDisabledReason,
+    validateOnSectionChange = true,
+  }: QuestionnaireRendererProps,
+  ref,
+) {
   const sections = useMemo(
     () =>
       survey.version.dimensions.flatMap((dimension) =>
@@ -122,7 +154,14 @@ export function QuestionnaireRenderer({
   const [activeSectionIndex, setActiveSectionIndex] = useState(0);
   const [isSavingDraft, setIsSavingDraft] = useState(false);
   const [draftStatus, setDraftStatus] = useState<string | null>(null);
+  const visibleSectionIndex = Math.min(
+    activeSectionIndex,
+    Math.max(sections.length - 1, 0),
+  );
   const autoSaveTimer = useRef<ReturnType<typeof setTimeout> | null>(null);
+  const pendingAutoSave = useRef<QuestionnaireFormValues | null>(null);
+  const mounted = useRef(true);
+  const onSaveDraftRef = useRef(onSaveDraft);
   const questionsStartRef = useRef<HTMLFieldSetElement | null>(null);
   const previousSectionIndex = useRef(activeSectionIndex);
   const {
@@ -150,6 +189,85 @@ export function QuestionnaireRenderer({
     },
   });
   const currentValues = useWatch({ control });
+  const interactionDisabled = readOnly || disabled || isSubmitting;
+
+  const updateDraftStatus = useCallback(
+    (state: DraftSaveQueueState, lastSavedAt?: string | null) => {
+      if (state === "saving") {
+        setIsSavingDraft(true);
+        setDraftStatus("Guardando cambios…");
+        return;
+      }
+      setIsSavingDraft(false);
+      if (state === "unsaved") {
+        setDraftStatus("Cambios sin guardar");
+        return;
+      }
+      if (state === "error") {
+        setDraftStatus(
+          "No se pudo guardar. Recargá si el borrador fue editado en otra pestaña.",
+        );
+        return;
+      }
+      if (state === "refresh-required") {
+        setDraftStatus(
+          "El cuestionario se actualizó. Conservamos tus cambios locales; revisalo antes de volver a guardar o enviar.",
+        );
+        return;
+      }
+      if (lastSavedAt !== undefined) {
+        setDraftStatus(
+          `Guardado ${new Intl.DateTimeFormat("es-AR", {
+            hour: "2-digit",
+            minute: "2-digit",
+            second: "2-digit",
+          }).format(lastSavedAt ? new Date(lastSavedAt) : new Date())}`,
+        );
+      }
+    },
+    [],
+  );
+
+  useEffect(() => {
+    onSaveDraftRef.current = onSaveDraft;
+  }, [onSaveDraft]);
+
+  useEffect(() => {
+    if (activeSectionIndex !== visibleSectionIndex) {
+      setActiveSectionIndex(visibleSectionIndex);
+    }
+  }, [activeSectionIndex, visibleSectionIndex]);
+
+  const saveQueueRef = useRef<
+    LatestDraftSaveQueue<
+      QuestionnaireFormValues,
+      {
+        revision: number;
+        lastSavedAt: string | null;
+        authoritativeChanged?: boolean;
+      }
+    >
+  >(null);
+  if (!saveQueueRef.current) {
+    saveQueueRef.current = new LatestDraftSaveQueue(
+      draftRevision,
+      (answers, expectedRevision) => {
+        if (!onSaveDraftRef.current)
+          return Promise.reject(
+            new Error("El guardado de borrador no está disponible."),
+          );
+        return onSaveDraftRef.current(answers, expectedRevision);
+      },
+      (state, saved) => {
+        if (!mounted.current) return;
+        if (state === "idle" && saved && pendingAutoSave.current) {
+          updateDraftStatus("unsaved");
+          return;
+        }
+        updateDraftStatus(state, saved?.lastSavedAt);
+      },
+    );
+  }
   const totalQuestions = sections.reduce(
     (total, { section }) => total + section.questions.length,
     0,
@@ -166,30 +284,84 @@ export function QuestionnaireRenderer({
     ? (answeredQuestions / totalQuestions) * 100
     : 0;
 
+  const flushDraft = useCallback(
+    async (snapshot?: QuestionnaireFormValues) => {
+      if (!onSaveDraft || readOnly)
+        return saveQueueRef.current!.currentRevision;
+      if (autoSaveTimer.current) clearTimeout(autoSaveTimer.current);
+      autoSaveTimer.current = null;
+      if (snapshot) pendingAutoSave.current = snapshot;
+
+      // Una edición puede llegar mientras esperamos el request actual. El
+      // flush termina recién cuando también persistió ese estado posterior.
+      do {
+        if (autoSaveTimer.current) clearTimeout(autoSaveTimer.current);
+        autoSaveTimer.current = null;
+        const pending = pendingAutoSave.current;
+        pendingAutoSave.current = null;
+        if (pending) await saveQueueRef.current!.flush(pending);
+        else await saveQueueRef.current!.flush();
+      } while (pendingAutoSave.current);
+      return saveQueueRef.current!.currentRevision;
+    },
+    [onSaveDraft, readOnly],
+  );
+
   const persistDraft = useCallback(async () => {
-    if (!onSaveDraft || readOnly) return;
-    setIsSavingDraft(true);
-    setDraftStatus(null);
+    if (!onSaveDraft || readOnly || disabled) return;
+    if (autoSaveTimer.current) clearTimeout(autoSaveTimer.current);
+    autoSaveTimer.current = null;
+    const snapshot = pendingAutoSave.current ?? getValues();
+    pendingAutoSave.current = null;
     try {
-      await onSaveDraft(getValues());
-      setDraftStatus(
-        `Guardado ${new Intl.DateTimeFormat("es-AR", {
-          hour: "2-digit",
-          minute: "2-digit",
-          second: "2-digit",
-        }).format(new Date())}`,
-      );
+      await saveQueueRef.current!.enqueue(snapshot);
     } catch {
-      setDraftStatus("No se pudo guardar el borrador.");
-    } finally {
-      setIsSavingDraft(false);
+      // La cola conserva el snapshot y expone el estado de error. Un conflicto
+      // requiere recargar; un error transitorio puede reintentarse manualmente.
     }
-  }, [getValues, onSaveDraft, readOnly]);
+  }, [disabled, getValues, onSaveDraft, readOnly]);
+
+  useImperativeHandle(
+    ref,
+    () => ({
+      flushDraft,
+      hasPendingChanges: () =>
+        pendingAutoSave.current !== null ||
+        saveQueueRef.current!.hasPendingChanges,
+    }),
+    [flushDraft],
+  );
+
+  useEffect(() => {
+    mounted.current = true;
+    return () => {
+      mounted.current = false;
+    };
+  }, []);
+
+  useEffect(() => {
+    const warnBeforeUnload = (event: BeforeUnloadEvent) => {
+      if (
+        !disabled &&
+        pendingAutoSave.current === null &&
+        !saveQueueRef.current!.hasPendingChanges
+      )
+        return;
+      event.preventDefault();
+      event.returnValue = true;
+    };
+    window.addEventListener("beforeunload", warnBeforeUnload);
+    return () => {
+      window.removeEventListener("beforeunload", warnBeforeUnload);
+    };
+  }, [disabled]);
 
   useEffect(() => {
     if (!onSaveDraft || readOnly) return;
     const subscription = watch(() => {
       if (autoSaveTimer.current) clearTimeout(autoSaveTimer.current);
+      pendingAutoSave.current = getValues();
+      updateDraftStatus("unsaved");
       autoSaveTimer.current = setTimeout(() => {
         void persistDraft();
       }, 1_200);
@@ -197,8 +369,20 @@ export function QuestionnaireRenderer({
     return () => {
       subscription.unsubscribe();
       if (autoSaveTimer.current) clearTimeout(autoSaveTimer.current);
+      autoSaveTimer.current = null;
+      const pending = pendingAutoSave.current;
+      pendingAutoSave.current = null;
+      if (pending)
+        void saveQueueRef.current!.flush(pending).catch(() => undefined);
     };
-  }, [onSaveDraft, persistDraft, readOnly, watch]);
+  }, [
+    getValues,
+    onSaveDraft,
+    persistDraft,
+    readOnly,
+    updateDraftStatus,
+    watch,
+  ]);
 
   useEffect(() => {
     if (previousSectionIndex.current === activeSectionIndex) return;
@@ -209,30 +393,71 @@ export function QuestionnaireRenderer({
     questionsStart.focus({ preventScroll: true });
     questionsStart.scrollIntoView?.({
       behavior:
-        window.matchMedia?.('(prefers-reduced-motion: reduce)').matches === true
-          ? 'auto'
-          : 'smooth',
-      block: 'start',
+        window.matchMedia?.("(prefers-reduced-motion: reduce)").matches === true
+          ? "auto"
+          : "smooth",
+      block: "start",
     });
   }, [activeSectionIndex]);
 
+  const submitCurrentAnswers = async (answers: QuestionnaireFormValues) => {
+    if (disabled) return;
+    if (autoSaveTimer.current) clearTimeout(autoSaveTimer.current);
+    try {
+      // Siempre encola el resultado ya normalizado por Zod y espera hasta que
+      // sea la última revisión persistida antes de habilitar el envío.
+      const revision = onSaveDraft
+        ? await flushDraft(answers)
+        : saveQueueRef.current!.currentRevision;
+      await onSubmit?.(answers, revision);
+    } catch {
+      // El estado visible de la cola explica el fallo y el submit no avanza.
+    }
+  };
+
   if (sections.length === 0) {
     return (
-      <div className="rounded-2xl border border-dashed border-mendoza-gold bg-white p-6 text-center">
+      <form
+        aria-busy={disabled || undefined}
+        className="rounded-2xl border border-dashed border-mendoza-gold bg-white p-6 text-center"
+        noValidate
+        onSubmit={handleSubmit(submitCurrentAnswers)}
+      >
         <Info className="mx-auto text-mendoza-blue" aria-hidden="true" />
         <p className="mt-3 font-semibold text-mendoza-text">
-          La versión todavía no contiene secciones.
+          No hay preguntas aplicables para esta presentación.
         </p>
-      </div>
+        {!readOnly && onSubmit && (
+          <div className="mt-5 flex flex-col items-center gap-2">
+            <Button
+              disabled={disabled || isSubmitting || submitDisabled}
+              type="submit"
+            >
+              {isSubmitting ? "Procesando…" : submitLabel}
+            </Button>
+            {submitDisabled && submitDisabledReason && (
+              <span className="text-xs text-mendoza-error">
+                {submitDisabledReason}
+              </span>
+            )}
+            {draftStatus && (
+              <span className="text-xs text-mendoza-muted" role="status">
+                {draftStatus}
+              </span>
+            )}
+          </div>
+        )}
+      </form>
     );
   }
 
-  const current = sections[activeSectionIndex];
-  const isLastSection = activeSectionIndex === sections.length - 1;
-  const sectionProgress = ((activeSectionIndex + 1) / sections.length) * 100;
+  const current = sections[visibleSectionIndex];
+  const isLastSection = visibleSectionIndex === sections.length - 1;
+  const sectionProgress = ((visibleSectionIndex + 1) / sections.length) * 100;
   const progress = readOnly ? sectionProgress : answerProgress;
 
   const goNext = async () => {
+    if (disabled) return;
     const fieldNames = current.section.questions.map((question) => question.id);
     const isValid =
       readOnly || !validateOnSectionChange ? true : await trigger(fieldNames);
@@ -241,12 +466,10 @@ export function QuestionnaireRenderer({
 
   return (
     <form
+      aria-busy={disabled || undefined}
       className="overflow-hidden rounded-2xl border border-mendoza-border bg-white shadow-sm"
       noValidate
-      onSubmit={handleSubmit(async (answers) => {
-        if (autoSaveTimer.current) clearTimeout(autoSaveTimer.current);
-        await onSubmit?.(answers);
-      })}
+      onSubmit={handleSubmit(submitCurrentAnswers)}
     >
       <header className="border-b border-mendoza-border bg-mendoza-blue-soft p-5 sm:p-6">
         <div className="flex flex-wrap items-start justify-between gap-4">
@@ -264,7 +487,7 @@ export function QuestionnaireRenderer({
             )}
           </div>
           <p className="rounded-full bg-white px-3 py-1 text-sm font-semibold text-mendoza-blue">
-            Sección {activeSectionIndex + 1} de {sections.length}
+            Sección {visibleSectionIndex + 1} de {sections.length}
           </p>
         </div>
         <div
@@ -290,7 +513,7 @@ export function QuestionnaireRenderer({
       <fieldset
         aria-label={`Preguntas de ${current.section.title}`}
         className="scroll-mt-4 space-y-5 p-5 outline-none sm:p-6"
-        disabled={readOnly}
+        disabled={interactionDisabled}
         ref={questionsStartRef}
         tabIndex={-1}
       >
@@ -308,7 +531,7 @@ export function QuestionnaireRenderer({
 
       <footer className="flex flex-wrap items-center justify-between gap-3 border-t border-mendoza-border bg-mendoza-background p-5 sm:p-6">
         <Button
-          disabled={activeSectionIndex === 0}
+          disabled={disabled || visibleSectionIndex === 0}
           icon={<ArrowLeft aria-hidden="true" size={17} />}
           onClick={() => setActiveSectionIndex((index) => index - 1)}
           variant="outline"
@@ -318,7 +541,7 @@ export function QuestionnaireRenderer({
         {!readOnly && onSaveDraft && (
           <div className="flex flex-col items-center gap-1">
             <Button
-              disabled={isSavingDraft || isSubmitting}
+              disabled={disabled || isSavingDraft || isSubmitting}
               icon={<Save aria-hidden="true" size={17} />}
               onClick={() => void persistDraft()}
               variant="outline"
@@ -348,7 +571,7 @@ export function QuestionnaireRenderer({
           ) : (
             <div className="flex flex-col items-end gap-1">
               <Button
-                disabled={isSubmitting || submitDisabled}
+                disabled={disabled || isSubmitting || submitDisabled}
                 type="submit"
               >
                 {isSubmitting ? "Procesando…" : submitLabel}
@@ -362,6 +585,7 @@ export function QuestionnaireRenderer({
           )
         ) : (
           <Button
+            disabled={disabled}
             icon={<ArrowRight aria-hidden="true" size={17} />}
             onClick={() => void goNext()}
           >
@@ -371,7 +595,7 @@ export function QuestionnaireRenderer({
       </footer>
     </form>
   );
-}
+});
 
 type QuestionFieldProps = {
   question: SurveyQuestion;
