@@ -11,7 +11,14 @@ function App() {
           <AppRouter />
         </AuthProvider>
       </AppErrorBoundary>
-      <Toaster richColors position="top-right" />
+      <Toaster
+        closeButton
+        duration={5000}
+        richColors
+        position="top-right"
+        theme="light"
+        visibleToasts={4}
+      />
     </>
   );
 }
