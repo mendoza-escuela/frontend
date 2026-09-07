@@ -146,7 +146,7 @@ export function ErrorPage({
             className="animate-panel-reveal overflow-hidden rounded-3xl border border-mendoza-border bg-white shadow-xl shadow-black/10"
           >
             <div className="border-b border-mendoza-border bg-white px-5 py-5 sm:px-8">
-              <div className="max-w-md">
+              <div className="mx-auto max-w-md">
                 <AuthBrandMarks />
               </div>
             </div>

@@ -79,9 +79,9 @@ export function AdminLayout() {
         >
           <div className="flex w-full flex-col gap-4 sm:flex-row sm:items-center">
             <InstitutionalBrand
-              className="min-w-0 max-w-full flex-1"
+              className="min-w-0 max-w-full flex-1 justify-center sm:justify-start"
               compact
-              organizationKeys={["ops", "eps", "mendoza"]}
+              organizationKeys={["eps", "mendoza"]}
             />
             <LogoutButton />
           </div>

@@ -26,7 +26,7 @@ Las variables `VITE_*` son configuración pública y no deben contener secretos.
 En desarrollo se leen desde Vite. La imagen Docker genera `runtime-config.js`
 al iniciar, por lo que estos valores pueden cambiarse con variables de entorno
 sin recompilar la aplicación. `VITE_API_URL` usa `/api` por defecto y las cuatro
-variables `VITE_BRAND_MENDOZA_*` y `VITE_BRAND_OPS_*` son opcionales.
+variables `VITE_BRAND_MENDOZA_*` son opcionales.
 
 ## Publicación y versionado de la imagen Docker
 
