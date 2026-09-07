@@ -33,8 +33,6 @@ cat > /usr/share/nginx/html/runtime-config.js <<EOF
     VITE_API_URL: decode("$(encode "$api_url")"),
     VITE_BRAND_MENDOZA_ON_LIGHT: decode("$(encode "${VITE_BRAND_MENDOZA_ON_LIGHT:-}")"),
     VITE_BRAND_MENDOZA_ON_BLUE: decode("$(encode "${VITE_BRAND_MENDOZA_ON_BLUE:-}")"),
-    VITE_BRAND_OPS_ON_LIGHT: decode("$(encode "${VITE_BRAND_OPS_ON_LIGHT:-}")"),
-    VITE_BRAND_OPS_ON_BLUE: decode("$(encode "${VITE_BRAND_OPS_ON_BLUE:-}")")
   };
 })();
 EOF

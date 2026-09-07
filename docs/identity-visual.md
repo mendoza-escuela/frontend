@@ -35,14 +35,15 @@ clasificación y certificación. El rojo sólo representa alertas críticas.
 
 ## Marcas y assets
 
-`InstitutionalBrand` centraliza OPS, Escuelas Promotoras de Salud Mendoza y
-Gobierno de Mendoza. En fondos claros usa la variante OPS azul horizontal y el
-asset EPS autorizado; en superficies azules usa la variante OPS blanca
-apilada. El símbolo de Mendoza se utiliza como favicon.
+`InstitutionalBrand` centraliza Escuelas Promotoras de Salud Mendoza y
+Gobierno de Mendoza, con proporciones originales y un espacio uniforme entre
+ambas marcas. El acceso y las pantallas de error centran el grupo; las cabeceras
+del portal lo centran en móvil y lo alinean a la izquierda en escritorio.
+En superficies azules los logos se presentan sobre una base blanca.
+El símbolo de Mendoza se utiliza como favicon.
 
-Las rutas pueden reemplazarse sin modificar código mediante las variables
-`VITE_BRAND_MENDOZA_ON_LIGHT`, `VITE_BRAND_MENDOZA_ON_BLUE`,
-`VITE_BRAND_OPS_ON_LIGHT` y `VITE_BRAND_OPS_ON_BLUE`. Si una imagen configurada
+Las rutas de Mendoza pueden reemplazarse sin modificar código mediante
+`VITE_BRAND_MENDOZA_ON_LIGHT` y `VITE_BRAND_MENDOZA_ON_BLUE`. Si una imagen configurada
 falla, se intenta el asset autorizado disponible y, en última instancia, se
 muestra el nombre textual del organismo. Estas variables son públicas y Vite
 las incorpora durante el build; cambiar una imagen configurada requiere volver
@@ -58,10 +59,10 @@ SHA-256. No se admite:
 - deformar variantes para adaptarlas a otro fondo;
 - presentar la marca propia de la aplicación como logo de un organismo.
 
-Los archivos de Gobierno de Mendoza, el nuevo logo de Escuelas Promotoras y las
-seis variantes oficiales de OPS fueron entregados por el cliente y están
-documentados en `public/brand/assets-manifest.json`. Login y portal comparten
-la composición OPS + Escuelas Promotoras de Salud + Gobierno de Mendoza.
+Los archivos de Gobierno de Mendoza y Escuelas Promotoras fueron entregados
+por el cliente y están documentados en `public/brand/assets-manifest.json`.
+Login y portal comparten la composición Escuelas Promotoras de Salud +
+Gobierno de Mendoza.
 
 ## Tipografía REM
 

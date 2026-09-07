@@ -10,15 +10,11 @@ type InstitutionalBrandProps = {
   surface?: BrandSurface;
 };
 
-type OrganizationKey = "mendoza" | "eps" | "ops";
+type OrganizationKey = "mendoza" | "eps";
 
 const MENDOZA_DEFAULT_ASSET =
   "/brand/official/mendoza/marca-gobierno-mendoza.png";
 const EPS_DEFAULT_ASSET = "/brand/official/eps/eps-mendoza.jpg";
-const OPS_DEFAULT_ASSETS = {
-  light: ["/brand/official/ops/ops-blue-horizontal.png"],
-  blue: ["/brand/official/ops/ops-white-stacked.png"],
-} as const;
 
 function configuredSources(
   configuredSource: string | undefined,
@@ -70,19 +66,6 @@ const organizations = [
     onLight: [EPS_DEFAULT_ASSET],
     onBlue: [EPS_DEFAULT_ASSET],
   },
-  {
-    key: "ops",
-    label: "Organización Panamericana de la Salud",
-    onLight: configuredSources(
-      getPublicRuntimeConfig("VITE_BRAND_OPS_ON_LIGHT"),
-      OPS_DEFAULT_ASSETS.light,
-    ),
-    onBlue: blueSurfaceSources(
-      getPublicRuntimeConfig("VITE_BRAND_OPS_ON_BLUE"),
-      getPublicRuntimeConfig("VITE_BRAND_OPS_ON_LIGHT"),
-      OPS_DEFAULT_ASSETS.blue,
-    ),
-  },
 ] as const;
 
 /**
@@ -97,7 +80,9 @@ export function InstitutionalBrand({
   surface = "light",
 }: InstitutionalBrandProps) {
   const [failedAssets, setFailedAssets] = useState<Set<string>>(new Set());
-  const [sourceIndexes, setSourceIndexes] = useState<Record<string, number>>({});
+  const [sourceIndexes, setSourceIndexes] = useState<Record<string, number>>(
+    {},
+  );
   const textColor = surface === "blue" ? "text-white/85" : "text-mendoza-muted";
   const visibleOrganizations = organizationKeys
     ? organizationKeys.flatMap((organizationKey) => {
@@ -124,9 +109,7 @@ export function InstitutionalBrand({
           <span
             className={`inline-flex max-w-full shrink-0 items-center justify-center ${
               surface === "blue"
-                ? organization.key === "ops"
-                  ? "px-1 py-1"
-                  : "rounded-md bg-white px-2 py-1 shadow-sm ring-1 ring-white/25"
+                ? "rounded-md bg-white px-2 py-1 shadow-sm ring-1 ring-white/25"
                 : ""
             }`}
             key={organization.key}
@@ -134,18 +117,10 @@ export function InstitutionalBrand({
             <img
               alt={organization.label}
               className={
-                organization.key === "ops"
-                  ? surface === "blue"
-                    ? compact
-                      ? "h-24 w-40 max-w-full object-contain"
-                      : "h-28 w-48 max-w-full object-contain"
-                    : compact
-                      ? "h-12 w-52 max-w-full object-contain"
-                      : "h-16 w-64 max-w-full object-contain"
-                  : organization.key === "eps"
-                    ? compact
-                      ? "h-16 w-32 max-w-full object-contain sm:w-36"
-                      : "h-20 w-40 max-w-full object-contain sm:w-44"
+                organization.key === "eps"
+                  ? compact
+                    ? "h-16 w-32 max-w-full object-contain sm:w-36"
+                    : "h-20 w-40 max-w-full object-contain sm:w-44"
                   : compact
                     ? "h-auto max-h-7 max-w-full object-contain sm:max-w-28"
                     : "h-auto max-h-10 max-w-full object-contain sm:max-w-40"
