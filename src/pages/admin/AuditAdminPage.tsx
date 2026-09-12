@@ -8,6 +8,12 @@ import { ErrorState } from '../../components/ui/ErrorState';
 import { PaginationControls } from '../../components/ui/PaginationControls';
 import { AuditFiltersForm } from '../../components/audit/AuditFiltersForm';
 import { MonitoringSummary } from '../../components/audit/MonitoringSummary';
+import {
+  auditActorLabel,
+  auditEventDescription,
+  auditEventLabel,
+  auditSeverityLabel,
+} from '../../components/audit/audit-display';
 import { auditService } from '../../services/audit.service';
 import type { AuditFilters, AuditPage, MonitoringStatus } from '../../types/audit';
 
@@ -42,24 +48,19 @@ export function AuditAdminPage() {
     <PageHeader eyebrow="Administración" title="Auditoría y salud"
       description="Eventos de acceso, actividad administrativa y salud de la aplicación. Comprobación interna cada minuto."
       actions={<Button disabled={loading} onClick={refresh} icon={<RefreshCw size={16} aria-hidden="true" />}>Actualizar</Button>} />
-    {monitoring && <><MonitoringSummary status={monitoring} /><p className="text-xs text-mendoza-muted">Consulta realizada: {new Date(monitoring.timestamp).toLocaleString('es-AR')}. La aceptación SMTP no confirma lectura del correo.</p></>}
+    {monitoring && <><MonitoringSummary status={monitoring} /><p className="text-xs text-mendoza-muted">Información actualizada: {new Date(monitoring.timestamp).toLocaleString('es-AR')}. Un correo enviado puede no haber sido leído todavía por sus destinatarios.</p></>}
     {error && <ErrorState message="No se pudo consultar la auditoría y el estado del servicio. No se puede confirmar disponibilidad." onRetry={refresh} />}
     <Card><h2 className="mb-4 text-lg font-semibold">Buscar eventos</h2><AuditFiltersForm onApply={applyFilters} loading={loading} /></Card>
     {loading && <LoadingState label="Consultando auditoría…" />}
     {events && <Card><h2 className="mb-4 text-lg font-semibold">Registro de eventos</h2>
-      <p className="mb-4 text-sm text-mendoza-muted">Los usuarios se identifican por su ID. Los eventos históricos pueden no tener IP o correlación. Los registros se consultan; no se editan ni eliminan desde el panel.</p>
+      <p className="mb-4 text-sm text-mendoza-muted">Este historial explica con palabras simples qué ocurrió y quién realizó la acción. Los registros se consultan, pero no se pueden modificar ni eliminar desde esta pantalla.</p>
       <div className="overflow-x-auto"><table className="w-full text-left text-sm"><caption className="sr-only">Eventos de auditoría ordenados del más reciente al más antiguo</caption>
-        <thead><tr className="border-b border-mendoza-border">{['Fecha y hora', 'Evento', 'Usuario / servicio', 'Origen', 'Detalle'].map((label) => <th key={label} scope="col" className="p-3 font-semibold">{label}</th>)}</tr></thead>
+        <thead><tr className="border-b border-mendoza-border">{['Fecha y hora', 'Evento', 'Responsable', 'Qué ocurrió'].map((label) => <th key={label} scope="col" className="p-3 font-semibold">{label}</th>)}</tr></thead>
         <tbody>{events.items.map((event) => <tr key={event.id} className="border-b border-mendoza-border align-top">
           <td className="whitespace-nowrap p-3">{new Date(event.createdAt).toLocaleString('es-AR')}</td>
-          <td className="p-3"><p className="font-medium">{event.action}</p><p className={event.severity === 'error' ? 'text-mendoza-error' : 'text-mendoza-muted'}>{({ info: 'Información', warning: 'Advertencia', error: 'Error' })[event.severity]}</p></td>
-          <td className="max-w-56 break-words p-3">{event.actorUserId ?? 'Sin usuario identificado'}<p className="text-mendoza-muted">{event.service}</p></td>
-          <td className="p-3">{event.sourceIp ?? 'No disponible'}</td>
-          <td className="p-3"><details><summary className="cursor-pointer rounded text-mendoza-blue focus-visible:outline-2">Ver detalle</summary>
-            <p className="mt-2 break-all">Solicitud: {event.requestId ?? 'No disponible'}</p>
-            <p>Recurso: {event.entityType} {event.entityId}</p>
-            <pre className="mt-2 max-w-lg whitespace-pre-wrap break-words rounded bg-mendoza-background p-3 text-xs">{JSON.stringify(event.changes, null, 2)}</pre>
-          </details></td>
+          <td className="max-w-64 p-3"><p className="font-medium">{auditEventLabel(event.action)}</p><p className={event.severity === 'error' ? 'mt-1 text-mendoza-error' : 'mt-1 text-mendoza-muted'}>{auditSeverityLabel(event.severity)}</p></td>
+          <td className="max-w-64 break-words p-3">{auditActorLabel(event)}</td>
+          <td className="min-w-72 max-w-xl p-3 leading-6">{auditEventDescription(event)}</td>
         </tr>)}</tbody>
       </table></div>
       {!events.items.length && <p className="py-6 text-center text-mendoza-muted">No hay eventos para estos filtros.</p>}

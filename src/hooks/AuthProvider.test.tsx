@@ -44,6 +44,18 @@ describe('AuthProvider', () => {
     cleanup();
   });
 
+  it('recupera la sesión existente al recargar sin pedir otro inicio de sesión', async () => {
+    vi.mocked(authService.me).mockResolvedValue(authenticatedUser);
+
+    renderProvider();
+
+    await waitForAuthenticationLoad();
+    expect(screen.getByTestId('user')).toHaveTextContent(
+      authenticatedUser.email,
+    );
+    expect(authService.login).not.toHaveBeenCalled();
+  });
+
   it.each([
     [401, 'none'],
     [503, '503'],

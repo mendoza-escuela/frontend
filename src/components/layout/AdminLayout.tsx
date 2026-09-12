@@ -14,7 +14,6 @@ import { LogoutButton } from "../auth/LogoutButton";
 import { InstitutionalBrand } from "./InstitutionalBrand";
 
 const links = [
-  { to: "/admin/auditoria", label: "Auditoría y salud", icon: ShieldCheck },
   {
     to: "/admin/participacion",
     label: "Participación",
@@ -42,6 +41,7 @@ const links = [
     label: "Seguimiento",
     icon: ListChecks,
   },
+  { to: "/admin/auditoria", label: "Auditoría y salud", icon: ShieldCheck },
 ];
 
 export function AdminLayout() {
