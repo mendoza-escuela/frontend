@@ -7,6 +7,7 @@ import {
   School,
   Settings2,
   Users,
+  ShieldCheck,
 } from "lucide-react";
 import { NavLink, Outlet } from "react-router-dom";
 import { LogoutButton } from "../auth/LogoutButton";
@@ -40,6 +41,7 @@ const links = [
     label: "Seguimiento",
     icon: ListChecks,
   },
+  { to: "/admin/auditoria", label: "Auditoría y salud", icon: ShieldCheck },
 ];
 
 export function AdminLayout() {
