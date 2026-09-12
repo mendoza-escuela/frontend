@@ -44,7 +44,8 @@ describe('Auditoría y salud', () => {
     expect(screen.queryByText('8d21a950-b4fb-4977-8cc7-f6a217d6c0f8')).toBeNull();
     expect(screen.queryByText('5de6eb4e-0e2a-4942-bd8d-8c796e60c532')).toBeNull();
     expect(container.querySelector('img')).toBeNull();
-    fireEvent.change(screen.getByLabelText('Tipo de evento'), { target: { value: 'AUTH_LOGIN_FAILED' } });
+    fireEvent.click(screen.getByRole('button', { name: 'Tipo de evento' }));
+    fireEvent.click(screen.getByRole('option', { name: 'Ingresos rechazados' }));
     fireEvent.click(screen.getByRole('button', { name: 'Aplicar filtros' }));
     await waitFor(() => expect(auditService.list).toHaveBeenLastCalledWith(expect.objectContaining({ action: 'AUTH_LOGIN_FAILED', page: 1 }), expect.any(AbortSignal)));
   });
