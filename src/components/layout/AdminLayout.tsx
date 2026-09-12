@@ -7,12 +7,14 @@ import {
   School,
   Settings2,
   Users,
+  ShieldCheck,
 } from "lucide-react";
 import { NavLink, Outlet } from "react-router-dom";
 import { LogoutButton } from "../auth/LogoutButton";
 import { InstitutionalBrand } from "./InstitutionalBrand";
 
 const links = [
+  { to: "/admin/auditoria", label: "Auditoría y salud", icon: ShieldCheck },
   {
     to: "/admin/participacion",
     label: "Participación",

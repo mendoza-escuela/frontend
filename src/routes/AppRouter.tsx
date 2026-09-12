@@ -20,6 +20,7 @@ const ChangePasswordPage = lazy(() =>
     default: module.ChangePasswordPage,
   })),
 );
+const AuditAdminPage = lazy(() => import("../pages/admin/AuditAdminPage").then((module) => ({ default: module.AuditAdminPage })));
 const ForgotPasswordPage = lazy(() =>
   import("../pages/ForgotPasswordPage").then((module) => ({
     default: module.ForgotPasswordPage,
@@ -201,6 +202,7 @@ const applicationRoutes: RouteObject[] = [
         element: <AdminLayout />,
         children: [
           { index: true, element: <Navigate replace to="participacion" /> },
+          { path: "auditoria", element: lazyPage(<AuditAdminPage />) },
           {
             path: "participacion",
             element: lazyPage(<ParticipationDashboardPage />),
