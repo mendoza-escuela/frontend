@@ -269,6 +269,11 @@ function CampaignCard({
           <h2 className="mt-3 text-xl font-bold text-mendoza-text">
             {campaign.name}
           </h2>
+          {campaign.workflowCycle && campaign.sequenceOrder && (
+            <p className="mt-1 text-xs font-semibold text-mendoza-muted">
+              {campaign.workflowCycle} · Paso {campaign.sequenceOrder}
+            </p>
+          )}
         </div>
         <CalendarRange
           aria-hidden="true"

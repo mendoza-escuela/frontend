@@ -218,6 +218,8 @@ const activeCampaign: AdminCampaign = {
   description: null,
   type: "annual",
   status: "active",
+  workflowCycle: null,
+  sequenceOrder: null,
   startDate: "2026-07-01",
   endDate: "2026-08-31",
   startsAt: "2026-07-01T03:00:00.000Z",

@@ -9,6 +9,8 @@ export type SchoolCampaignSummary = {
   description: string | null;
   type: "annual" | "semiannual";
   status: "draft" | "active" | "closed" | "archived";
+  workflowCycle: string | null;
+  sequenceOrder: number | null;
   startsAt: string;
   endsAt: string;
   surveyVersion: {
@@ -34,6 +36,12 @@ export type AvailableSchoolCampaign = SchoolCampaignSummary & {
   canStart: boolean;
   readOnly?: boolean;
   blockingReason: string | null;
+  workflowStatus: "available" | "locked" | "completed";
+  blockedBy: {
+    id: string;
+    name: string;
+    sequenceOrder: number;
+  } | null;
   submission: {
     id: string;
     status: SchoolSubmissionStatus;

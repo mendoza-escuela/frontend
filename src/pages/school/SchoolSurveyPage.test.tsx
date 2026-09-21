@@ -164,6 +164,77 @@ describe("SchoolSurveyPage expired drafts", () => {
       screen.queryByRole("link", { name: "Ir a la rectificación escolar" }),
     ).not.toBeInTheDocument();
   });
+
+  it("muestra una etapa simultáneamente activa pero bloqueada por el orden", async () => {
+    const lockedCampaign: AvailableSchoolCampaign = {
+      ...activeCampaign,
+      workflowCycle: "Programa 2026",
+      sequenceOrder: 2,
+      workflowStatus: "locked",
+      canStart: false,
+      blockedBy: {
+        id: "campaign-previous",
+        name: "Diagnóstico inicial",
+        sequenceOrder: 1,
+      },
+      blockingReason:
+        "Antes de continuar debés enviar la etapa anterior: Diagnóstico inicial.",
+      submission: null,
+    };
+    vi.mocked(schoolCampaignsService.list).mockResolvedValue({
+      ...campaignsFixture,
+      items: [lockedCampaign],
+      expiredDrafts: [],
+    });
+
+    renderPage();
+
+    expect(await screen.findByText("Bloqueada")).toBeVisible();
+    expect(screen.getByText(/Diagnóstico inicial/)).toBeVisible();
+    expect(
+      screen.getByRole("button", { name: "Comenzar evaluación" }),
+    ).toBeDisabled();
+    expect(schoolCampaignsService.start).not.toHaveBeenCalled();
+  });
+
+  it("usa el desplegable reutilizable para cambiar entre etapas", async () => {
+    const firstCampaign: AvailableSchoolCampaign = {
+      ...activeCampaign,
+      id: "campaign-first",
+      name: "Diagnóstico inicial",
+      workflowCycle: "Recorrido 2026",
+      sequenceOrder: 1,
+      submission: null,
+    };
+    const secondCampaign: AvailableSchoolCampaign = {
+      ...firstCampaign,
+      id: "campaign-second",
+      name: "Plan de mejora",
+      sequenceOrder: 2,
+    };
+    vi.mocked(schoolCampaignsService.list).mockResolvedValue({
+      ...campaignsFixture,
+      items: [firstCampaign, secondCampaign],
+      expiredDrafts: [],
+    });
+
+    renderPage();
+
+    const selector = await screen.findByRole("button", { name: "Etapa" });
+    expect(selector).toHaveTextContent("1. Diagnóstico inicial");
+    fireEvent.click(selector);
+    expect(
+      screen.getByRole("combobox", { name: "Buscar en Etapa" }),
+    ).toBeVisible();
+    fireEvent.click(
+      screen.getByRole("option", { name: "2. Plan de mejora" }),
+    );
+
+    expect(selector).toHaveTextContent("2. Plan de mejora");
+    expect(
+      screen.getByRole("heading", { name: "Plan de mejora" }),
+    ).toBeVisible();
+  });
 });
 
 function renderPage() {
@@ -180,6 +251,8 @@ const expiredCampaign: AvailableSchoolCampaign = {
   description: "Etapa conservada como antecedente.",
   type: "annual",
   status: "closed",
+  workflowCycle: null,
+  sequenceOrder: null,
   startsAt: "2025-03-01T03:00:00.000Z",
   endsAt: "2025-12-01T02:59:59.999Z",
   surveyVersion: {
@@ -192,6 +265,8 @@ const expiredCampaign: AvailableSchoolCampaign = {
     },
   },
   canStart: false,
+  workflowStatus: "available",
+  blockedBy: null,
   blockingReason:
     "La etapa finalizó. El borrador está disponible en sólo lectura.",
   submission: {

@@ -17,7 +17,7 @@ import { Card } from "../../components/ui/Card";
 import { ConfirmDialog } from "../../components/ui/ConfirmDialog";
 import { ErrorState } from "../../components/ui/ErrorState";
 import { LoadingState } from "../../components/ui/LoadingState";
-import { inputClassName } from "../../components/ui/form-styles";
+import { SearchableSelect } from "../../components/ui/SearchableSelect";
 import { formatDateTime } from "../../lib/format";
 import { getHttpErrorMessage } from "../../lib/http-error";
 import { showError, showSuccess } from "../../lib/toast";
@@ -246,22 +246,20 @@ export function SchoolSurveyPage() {
         ) : (
           <>
             {available.items.length > 1 && (
-              <label className="mt-6 block max-w-xl text-sm font-semibold text-mendoza-text">
-                Etapa
-                <select
-                  className={`${inputClassName} mt-2`}
-                  onChange={(event) =>
-                    setSelectedCampaignId(event.target.value)
-                  }
+              <div className="mt-6 max-w-xl">
+                <SearchableSelect
+                  allLabel="Seleccionar etapa"
+                  label="Etapa"
+                  onChange={setSelectedCampaignId}
+                  options={available.items.map((campaign) => ({
+                    value: campaign.id,
+                    label: campaign.sequenceOrder
+                      ? `${campaign.sequenceOrder}. ${campaign.name}`
+                      : campaign.name,
+                  }))}
                   value={selectedCampaignId}
-                >
-                  {available.items.map((campaign) => (
-                    <option key={campaign.id} value={campaign.id}>
-                      {campaign.name}
-                    </option>
-                  ))}
-                </select>
-              </label>
+                />
+              </div>
             )}
 
             {selectedCampaign && (
@@ -640,6 +638,9 @@ function CampaignIntroduction({
           <div className="flex flex-wrap items-center gap-2 text-sm font-semibold text-mendoza-blue">
             <CalendarDays aria-hidden="true" size={18} />
             {campaign.type === "annual" ? "Etapa anual" : "Etapa semestral"}
+            {campaign.workflowCycle && campaign.sequenceOrder && (
+              <span>· {campaign.workflowCycle} · Paso {campaign.sequenceOrder}</span>
+            )}
           </div>
           <h2 className="mt-2 text-2xl font-bold text-mendoza-text">
             {campaign.name}
@@ -661,7 +662,9 @@ function CampaignIntroduction({
         >
           {submitted
             ? "Enviada"
-            : campaign.submission
+            : campaign.workflowStatus === "locked"
+              ? "Bloqueada"
+              : campaign.submission
               ? "Borrador iniciado"
               : "Sin iniciar"}
         </span>
@@ -696,13 +699,13 @@ function CampaignIntroduction({
         </div>
       )}
 
-      {!workspace && !campaign.submission && campaign.blockingReason && (
+      {!workspace && campaign.blockingReason && (
         <div className="mt-4 flex flex-wrap items-center justify-between gap-3 rounded-xl bg-amber-50 p-4 text-sm text-amber-900">
           <span className="flex gap-3">
             <AlertCircle aria-hidden="true" className="shrink-0" size={19} />
             {campaign.blockingReason}
           </span>
-          {schoolActive && (
+          {schoolActive && !campaign.blockedBy && (
             <Link
               className="font-semibold text-mendoza-blue hover:underline"
               to="/colegio/establecimiento"
@@ -728,7 +731,7 @@ function CampaignIntroduction({
       {!workspace && campaign.submission?.status === "draft" && (
         <div className="mt-5 flex justify-end">
           <Button
-            disabled={isOpening}
+            disabled={!campaign.canStart || isOpening}
             icon={<PlayCircle aria-hidden="true" size={18} />}
             onClick={onOpen}
           >

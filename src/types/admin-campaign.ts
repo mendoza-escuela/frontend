@@ -19,6 +19,8 @@ export type AdminCampaign = {
   description: string | null;
   type: CampaignType;
   status: CampaignStatus;
+  workflowCycle: string | null;
+  sequenceOrder: number | null;
   startDate: string;
   endDate: string;
   startsAt: string;
@@ -53,6 +55,13 @@ export type CampaignWriteInput = {
   surveyVersionId: string;
   startDate: string;
   endDate: string;
+  workflowCycle?: string | null;
+  sequenceOrder?: number | null;
+};
+
+export type CampaignWorkflowOption = {
+  name: string;
+  lastSequenceOrder: number;
 };
 
 export type CampaignSchoolAssignmentSource = "manual" | "filter" | "bulk";
